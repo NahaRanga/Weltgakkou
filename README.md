@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Weltgakkou
 
-## Getting Started
+Website kursus bahasa Jepang (dan nanti Jerman) online Weltgakkou. Rancangan lengkap ada di dokumen
+[Rancang Bangun Website Weltgakkou](https://claude.ai/code/artifact/665c3612-172f-4841-aca6-0c20a5ba4467).
 
-First, run the development server:
+Stack: Next.js 16 (App Router), Tailwind CSS 4, Supabase (Postgres, Auth, Storage), Resend untuk email.
+
+## Status: Fase 1 (etalase)
+
+- `/` beranda dengan daftar program dan harga
+- `/program/[slug]` halaman per program dengan form waiting list
+- `/waiting-list` form waiting list mandiri
+- `/faq`
+- Lead tersimpan di tabel `leads` Supabase; admin dikabari lewat email bila Resend diisi.
+  Untuk Fase 1, daftar lead dilihat langsung di Table Editor Supabase.
+
+Harga program ada di `src/lib/programs.ts` dan di seed `supabase/migrations/0001_init.sql`; ubah keduanya bila harga berubah.
+
+## Menjalankan di lokal
 
 ```bash
+npm install
+cp .env.example .env.local   # isi nilai Supabase dan nomor WhatsApp
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Menyiapkan Supabase
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Buat project baru di supabase.com (region Singapore).
+2. Buka SQL Editor, jalankan isi `supabase/migrations/0001_init.sql`.
+3. Salin Project URL dan service role key ke `.env.local` (dan ke env hosting).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Skema sudah mencakup seluruh pipeline (batch, sesi, tagihan, bukti bayar, absensi, ujian, sertifikasi, referral).
+RLS aktif di semua tabel; policy untuk siswa dan pengajar ditambah di Fase 2.
 
-## Learn More
+## Berikutnya (Fase 2)
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pendaftaran batch dan tagihan dengan kode unik, upload bukti bayar, verifikasi admin satu klik yang membuat akun dan
+enrollment otomatis, lalu area siswa berisi jadwal, link Google Meet, materi, dan nilai ujian Jumat.

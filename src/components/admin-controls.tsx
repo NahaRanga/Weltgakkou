@@ -10,6 +10,7 @@ import {
   type VerifyState,
 } from "@/app/admin/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
+import { withBase } from "@/lib/base-path";
 
 function WhatsappFollowUp({ state }: { state: VerifyState }) {
   if (!state.whatsappText) return null;
@@ -79,7 +80,7 @@ export function InstallmentButton({ enrollmentId }: { enrollmentId: string }) {
   const [pending, start] = useTransition();
   if (result.code) {
     return (
-      <a href={`/bayar/${result.code}`} className="text-sm font-semibold text-emerald-700 underline">
+      <a href={withBase(`/bayar/${result.code}`)} className="text-sm font-semibold text-emerald-700 underline">
         Tagihan {result.code} dibuat
       </a>
     );

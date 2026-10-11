@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { withBase } from "@/lib/base-path";
 
 const nav = [
   { href: "/#program", label: "Program", mobile: false },
@@ -12,7 +13,7 @@ export function SiteHeader() {
     <header className="border-b border-stone-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-bold text-stone-900">
-          <Image src="/logo-mark.png" alt="" width={48} height={32} priority className="h-8 w-auto" />
+          <Image src={withBase("/logo-mark.png")} alt="" width={48} height={32} priority className="h-8 w-auto" />
           <span className="text-xl">Weltgakkou</span>
           <span className="font-jp hidden text-sm font-normal text-red-700 sm:inline">世界学校</span>
         </Link>

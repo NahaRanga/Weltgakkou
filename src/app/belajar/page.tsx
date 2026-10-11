@@ -6,6 +6,7 @@ import { Notice } from "@/components/ui/form";
 import { requireDb, requireUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
+import { withBase } from "@/lib/base-path";
 
 export const metadata: Metadata = { title: "Area belajar", robots: { index: false } };
 
@@ -160,7 +161,7 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
               </p>
             </div>
             {canJoin ? (
-              <a href={`/belajar/masuk/${next.id}`} className="rounded-lg bg-red-700 px-5 py-2.5 font-semibold text-white hover:bg-red-800">
+              <a href={withBase(`/belajar/masuk/${next.id}`)} className="rounded-lg bg-red-700 px-5 py-2.5 font-semibold text-white hover:bg-red-800">
                 Masuk kelas
               </a>
             ) : (

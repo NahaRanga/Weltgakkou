@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Bila dipasang di sub-path (misalnya panjimuhammad.com/weltgakko).
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
   // Cache Components belum didukung adapter Cloudflare (OpenNext): halaman jadi hang.
   cacheComponents: false,
 

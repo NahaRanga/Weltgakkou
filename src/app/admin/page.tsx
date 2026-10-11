@@ -7,6 +7,7 @@ import { requireAdmin, requireDb } from "@/lib/auth";
 import { expireOverdueInvoices } from "@/lib/billing";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
+import { withBase } from "@/lib/base-path";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 
@@ -164,7 +165,7 @@ async function AdminContent() {
                           <button className="rounded-lg border border-stone-300 px-3 py-1.5">Tandai {s}</button>
                         </form>
                       ))}
-                    <a href={`/daftar/${b.id}`} className="px-3 py-1.5 text-red-700 underline">
+                    <a href={withBase(`/daftar/${b.id}`)} className="px-3 py-1.5 text-red-700 underline">
                       Link pendaftaran
                     </a>
                   </div>

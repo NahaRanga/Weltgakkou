@@ -9,9 +9,39 @@ import { formatRupiah } from "@/lib/programs";
 
 export type RegisterState = {
   error?: string;
-  fieldErrors?: Partial<Record<"full_name" | "whatsapp" | "email" | "plan", string>>;
+  fieldErrors?: Partial<Record<(typeof fields)[number], string>>;
   values?: Record<string, string>;
 };
+
+const fields = [
+  "full_name",
+  "nickname",
+  "gender",
+  "birth_place_date",
+  "domicile",
+  "address",
+  "education",
+  "education_other",
+  "occupation",
+  "email",
+  "whatsapp",
+  "tiktok",
+  "instagram",
+  "studied_before",
+  "prior_level",
+  "learning_goal",
+  "learning_goal_other",
+  "plan",
+  "referral_code",
+  "agree",
+] as const;
+
+const optionalText = (max = 200) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => v || null);
 
 const schema = z.object({
   full_name: z.string().trim().min(2, "Nama minimal 2 huruf").max(100),
@@ -22,15 +52,35 @@ const schema = z.object({
     .pipe(z.string().regex(/^(\+62|62|0)8\d{7,12}$/, "Nomor WhatsApp tidak valid, contoh 081234567890"))
     .transform((v) => (v.startsWith("+62") ? "62" + v.slice(3) : v.startsWith("0") ? "62" + v.slice(1) : v)),
   email: z.email("Email wajib diisi, dipakai untuk login").transform((v) => v.toLowerCase()),
+  nickname: optionalText(50),
+  gender: z.enum(["laki-laki", "perempuan"]).nullable(),
+  birth_place_date: optionalText(100),
+  domicile: optionalText(100),
+  address: optionalText(300),
+  education: optionalText(100),
+  occupation: optionalText(100),
+  tiktok: z.string().trim().min(2, "Akun TikTok wajib diisi").max(100),
+  instagram: optionalText(100),
+  studied_before: z.enum(["sudah", "belum"], "Pilih salah satu").transform((v) => v === "sudah"),
+  prior_level: optionalText(50),
+  learning_goal: optionalText(100),
   plan: z.enum(["bulanan", "lunas"], "Pilih cara bayar"),
   referral_code: z.string().trim().toUpperCase().max(30).optional(),
+  agree: z.literal("setuju", "Centang pernyataan untuk melanjutkan"),
 });
 
 export async function register(batchId: string, _prev: RegisterState, formData: FormData): Promise<RegisterState> {
-  const values = Object.fromEntries(
-    ["full_name", "whatsapp", "email", "plan", "referral_code"].map((k) => [k, String(formData.get(k) ?? "")]),
-  );
-  const parsed = schema.safeParse({ ...values, referral_code: values.referral_code || undefined });
+  const values: Record<string, string> = Object.fromEntries(fields.map((k) => [k, String(formData.get(k) ?? "")]));
+  // Pilihan "Lainnya" diisi lewat kolom teks tersendiri.
+  const pick = (choice: string, other: string) => (choice === "lainnya" ? other : choice);
+  const parsed = schema.safeParse({
+    ...values,
+    gender: values.gender || null,
+    education: pick(values.education, values.education_other),
+    learning_goal: pick(values.learning_goal, values.learning_goal_other),
+    prior_level: values.studied_before === "sudah" ? values.prior_level : "",
+    referral_code: values.referral_code || undefined,
+  });
   if (!parsed.success) {
     const fieldErrors: RegisterState["fieldErrors"] = {};
     for (const issue of parsed.error.issues) {
@@ -40,6 +90,20 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
     return { error: "Periksa lagi isian yang ditandai.", fieldErrors, values };
   }
   const input = parsed.data;
+  const details = {
+    nickname: input.nickname,
+    gender: input.gender,
+    birth_place_date: input.birth_place_date,
+    domicile: input.domicile,
+    address: input.address,
+    education: input.education,
+    occupation: input.occupation,
+    tiktok: input.tiktok,
+    instagram: input.instagram,
+    studied_before: input.studied_before,
+    prior_level: input.prior_level,
+    learning_goal: input.learning_goal,
+  };
 
   const db = getSupabaseAdmin();
   if (!db) return { error: "Pendaftaran sedang gangguan. Silakan hubungi kami lewat WhatsApp.", values };
@@ -60,7 +124,7 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
   const { data: existing } = await db.from("profiles").select("id").eq("email", input.email).maybeSingle();
   if (existing) {
     profileId = existing.id;
-    await db.from("profiles").update({ whatsapp: input.whatsapp }).eq("id", profileId);
+    await db.from("profiles").update({ whatsapp: input.whatsapp, ...details }).eq("id", profileId);
   } else {
     const { data: created, error } = await db.auth.admin.createUser({
       email: input.email,
@@ -77,6 +141,7 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
       email: input.email,
       full_name: input.full_name,
       whatsapp: input.whatsapp,
+      ...details,
       referral_code: referralCodeFor(input.full_name, profileId),
     });
     if (profileError) throw profileError;
@@ -99,11 +164,17 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
   let enrollmentId: string;
   if (prior) {
     enrollmentId = prior.id;
-    await db.from("enrollments").update({ status: "menunggu_bayar", plan: input.plan, referral_code: input.referral_code ?? null }).eq("id", prior.id);
+    await db.from("enrollments").update({ status: "menunggu_bayar", plan: input.plan, referral_code: input.referral_code ?? null, agreed_at: new Date().toISOString() }).eq("id", prior.id);
   } else {
     const { data: enrollment, error } = await db
       .from("enrollments")
-      .insert({ profile_id: profileId, batch_id: batchId, plan: input.plan, referral_code: input.referral_code ?? null })
+      .insert({
+        profile_id: profileId,
+        batch_id: batchId,
+        plan: input.plan,
+        referral_code: input.referral_code ?? null,
+        agreed_at: new Date().toISOString(),
+      })
       .select("id")
       .single();
     if (error) throw error;

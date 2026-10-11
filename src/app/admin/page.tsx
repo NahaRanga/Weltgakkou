@@ -44,6 +44,24 @@ type PendingInvoice = {
   payment_proofs: { file_path: string; uploaded_at: string }[];
 };
 
+type ParticipantProfile = {
+  full_name: string;
+  whatsapp: string | null;
+  email: string | null;
+  nickname: string | null;
+  gender: string | null;
+  birth_place_date: string | null;
+  domicile: string | null;
+  address: string | null;
+  education: string | null;
+  occupation: string | null;
+  tiktok: string | null;
+  instagram: string | null;
+  studied_before: boolean | null;
+  prior_level: string | null;
+  learning_goal: string | null;
+};
+
 type BatchRow = {
   id: string;
   name: string;
@@ -56,7 +74,7 @@ type BatchRow = {
     id: string;
     status: string;
     plan: string;
-    profiles: { full_name: string; whatsapp: string | null };
+    profiles: ParticipantProfile;
     invoices: { installment_no: number; status: string }[];
   }[];
 };
@@ -77,7 +95,7 @@ async function AdminContent() {
     db
       .from("batches")
       .select(
-        "id, name, status, start_date, quota, meeting_url, programs(name), enrollments(id, status, plan, profiles(full_name, whatsapp), invoices(installment_no, status))",
+        "id, name, status, start_date, quota, meeting_url, programs(name), enrollments(id, status, plan, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
       )
       .neq("status", "selesai")
       .order("start_date"),
@@ -192,6 +210,7 @@ async function AdminContent() {
                                     WA
                                   </a>
                                 )}
+                                <ParticipantDetails p={e.profiles} />
                               </td>
                               <td>{e.status === "aktif" ? "Aktif" : "Menunggu bayar"}</td>
                               <td>{e.plan === "bulanan" ? `${paid} bulan lunas` : paid ? "Lunas" : "-"}</td>
@@ -258,5 +277,38 @@ async function AdminContent() {
         </div>
       </Section>
     </>
+  );
+}
+
+function ParticipantDetails({ p }: { p: ParticipantProfile }) {
+  const studied = p.studied_before === null ? null : p.studied_before ? `Sudah${p.prior_level ? ` (${p.prior_level})` : ""}` : "Belum";
+  const rows: [string, string | null][] = [
+    ["Panggilan", p.nickname],
+    ["Email", p.email],
+    ["Jenis kelamin", p.gender],
+    ["TTL", p.birth_place_date],
+    ["Domisili", p.domicile],
+    ["Alamat", p.address],
+    ["Pendidikan", p.education],
+    ["Pekerjaan", p.occupation],
+    ["TikTok", p.tiktok],
+    ["Instagram", p.instagram],
+    ["Pernah belajar", studied],
+    ["Tujuan", p.learning_goal],
+  ];
+  return (
+    <details className="mt-1 text-xs text-stone-600">
+      <summary className="cursor-pointer text-stone-500">Data peserta</summary>
+      <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+        {rows
+          .filter(([, value]) => value)
+          .map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt className="text-stone-500">{label}</dt>
+              <dd className="text-stone-800">{value}</dd>
+            </div>
+          ))}
+      </dl>
+    </details>
   );
 }

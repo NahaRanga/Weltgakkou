@@ -1,0 +1,74 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAuth } from "@/lib/supabase-server";
+import { sendEmail } from "@/lib/email";
+import { siteUrl } from "@/lib/format";
+
+export type AuthState = { error?: string; ok?: string };
+
+function safeNext(raw: FormDataEntryValue | null) {
+  const next = String(raw ?? "");
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/belajar";
+}
+
+export async function signIn(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const auth = await getSupabaseAuth();
+  if (!auth) return { error: "Login belum aktif. Hubungi admin." };
+
+  const { error } = await auth.auth.signInWithPassword({
+    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    password: String(formData.get("password") ?? ""),
+  });
+  if (error) return { error: "Email atau password salah." };
+  redirect(safeNext(formData.get("next")));
+}
+
+export async function signOut() {
+  const auth = await getSupabaseAuth();
+  await auth?.auth.signOut();
+  redirect("/");
+}
+
+// Link atur password dibuat di server lalu dikirim lewat Resend, supaya tidak
+// bergantung pada pengirim email bawaan Supabase yang kuotanya kecil.
+export async function createPasswordLink(email: string) {
+  const db = getSupabaseAdmin();
+  if (!db) return null;
+  const { data, error } = await db.auth.admin.generateLink({ type: "recovery", email });
+  if (error || !data.properties?.hashed_token) return null;
+  return `${siteUrl()}/auth/confirm?token_hash=${data.properties.hashed_token}&type=recovery`;
+}
+
+export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const ok = { ok: "Kalau email ini terdaftar, link untuk mengatur password sudah kami kirim." };
+  if (!email.includes("@")) return { error: "Email tidak valid." };
+
+  const db = getSupabaseAdmin();
+  const { data: profile } = db ? await db.from("profiles").select("id").eq("email", email).maybeSingle() : { data: null };
+  if (!profile) return ok;
+
+  const link = await createPasswordLink(email);
+  if (link) {
+    await sendEmail(
+      email,
+      "Atur password akun Weltgakkou",
+      `Klik link berikut untuk mengatur password akun Weltgakkou kamu:\n\n${link}\n\nLink berlaku 1 jam. Abaikan email ini bila kamu tidak memintanya.`,
+    );
+  }
+  return ok;
+}
+
+export async function setPassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) return { error: "Password minimal 8 karakter." };
+  if (password !== String(formData.get("confirm") ?? "")) return { error: "Kedua password tidak sama." };
+
+  const auth = await getSupabaseAuth();
+  if (!auth) return { error: "Login belum aktif. Hubungi admin." };
+  const { error } = await auth.auth.updateUser({ password });
+  if (error) return { error: "Link sudah kedaluwarsa. Minta link baru lewat halaman lupa password." };
+  redirect("/belajar");
+}

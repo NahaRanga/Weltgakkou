@@ -3,6 +3,7 @@ import Link from "next/link";
 const nav = [
   { href: "/#program", label: "Program" },
   { href: "/faq", label: "FAQ" },
+  { href: "/belajar", label: "Masuk" },
 ];
 
 export function SiteHeader() {

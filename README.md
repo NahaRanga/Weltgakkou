@@ -5,14 +5,24 @@ Website kursus bahasa Jepang (dan nanti Jerman) online Weltgakkou. Rancangan len
 
 Stack: Next.js 16 (App Router), Tailwind CSS 4, Supabase (Postgres, Auth, Storage), Resend untuk email.
 
-## Status: Fase 1 (etalase)
+## Isi website
 
-- `/` beranda dengan daftar program dan harga
-- `/program/[slug]` halaman per program dengan form waiting list
-- `/waiting-list` form waiting list mandiri
-- `/faq`
-- Lead tersimpan di tabel `leads` Supabase; admin dikabari lewat email bila Resend diisi.
-  Untuk Fase 1, daftar lead dilihat langsung di Table Editor Supabase.
+**Fase 1, etalase:** beranda, halaman program dengan harga, waiting list, FAQ.
+
+**Fase 2, pipeline siswa:**
+
+1. Admin membuat batch di `/admin` (jadwal sesi Senin-Kamis dan ujian Jumat dibuat otomatis, jam WIB).
+2. Halaman program menampilkan batch yang dibuka; calon siswa daftar di `/daftar/[batch]`.
+3. Sistem membuat tagihan dengan kode unik 3 digit (berlaku 24 jam) di `/bayar/[kode]`,
+   menampilkan rekening dan QRIS, lalu siswa mengunggah bukti.
+4. Admin mencocokkan mutasi dan klik **Terima** di `/admin`: tagihan lunas, kelas aktif, fee referral tercatat,
+   dan siswa menerima link untuk membuat password (lewat email Resend, atau pesan WhatsApp siap kirim bila Resend belum diisi).
+5. Siswa masuk ke `/belajar`: kelas berikutnya dengan tombol **Masuk kelas** (aktif 15 menit sebelum mulai,
+   mencatat kehadiran lalu membuka Google Meet), jadwal lengkap, materi, nilai, kehadiran, dan tagihan cicilan.
+6. Siswa cicilan bulanan: admin klik "Buat tagihan bulan berikutnya".
+
+Belum ada: halaman pengajar untuk input materi dan nilai (sementara lewat Table Editor Supabase),
+sertifikat PDF otomatis, dan pembayaran otomatis (Midtrans/Xendit, Fase 3).
 
 Harga program ada di `src/lib/programs.ts` dan di seed `supabase/migrations/0001_init.sql`; ubah keduanya bila harga berubah.
 
@@ -20,20 +30,22 @@ Harga program ada di `src/lib/programs.ts` dan di seed `supabase/migrations/0001
 
 ```bash
 npm install
-cp .env.example .env.local   # isi nilai Supabase dan nomor WhatsApp
+npx supabase start          # butuh Docker; menjalankan Supabase lokal dan semua migrasi
+cp .env.example .env.local  # isi dengan URL dan key dari output perintah di atas
 npm run dev
 ```
 
-## Menyiapkan Supabase
+## Menyiapkan Supabase production
 
 1. Buat project baru di supabase.com (region Singapore).
-2. Buka SQL Editor, jalankan isi `supabase/migrations/0001_init.sql`.
-3. Salin Project URL dan service role key ke `.env.local` (dan ke env hosting).
+2. Jalankan semua file di `supabase/migrations/` berurutan lewat SQL Editor (atau `npx supabase db push`).
+3. Isi env di hosting sesuai `.env.example`.
+4. Buat akun admin pertama: Authentication > Add user (email + password), lalu di SQL Editor:
 
-Skema sudah mencakup seluruh pipeline (batch, sesi, tagihan, bukti bayar, absensi, ujian, sertifikasi, referral).
-RLS aktif di semua tabel; policy untuk siswa dan pengajar ditambah di Fase 2.
+```sql
+insert into profiles (id, email, full_name, role)
+select id, email, 'Winata', 'admin' from auth.users where email = 'email-admin@contoh.com';
+```
 
-## Berikutnya (Fase 2)
-
-Pendaftaran batch dan tagihan dengan kode unik, upload bukti bayar, verifikasi admin satu klik yang membuat akun dan
-enrollment otomatis, lalu area siswa berisi jadwal, link Google Meet, materi, dan nilai ujian Jumat.
+Semua data dibaca dan ditulis lewat server setelah sesi login dicek. RLS aktif di semua tabel tanpa policy publik
+(kecuali daftar program), jadi kunci publishable tidak bisa dipakai untuk membaca data siswa.

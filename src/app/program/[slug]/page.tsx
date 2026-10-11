@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { getOpenBatches } from "@/lib/batches";
+import { formatDate } from "@/lib/format";
 import { WaitingListForm } from "@/components/waiting-list-form";
 import { formatRupiah, getProgram, programs } from "@/lib/programs";
 
@@ -66,13 +69,44 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
         )}
       </div>
 
-      <aside className="h-fit rounded-xl border border-stone-200 bg-white p-6 lg:sticky lg:top-6">
+      <aside className="h-fit space-y-6 lg:sticky lg:top-6">
+        <Suspense fallback={null}>
+          <OpenBatches slug={program.slug} />
+        </Suspense>
+        <div className="rounded-xl border border-stone-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-stone-900">
-          {program.open ? "Daftar batch berikutnya" : "Kabari saya saat dibuka"}
+          {program.open ? "Belum cocok jadwalnya?" : "Kabari saya saat dibuka"}
         </h2>
         <p className="mb-4 mt-1 text-sm text-stone-600">Isi waiting list, tim kami menghubungi lewat WhatsApp.</p>
         <WaitingListForm programs={formPrograms} defaultProgram={program.slug} />
+        </div>
       </aside>
+    </div>
+  );
+}
+
+async function OpenBatches({ slug }: { slug: string }) {
+  const batches = await getOpenBatches(slug);
+  if (batches.length === 0) return null;
+  return (
+    <div className="rounded-xl border-2 border-red-700 bg-white p-6">
+      <h2 className="text-lg font-semibold text-stone-900">Pendaftaran dibuka</h2>
+      <ul className="mt-3 space-y-3">
+        {batches.map((b) => (
+          <li key={b.id} className="rounded-lg bg-stone-50 p-3">
+            <p className="font-semibold text-stone-900">{b.name}</p>
+            <p className="text-sm text-stone-600">
+              Mulai {formatDate(b.start_date)} · {b.schedule_label}
+            </p>
+            <p className="text-sm text-stone-600">{b.seatsLeft > 0 ? `Sisa ${b.seatsLeft} kursi` : "Kuota penuh"}</p>
+            {b.seatsLeft > 0 && (
+              <Link href={`/daftar/${b.id}`} className="mt-2 inline-block rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+                Daftar batch ini
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

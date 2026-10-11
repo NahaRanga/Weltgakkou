@@ -49,3 +49,22 @@ select id, email, 'Winata', 'admin' from auth.users where email = 'email-admin@c
 
 Semua data dibaca dan ditulis lewat server setelah sesi login dicek. RLS aktif di semua tabel tanpa policy publik
 (kecuali daftar program), jadi kunci publishable tidak bisa dipakai untuk membaca data siswa.
+
+## Deploy ke Cloudflare Workers
+
+Website berjalan di Cloudflare Workers lewat adapter [OpenNext](https://opennext.js.org/cloudflare) (paket gratis cukup).
+Cache Components Next.js sengaja dimatikan karena belum didukung adapter ini.
+
+1. Cloudflare dashboard > Workers & Pages > Create > **Import a repository**, pilih `NahaRanga/Weltgakkou`.
+2. Build command: `npx opennextjs-cloudflare build`. Deploy command: `npx opennextjs-cloudflare deploy`.
+3. Variabel saat build (Build variables): `NEXT_PUBLIC_WA_NUMBER`, `NEXT_PUBLIC_QRIS_IMAGE_URL`.
+4. Variabel saat jalan (Settings > Variables and Secrets): semua isi `.env.example` lainnya.
+   Simpan `SUPABASE_SERVICE_ROLE_KEY` dan `RESEND_API_KEY` sebagai **Secret**.
+5. Domain: Settings > Domains & Routes > Add custom domain `weltgakkou.com` (domain harus sudah ada di akun Cloudflare).
+
+Coba di lokal dengan runtime Cloudflare: salin `.env.local` ke `.dev.vars`, lalu `npm run preview`.
+Catatan: flag `global_fetch_strictly_public` di `wrangler.jsonc` memblokir fetch ke 127.0.0.1, jadi untuk
+uji dengan Supabase lokal hapus flag itu sementara.
+
+`patches/` berisi perbaikan kecil untuk `@opennextjs/cloudflare` 1.20.10 (manifest `preview-props.json` dari Next 16.4
+belum ikut di-bundle); dipasang otomatis oleh `postinstall`.

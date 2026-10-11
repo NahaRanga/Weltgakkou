@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { getOpenBatches } from "@/lib/batches";
 import { formatDate } from "@/lib/format";
@@ -86,6 +87,7 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
 }
 
 async function OpenBatches({ slug }: { slug: string }) {
+  await connection(); // kuota batch selalu dibaca saat request, bukan saat build
   const batches = await getOpenBatches(slug);
   if (batches.length === 0) return null;
   return (

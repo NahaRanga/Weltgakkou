@@ -1,5 +1,4 @@
 import "server-only";
-import { cacheLife, cacheTag } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export type OpenBatch = {
@@ -11,12 +10,8 @@ export type OpenBatch = {
   seatsLeft: number;
 };
 
-// Batch yang sedang membuka pendaftaran untuk satu program. Di-cache beberapa menit
-// supaya halaman program tetap cepat; admin memanggil revalidateTag("batches").
+// Batch yang sedang membuka pendaftaran untuk satu program, dibaca langsung per request.
 export async function getOpenBatches(programSlug: string): Promise<OpenBatch[]> {
-  "use cache";
-  cacheLife("minutes");
-  cacheTag("batches");
 
   const db = getSupabaseAdmin();
   if (!db) return [];

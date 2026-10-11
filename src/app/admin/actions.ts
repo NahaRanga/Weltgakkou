@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh, updateTag } from "next/cache";
+import { refresh } from "next/cache";
 import { z } from "zod";
 import { createPasswordLink } from "@/app/masuk/actions";
 import { requireAdmin, requireDb } from "@/lib/auth";
@@ -63,7 +63,6 @@ export async function acceptPayment(invoiceId: string): Promise<VerifyState> {
   }
   // Tanpa refresh(): kartu verifikasi harus tetap tampil supaya admin bisa
   // menyalin pesan WhatsApp berisi link login.
-  updateTag("batches");
 
   // Siswa baru menerima link untuk membuat password; siswa lama cukup diberi tahu.
   const link = firstPayment ? await createPasswordLink(student.email) : null;
@@ -175,8 +174,6 @@ export async function createBatch(_prev: BatchState, formData: FormData): Promis
     const { error: sessionError } = await db.from("sessions").insert(sessions);
     if (sessionError) return { error: sessionError.message };
   }
-
-  updateTag("batches");
   refresh();
   return { ok: `Batch dibuat dengan ${sessions.length} sesi.` };
 }
@@ -184,7 +181,6 @@ export async function createBatch(_prev: BatchState, formData: FormData): Promis
 export async function setBatchStatus(batchId: string, status: "buka" | "berjalan" | "selesai") {
   await requireAdmin();
   await requireDb().from("batches").update({ status }).eq("id", batchId);
-  updateTag("batches");
   refresh();
 }
 

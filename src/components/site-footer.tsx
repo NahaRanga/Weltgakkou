@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { waLink } from "@/lib/site";
 
@@ -6,7 +7,7 @@ export function SiteFooter() {
     <footer className="mt-16 border-t border-stone-200 bg-white">
       <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 text-sm text-stone-600 sm:grid-cols-3">
         <div>
-          <p className="font-semibold text-stone-900">Weltgakkou</p>
+          <Image src="/logo-full.png" alt="Weltgakkou Academie" width={120} height={106} className="h-auto w-28" />
           <p className="mt-1">Kursus bahasa Jepang dan Jerman online untuk kerja, studi, dan JLPT.</p>
         </div>
         <div className="space-y-1">

@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { updateTag } from "next/cache";
 import { z } from "zod";
 import { createInvoice, seatsTaken } from "@/lib/billing";
 import { notifyAdmin } from "@/lib/email";
@@ -113,7 +112,6 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
 
   const code = await createInvoice(db, { enrollmentId, baseAmount, installmentNo: 1, dueInHours: 24 });
   await db.from("leads").update({ status: "daftar" }).eq("whatsapp", input.whatsapp).in("status", ["baru", "dihubungi"]);
-  updateTag("batches");
 
   await notifyAdmin(
     `Pendaftar baru: ${input.full_name} (${program.name})`,

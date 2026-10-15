@@ -63,6 +63,8 @@ WhatsApp ada di `wrangler.jsonc` dan `.env.production`; ubah di sana bila pindah
 2. Build command: `npx opennextjs-cloudflare build`. Deploy command: `npx opennextjs-cloudflare deploy`.
 3. Settings > Variables and Secrets, tambah sebagai **Secret**: `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
    `SUPABASE_SERVICE_ROLE_KEY`, `BANK_NAME`, `BANK_ACCOUNT_NUMBER`, `BANK_ACCOUNT_HOLDER`
+   Nilai Supabase ada di Supabase > Project Settings > Data API (Project URL) dan API Keys
+   (anon/publishable untuk `SUPABASE_ANON_KEY`, service_role/secret untuk `SUPABASE_SERVICE_ROLE_KEY`).
    (opsional `RESEND_API_KEY`, `ADMIN_EMAIL`, `EMAIL_FROM`). Variabel biasa di dashboard akan tertimpa `vars`
    dari `wrangler.jsonc` setiap deploy, jadi pakai Secret.
 4. Setelah itu setiap push ke `main` otomatis di-build dan di-deploy.

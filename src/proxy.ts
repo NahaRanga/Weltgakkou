@@ -1,14 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { supabaseEnv } from "@/lib/supabase-env";
 
 // Memperbarui token sesi Supabase sebelum halaman yang butuh login dirender.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const url = process.env.SUPABASE_URL;
-  const anon = process.env.SUPABASE_ANON_KEY;
-  if (!url || !anon) return response;
+  const env = supabaseEnv("SUPABASE_ANON_KEY");
+  if (!env) return response;
 
-  const supabase = createServerClient(url, anon, {
+  const supabase = createServerClient(env.url, env.key, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {
@@ -18,7 +18,12 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch (error) {
+    // Supabase tidak terjangkau atau kunci salah: tetap tampilkan halaman tanpa sesi.
+    console.error("Gagal memperbarui sesi Supabase", error);
+  }
   return response;
 }
 

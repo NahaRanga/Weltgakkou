@@ -21,7 +21,12 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
     email: String(formData.get("email") ?? "").trim().toLowerCase(),
     password: String(formData.get("password") ?? ""),
   });
-  if (error) return { error: "Email atau password salah." };
+  if (error) {
+    if (error.code === "invalid_credentials") return { error: "Email atau password salah." };
+    // Selain password salah biasanya karena kunci/alamat Supabase keliru atau tidak terjangkau.
+    console.error("Login gagal", error.status, error.code, error.message);
+    return { error: `Login sedang gangguan (${error.code ?? error.status ?? "tidak diketahui"}). Hubungi admin.` };
+  }
   redirect(safeNext(formData.get("next")));
 }
 

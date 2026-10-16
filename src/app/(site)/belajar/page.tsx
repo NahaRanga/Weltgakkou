@@ -7,6 +7,7 @@ import { requireDb, requireUser, type CurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 import { withBase } from "@/lib/base-path";
+import { MonthCalendar, MonthNav, monthTitle, resolveMonth, timeLabel, type CalendarMonth } from "@/components/month-calendar";
 
 export const metadata: Metadata = { title: "Area belajar", robots: { index: false } };
 
@@ -19,17 +20,20 @@ function requestTime() {
   return Date.now();
 }
 
-export default async function LearnPage() {
+export default async function LearnPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // Cek login sebelum streaming dimulai, supaya pengunjung tanpa sesi mendapat redirect HTTP biasa.
   const user = await requireUser("/belajar");
+  const sp = await searchParams;
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <Suspense fallback={<p className="text-stone-500">Memuat kelas kamu...</p>}>
-        <LearnContent user={user} />
+        <LearnContent user={user} cal={resolveMonth(sp.bulan, requestTime())} meetMissing={sp.meet === "belum"} />
       </Suspense>
     </div>
   );
 }
+
+type Session = { id: string; number: number; starts_at: string; kind: string; topic: string | null; meeting_url: string | null };
 
 type Enrollment = {
   id: string;
@@ -43,18 +47,18 @@ type Enrollment = {
     schedule_label: string;
     meeting_url: string | null;
     programs: { id: string; name: string };
-    sessions: { id: string; number: number; starts_at: string; kind: string; topic: string | null }[];
+    sessions: Session[];
   };
   invoices: { code: string; status: string; amount: number; installment_no: number; due_at: string }[];
 };
 
-async function LearnContent({ user }: { user: CurrentUser }) {
+async function LearnContent({ user, cal, meetMissing }: { user: CurrentUser; cal: CalendarMonth; meetMissing: boolean }) {
   const db = requireDb();
 
   const { data, error } = await db
     .from("enrollments")
     .select(
-      "id, status, plan, batch_id, batches(id, name, start_date, schedule_label, meeting_url, programs(id, name), sessions(id, number, starts_at, kind, topic)), invoices(code, status, amount, installment_no, due_at)",
+      "id, status, plan, batch_id, batches(id, name, start_date, schedule_label, meeting_url, programs(id, name), sessions(id, number, starts_at, kind, topic, meeting_url)), invoices(code, status, amount, installment_no, due_at)",
     )
     .eq("profile_id", user.id)
     .neq("status", "keluar")
@@ -95,6 +99,14 @@ async function LearnContent({ user }: { user: CurrentUser }) {
           </Notice>
         </div>
       )}
+
+      {meetMissing && (
+        <div className="mt-8">
+          <Notice tone="info">Link kelas untuk sesi ini belum diisi sensei. Coba lagi sebentar lagi atau hubungi admin.</Notice>
+        </div>
+      )}
+
+      <ClassCalendar enrollments={enrollments.filter((e) => e.status !== "menunggu_bayar")} cal={cal} />
 
       {enrollments.map((e) => (
         <EnrollmentCard key={e.id} enrollment={e} userId={user.id} />
@@ -266,6 +278,109 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
           ))}
         </ol>
       </details>
+    </section>
+  );
+}
+
+type CalendarSession = Session & { batchName: string; programName: string; hasLink: boolean };
+
+// Kalender pribadi siswa: semua sesi dari batch yang dia ikuti, plus daftar kelas berikutnya.
+function ClassCalendar({ enrollments, cal }: { enrollments: Enrollment[]; cal: CalendarMonth }) {
+  if (enrollments.length === 0) return null;
+  const now = requestTime();
+  const all: CalendarSession[] = enrollments
+    .flatMap((e) =>
+      (e.batches.sessions ?? []).map((s) => ({
+        ...s,
+        batchName: e.batches.name,
+        programName: e.batches.programs.name,
+        hasLink: Boolean(s.meeting_url || e.batches.meeting_url),
+      })),
+    )
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const inMonth = all.filter((s) => {
+    const t = new Date(s.starts_at).getTime();
+    return t >= cal.start && t < cal.end;
+  });
+  const upcoming = all.filter((s) => new Date(s.starts_at).getTime() + OPEN_AFTER_MS > now).slice(0, 3);
+
+  const isOpen = (s: CalendarSession) => {
+    const t = new Date(s.starts_at).getTime();
+    return t - OPEN_BEFORE_MS <= now && now < t + OPEN_AFTER_MS;
+  };
+  const label = (s: CalendarSession) => `${s.kind === "ujian" ? "Ujian" : `Kelas ${s.number}`}${s.topic ? ` · ${s.topic}` : ""}`;
+  const joinButton = (s: CalendarSession, small = false) =>
+    !s.hasLink ? (
+      <span className="text-xs text-stone-500">Link kelas belum diisi sensei</span>
+    ) : isOpen(s) ? (
+      <a
+        href={withBase(`/belajar/masuk/${s.id}`)}
+        className={`rounded-lg bg-red-700 font-semibold text-white hover:bg-red-800 ${small ? "px-3 py-1 text-xs" : "px-4 py-2 text-sm"}`}
+      >
+        Masuk kelas
+      </a>
+    ) : (
+      <span className="text-xs text-stone-500">Link siap, tombol aktif 15 menit sebelum mulai</span>
+    );
+
+  return (
+    <section className="mt-8 space-y-6">
+      <div className="rounded-xl border border-stone-200 bg-white p-6">
+        <h2 className="text-xl font-semibold text-stone-900">Kelas berikutnya</h2>
+        {upcoming.length === 0 ? (
+          <p className="mt-2 text-sm text-stone-500">Belum ada jadwal kelas berikutnya.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-stone-100">
+            {upcoming.map((s) => (
+              <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div>
+                  <p className="font-semibold text-stone-900">
+                    {formatDateTime(s.starts_at)} WIB
+                  </p>
+                  <p className="text-sm text-stone-600">
+                    {s.programName} · {label(s)}
+                  </p>
+                </div>
+                {joinButton(s)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div id="kalender" className="scroll-mt-20 rounded-xl border border-stone-200 bg-white p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-stone-900">Kalender kelas · {monthTitle(cal)}</h2>
+          <MonthNav
+            cal={cal}
+            path="/belajar"
+            buttonClass="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50"
+          />
+        </div>
+        <MonthCalendar
+          cal={cal}
+          items={inMonth}
+          renderItem={(s) => (
+            <p
+              title={`${s.programName} · ${s.batchName} · ${label(s)}`}
+              className={`flex items-center gap-1.5 truncate rounded px-1 py-0.5 text-xs ${s.kind === "ujian" ? "bg-amber-50 text-amber-900" : "bg-red-50 text-red-900"}`}
+            >
+              <span className="tabular-nums">{timeLabel(s.starts_at)}</span>
+              <span className="truncate">{label(s)}</span>
+            </p>
+          )}
+          renderMobileItem={(s) => (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-stone-50 px-3 py-2">
+              <div className="text-sm">
+                <span className="font-semibold tabular-nums text-stone-900">{timeLabel(s.starts_at)} WIB</span>{" "}
+                <span className="text-stone-700">· {label(s)}</span>
+                <p className="text-xs text-stone-500">{s.programName}</p>
+              </div>
+              {joinButton(s, true)}
+            </div>
+          )}
+        />
+      </div>
     </section>
   );
 }

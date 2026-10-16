@@ -13,6 +13,7 @@ import {
   markInvoicePaid,
   rejectPayment,
   sendPasswordLink,
+  setBatchMeetingUrl,
   updateBatch,
   updateProfile,
   type BatchState,
@@ -173,8 +174,8 @@ export function BatchForm({ programs }: { programs: { id: string; name: string; 
       <Field label="Keterangan jadwal (tampil ke calon siswa)">
         <input name="schedule_label" required defaultValue="Senin-Kamis 19.30-21.00 WIB, ujian Jumat" className={inputClass} />
       </Field>
-      <Field label="Link Google Meet (bisa diisi nanti)">
-        <input name="meeting_url" type="url" placeholder="https://meet.google.com/..." className={inputClass} />
+      <Field label="Link kelas Zoom/Meet (bisa diisi nanti, juga oleh sensei)">
+        <input name="meeting_url" type="url" placeholder="https://zoom.us/j/..." className={inputClass} />
       </Field>
       <div className="sm:col-span-2">
         <button className={buttonClass} disabled={pending}>
@@ -264,13 +265,30 @@ export function BatchEditForm({
         </select>
       </Field>
       <div className="sm:col-span-2">
-        <Field label="Link Google Meet batch">
-          <input name="meeting_url" type="url" defaultValue={batch.meeting_url ?? ""} placeholder="https://meet.google.com/..." className={inputClass} />
-        </Field>
-      </div>
-      <div className="sm:col-span-2">
         <button className={buttonClass} disabled={pending}>
           {pending ? "Menyimpan..." : "Simpan batch"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function MeetingLinkForm({ batchId, meetingUrl }: { batchId: string; meetingUrl: string | null }) {
+  const [state, action, pending] = useActionState(setBatchMeetingUrl.bind(null, batchId), {} as FormState);
+  return (
+    <form action={action} className="space-y-3">
+      <Messages state={state} />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          name="meeting_url"
+          type="url"
+          defaultValue={meetingUrl ?? ""}
+          placeholder="https://zoom.us/j/..."
+          aria-label="Link kelas Zoom atau Meet"
+          className={`${inputClass} sm:flex-1`}
+        />
+        <button className={buttonClass} disabled={pending}>
+          {pending ? "Menyimpan..." : "Simpan link"}
         </button>
       </div>
     </form>

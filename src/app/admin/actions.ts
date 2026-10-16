@@ -185,12 +185,15 @@ export async function setBatchStatus(batchId: string, status: "buka" | "berjalan
   refresh();
 }
 
-export async function setBatchMeetingUrl(batchId: string, formData: FormData) {
-  await requireAdmin();
+// Link kelas (Zoom/Meet) untuk satu batch; diisi admin atau sensei batch itu. Sesi tanpa link sendiri memakai link ini.
+export async function setBatchMeetingUrl(batchId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireBatchStaff(batchId);
   const url = String(formData.get("meeting_url") ?? "").trim();
-  if (url && !/^https:\/\//.test(url)) return;
-  await requireDb().from("batches").update({ meeting_url: url || null }).eq("id", batchId);
+  if (url && !/^https:\/\/\S+$/.test(url)) return { error: "Link harus diawali https://, contoh https://zoom.us/j/1234567890" };
+  const { error } = await requireDb().from("batches").update({ meeting_url: url || null }).eq("id", batchId);
+  if (error) return { error: error.message };
   refresh();
+  return { ok: url ? "Link kelas disimpan. Siswa bisa masuk lewat tombol Masuk kelas." : "Link kelas dihapus." };
 }
 
 export async function createNextInstallment(enrollmentId: string): Promise<{ code?: string; error?: string }> {
@@ -226,7 +229,6 @@ const batchUpdateSchema = z.object({
   name: z.string().trim().min(2).max(80),
   schedule_label: z.string().trim().min(2).max(120),
   quota: z.coerce.number().int().min(1).max(50),
-  meeting_url: z.union([z.literal(""), z.url()]),
   teacher_id: z.union([z.literal(""), z.uuid()]),
 });
 
@@ -237,7 +239,7 @@ export async function updateBatch(batchId: string, _prev: FormState, formData: F
   const b = parsed.data;
   const { error } = await requireDb()
     .from("batches")
-    .update({ name: b.name, schedule_label: b.schedule_label, quota: b.quota, meeting_url: b.meeting_url || null, teacher_id: b.teacher_id || null })
+    .update({ name: b.name, schedule_label: b.schedule_label, quota: b.quota, teacher_id: b.teacher_id || null })
     .eq("id", batchId);
   if (error) return { error: error.message };
   refresh();

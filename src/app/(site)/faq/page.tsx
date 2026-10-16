@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "FAQ", description: "Pertanyaan yang 
 const faqs = [
   {
     q: "Kelasnya live atau rekaman?",
-    a: "Live lewat Google Meet, Senin sampai Kamis. Jumat ujian mingguan. Materi pendukung bisa dibuka kapan saja di area siswa.",
+    a: "Live lewat Zoom, Senin sampai Kamis. Jumat ujian mingguan. Materi pendukung bisa dibuka kapan saja di area siswa.",
   },
   {
     q: "Saya belum bisa hiragana sama sekali. Mulai dari mana?",

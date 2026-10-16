@@ -3,8 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { withBase } from "@/lib/base-path";
 
-// Tombol "Masuk kelas": catat kehadiran, lalu arahkan ke Google Meet.
-// Link Meet tidak pernah tampil di halaman publik.
+// Tombol "Masuk kelas": catat kehadiran, lalu arahkan ke link kelas (Zoom/Meet).
+// Link kelas tidak pernah tampil di halaman publik.
 export async function GET(request: NextRequest, ctx: RouteContext<"/belajar/masuk/[sessionId]">) {
   const { sessionId } = await ctx.params;
   const user = await getCurrentUser();

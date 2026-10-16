@@ -10,6 +10,7 @@ import {
 } from "@/app/admin/actions";
 import {
   BatchEditForm,
+  MeetingLinkForm,
   InstallmentButton,
   MaterialForm,
 } from "@/components/admin-controls";
@@ -241,6 +242,16 @@ export default async function BatchDetailPage({
         <Stat label="Materi" value={materials.length} />
       </div>
 
+      <Card title="Link kelas (Zoom/Meet)" className="mt-6">
+        <MeetingLinkForm batchId={batch.id} meetingUrl={batch.meeting_url} />
+        <p className="mt-2 text-xs text-stone-500">
+          Dipakai semua sesi batch ini. Siswa tidak melihat linknya langsung,
+          mereka masuk lewat tombol Masuk kelas (aktif 15 menit sebelum mulai)
+          dan kehadirannya tercatat otomatis. Kalau satu sesi butuh link lain,
+          isi di bagian sesi di bawah.
+        </p>
+      </Card>
+
       {isAdmin && (
       <Card title="Link pendaftaran" className="mt-6">
         <p className="break-all font-mono text-sm text-stone-800">
@@ -457,7 +468,7 @@ export default async function BatchDetailPage({
                         <input
                           name="meeting_url"
                           defaultValue={s.meeting_url ?? ""}
-                          placeholder="Link Meet khusus sesi ini (opsional)"
+                          placeholder="Link Zoom/Meet khusus sesi ini (opsional)"
                           className={`${inputClass} text-sm`}
                         />
                         <button className={smallButton}>Simpan sesi</button>

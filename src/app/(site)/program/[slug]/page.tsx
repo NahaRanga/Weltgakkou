@@ -63,7 +63,7 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
           <>
             <h2 className="mt-10 text-xl font-semibold text-stone-900">Jadwal mingguan</h2>
             <p className="mt-2 text-stone-700">
-              Senin sampai Kamis kelas live lewat Google Meet, Jumat ujian mingguan. Link kelas, materi, dan nilai tersedia
+              Senin sampai Kamis kelas live lewat Zoom, Jumat ujian mingguan. Link kelas, materi, dan nilai tersedia
               di area siswa setelah pendaftaran dikonfirmasi.
             </p>
           </>

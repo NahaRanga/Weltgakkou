@@ -8,7 +8,7 @@ const german = programs.filter((p) => p.language === "de");
 const reasons = [
   {
     title: "Kelas live, bukan video rekaman",
-    body: "Belajar langsung bersama pengajar lewat Google Meet, Senin sampai Kamis, dalam kelas kecil maksimal 10 orang.",
+    body: "Belajar langsung bersama pengajar lewat Zoom, Senin sampai Kamis, dalam kelas kecil maksimal 10 orang.",
   },
   {
     title: "Ujian setiap Jumat",

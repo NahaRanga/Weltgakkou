@@ -30,10 +30,10 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
     return { error: `Login sedang gangguan (${error.code ?? error.status ?? "tidak diketahui"}). Hubungi admin.` };
   }
   const next = safeNext(formData.get("next"));
-  // Admin yang login tanpa tujuan khusus langsung dibawa ke halaman admin.
+  // Admin dan pengajar yang login tanpa tujuan khusus langsung dibawa ke dashboard.
   if (next === "/belajar" && data.user) {
     const { data: profile } = (await getSupabaseAdmin()?.from("profiles").select("role").eq("id", data.user.id).maybeSingle()) ?? { data: null };
-    if (profile?.role === "admin") return { redirectTo: "/admin" };
+    if (profile?.role === "admin" || profile?.role === "pengajar") return { redirectTo: "/admin" };
   }
   return { redirectTo: next };
 }

@@ -30,7 +30,7 @@ import {
   type ParticipantProfile,
 } from "@/components/admin/participant";
 import { inputClass } from "@/components/ui/form";
-import { requireDb } from "@/lib/auth";
+import { requireDb, requireStaff } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { formatDate, formatDateTime, requestTime, siteUrl } from "@/lib/format";
 
@@ -73,6 +73,8 @@ export default async function BatchDetailPage({
 }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+  const user = await requireStaff();
+  const isAdmin = user.role === "admin";
   const db = requireDb();
 
   const { data } = await db
@@ -84,6 +86,8 @@ export default async function BatchDetailPage({
     .maybeSingle();
   if (!data) notFound();
   const batch = data as unknown as Batch;
+  // Pengajar hanya bisa membuka batch yang ia ajar.
+  if (!isAdmin && batch.teacher_id !== user.id) notFound();
   const sessions = [...batch.sessions].sort((a, b) =>
     a.starts_at.localeCompare(b.starts_at),
   );
@@ -195,7 +199,7 @@ export default async function BatchDetailPage({
         href="/admin/batch"
         className="text-sm text-stone-600 hover:underline"
       >
-        ← Semua batch
+        ← {isAdmin ? "Semua batch" : "Kelas saya"}
       </Link>
       <PageTitle
         title={`${batch.programs.name} · ${batch.name}`}
@@ -203,7 +207,8 @@ export default async function BatchDetailPage({
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Badge value={batch.status} />
-            {(["buka", "berjalan", "selesai"] as const)
+            {isAdmin &&
+              (["buka", "berjalan", "selesai"] as const)
               .filter((s) => s !== batch.status)
               .map((s) => (
                 <form key={s} action={setBatchStatus.bind(null, batch.id, s)}>
@@ -236,6 +241,7 @@ export default async function BatchDetailPage({
         <Stat label="Materi" value={materials.length} />
       </div>
 
+      {isAdmin && (
       <Card title="Link pendaftaran" className="mt-6">
         <p className="break-all font-mono text-sm text-stone-800">
           {registerUrl}
@@ -253,6 +259,7 @@ export default async function BatchDetailPage({
           Buka halaman pendaftaran
         </a>
       </Card>
+      )}
 
       <Card title="Siswa" count={enrollments.length} className="mt-6">
         {enrollments.length === 0 ? (
@@ -264,10 +271,10 @@ export default async function BatchDetailPage({
                 <tr>
                   <th className={thClass}>Nama</th>
                   <th className={thClass}>Status</th>
-                  <th className={thClass}>Bayar</th>
+                  {isAdmin && <th className={thClass}>Bayar</th>}
                   <th className={thClass}>Hadir</th>
                   <th className={thClass}>Nilai</th>
-                  <th className={thClass}></th>
+                  {isAdmin && <th className={thClass}></th>}
                 </tr>
               </thead>
               <tbody>
@@ -280,18 +287,23 @@ export default async function BatchDetailPage({
                   return (
                     <tr key={e.id} className="border-t border-stone-100">
                       <td className={tdClass}>
-                        <Link
-                          href={`/admin/siswa/${e.profile_id}`}
-                          className="font-medium text-stone-900 hover:underline"
-                        >
-                          {e.profiles.full_name}
-                        </Link>{" "}
+                        {isAdmin ? (
+                          <Link
+                            href={`/admin/siswa/${e.profile_id}`}
+                            className="font-medium text-stone-900 hover:underline"
+                          >
+                            {e.profiles.full_name}
+                          </Link>
+                        ) : (
+                          <span className="font-medium text-stone-900">{e.profiles.full_name}</span>
+                        )}{" "}
                         <WaLink number={e.profiles.whatsapp} />
                         <ParticipantDetails p={e.profiles} />
                       </td>
                       <td className={tdClass}>
                         <Badge value={e.status} />
                       </td>
+                      {isAdmin && (
                       <td className={`${tdClass} whitespace-nowrap`}>
                         {e.plan === "bulanan"
                           ? `${paid}/${batch.programs.months ?? "?"} bulan`
@@ -304,6 +316,7 @@ export default async function BatchDetailPage({
                           </span>
                         )}
                       </td>
+                      )}
                       <td className={tdClass}>
                         {rate === null ? (
                           "-"
@@ -322,6 +335,7 @@ export default async function BatchDetailPage({
                           </span>
                         )}
                       </td>
+                      {isAdmin && (
                       <td className={tdClass}>
                         <div className="flex flex-wrap gap-1">
                           {e.status === "aktif" && (
@@ -363,6 +377,7 @@ export default async function BatchDetailPage({
                           </form>
                         </div>
                       </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -566,18 +581,21 @@ export default async function BatchDetailPage({
                         : `semua batch ${batch.programs.name}`}
                     </span>
                   </span>
+                  {(isAdmin || session) && (
                   <form action={deleteMaterial.bind(null, m.id)}>
                     <button className="text-xs text-stone-500 hover:text-red-700">
                       Hapus
                     </button>
                   </form>
+                  )}
                 </li>
               );
             })}
           </ul>
         )}
         <MaterialForm
-          programId={batch.programs.id}
+          batchId={batch.id}
+          allowProgramWide={isAdmin}
           sessions={sessions.map((s) => ({
             id: s.id,
             label: `${sessionLabel(s)} (${formatDate(s.starts_at)})`,
@@ -585,9 +603,11 @@ export default async function BatchDetailPage({
         />
       </Card>
 
-      <Card title="Pengaturan batch" className="mt-6">
-        <BatchEditForm batch={batch} teachers={teachersRes.data ?? []} />
-      </Card>
+      {isAdmin && (
+        <Card title="Pengaturan batch" className="mt-6">
+          <BatchEditForm batch={batch} teachers={teachersRes.data ?? []} />
+        </Card>
+      )}
     </>
   );
 }

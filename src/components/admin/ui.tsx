@@ -107,7 +107,7 @@ export function FilterTabs({ base, param, current, options }: { base: string; pa
       {options.map((o) => (
         <Link
           key={o.value}
-          href={o.value ? `${base}?${param}=${o.value}` : base}
+          href={o.value ? `${base}${base.includes("?") ? "&" : "?"}${param}=${o.value}` : base}
           className={`rounded-full px-3 py-1 ${current === o.value ? "bg-stone-900 text-white" : "bg-white text-stone-700 ring-1 ring-stone-200 hover:ring-stone-400"}`}
         >
           {o.label}
@@ -122,3 +122,7 @@ export const tableClass = "w-full text-left text-sm";
 export const thClass = "px-3 py-2 font-medium text-stone-500";
 export const tdClass = "px-3 py-2 align-top";
 export const smallButton = "rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-60";
+
+// Palet kategori (urutan tetap, lolos uji buta warna) untuk membedakan program.
+export const seriesColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
+export const chartColor = seriesColors[0];

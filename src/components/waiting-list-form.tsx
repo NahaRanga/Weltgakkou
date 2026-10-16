@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { joinWaitingList, type WaitingListState } from "@/app/waiting-list/actions";
+import { joinWaitingList, type WaitingListState } from "@/app/(site)/waiting-list/actions";
 import type { Program } from "@/lib/programs";
 
 const initial: WaitingListState = { status: "idle" };

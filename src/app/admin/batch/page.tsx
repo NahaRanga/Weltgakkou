@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BatchForm } from "@/components/admin-controls";
 import { Badge, Card, Empty, FilterTabs, PageTitle, tableClass, tdClass, thClass } from "@/components/admin/ui";
-import { requireDb } from "@/lib/auth";
+import { requireDb, requireStaff } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Batch & kelas" };
@@ -21,6 +21,8 @@ type BatchRow = {
 export default async function BatchesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const view = sp.status === "selesai" || sp.status === "semua" ? sp.status : "";
+  const user = await requireStaff();
+  const isAdmin = user.role === "admin";
   const db = requireDb();
 
   let query = db
@@ -29,6 +31,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
     .order("start_date", { ascending: view === "" });
   if (view === "") query = query.neq("status", "selesai");
   if (view === "selesai") query = query.eq("status", "selesai");
+  if (!isAdmin) query = query.eq("teacher_id", user.id);
 
   const [batchesRes, programsRes] = await Promise.all([query, db.from("programs").select("id, name, months").eq("active", true).order("created_at")]);
   const batches = (batchesRes.data ?? []) as unknown as BatchRow[];
@@ -36,12 +39,14 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <PageTitle
-        title="Batch & kelas"
-        subtitle="Klik batch untuk mengatur siswa, absensi, nilai ujian, dan materi."
+        title={isAdmin ? "Batch & kelas" : "Kelas saya"}
+        subtitle="Klik batch untuk mengatur absensi, nilai ujian, dan materi."
         action={
-          <a href="#buat" className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
-            Buat batch baru
-          </a>
+          isAdmin && (
+            <a href="#buat" className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+              Buat batch baru
+            </a>
+          )
         }
       />
       <Card>
@@ -99,12 +104,14 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
         )}
       </Card>
 
+      {isAdmin && (
       <div id="buat" className="scroll-mt-6">
         <Card title="Buat batch baru" className="mt-6">
           <p className="mb-4 text-sm text-stone-600">Jadwal kelas dan ujian mingguan dibuat otomatis dari tanggal mulai, hari kelas, dan jumlah minggu.</p>
           <BatchForm programs={programsRes.data ?? []} />
         </Card>
       </div>
+      )}
     </>
   );
 }

@@ -1,7 +1,8 @@
 import { setLeadNote, setLeadStatus } from "@/app/admin/actions";
 import { Card, Empty, FilterTabs, PageTitle, smallButton, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { inputClass } from "@/components/ui/form";
-import { requireDb } from "@/lib/auth";
+import { requireAdmin, requireDb } from "@/lib/auth";
+import { withBase } from "@/lib/base-path";
 import { formatDateTime } from "@/lib/format";
 
 export const metadata = { title: "Waiting list" };
@@ -25,6 +26,7 @@ export default async function WaitingListPage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const status = typeof sp.status === "string" && (statuses as readonly string[]).includes(sp.status) ? sp.status : "";
   const program = typeof sp.program === "string" ? sp.program : "";
+  await requireAdmin();
   const db = requireDb();
 
   let query = db.from("leads").select("id, full_name, whatsapp, email, program_slug, source, referral_code, note, status, created_at").order("created_at", { ascending: false }).limit(200);
@@ -43,7 +45,15 @@ export default async function WaitingListPage({ searchParams }: { searchParams: 
 
   return (
     <>
-      <PageTitle title="Waiting list" subtitle="Calon siswa yang minta dikabari saat batch dibuka. Hubungi lewat WA, lalu ubah statusnya." />
+      <PageTitle
+        title="Waiting list"
+        subtitle="Calon siswa yang minta dikabari saat batch dibuka. Hubungi lewat WA, lalu ubah statusnya."
+        action={
+          <a href={withBase("/admin/waiting-list/export")} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+            Export CSV
+          </a>
+        }
+      />
       <Card>
         <FilterTabs
           base="/admin/waiting-list"

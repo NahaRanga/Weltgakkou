@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { uploadProof, type UploadState } from "@/app/bayar/[code]/actions";
+import { uploadProof, type UploadState } from "@/app/(site)/bayar/[code]/actions";
 import { buttonClass, Notice } from "@/components/ui/form";
 
 export function UploadProofForm({ code }: { code: string }) {

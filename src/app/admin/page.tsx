@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { ColumnChart } from "@/components/admin/charts";
 import { Badge, Card, Empty, PageTitle, Stat, WaLink } from "@/components/admin/ui";
-import { requireDb } from "@/lib/auth";
+import { requireDb, requireStaff, type CurrentUser } from "@/lib/auth";
 import { formatDateTime, requestTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 
-export const metadata = { title: "Ringkasan" };
+export const metadata = { title: "Dashboard" };
 
 // Awal bulan berjalan menurut WIB, dalam ISO UTC.
 function monthStartIso(offsetMonths = 0) {
@@ -25,6 +26,8 @@ type RecentRow = { id: string; status: string; created_at: string; profiles: { f
 type DueRow = { id: string; code: string; amount: number; due_at: string; installment_no: number; enrollments: { profiles: { full_name: string; whatsapp: string | null } } };
 
 export default async function AdminOverview() {
+  const user = await requireStaff();
+  if (user.role !== "admin") return <TeacherDashboard user={user} />;
   const db = requireDb();
   const [start, end] = todayRangeIso();
   const in3days = new Date(requestTime() + 3 * 86400_000).toISOString();
@@ -58,7 +61,7 @@ export default async function AdminOverview() {
 
   return (
     <>
-      <PageTitle title="Ringkasan" subtitle="Keadaan Weltgakkou hari ini." />
+      <PageTitle title="Dashboard" subtitle={`Halo ${user.fullName.split(" ")[0]}, ini keadaan Weltgakkou hari ini.`} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <Stat label="Bukti bayar dicek" value={proofsRes.count ?? 0} href="/admin/pembayaran" tone="alert" />
@@ -171,16 +174,72 @@ export default async function AdminOverview() {
         </Card>
 
         <Card title="Pemasukan 6 bulan terakhir" className="xl:col-span-2">
-          <table className="w-full text-sm">
-            <tbody>
-              {months.map((m) => (
-                <tr key={m.label} className="border-t border-stone-100 first:border-0">
-                  <td className="w-20 py-1.5 text-stone-500">{m.label}</td>
-                  <td className="py-1.5 text-right font-medium tabular-nums text-stone-900">{formatRupiah(m.total)}</td>
-                </tr>
+          <ColumnChart data={months.map((m) => ({ label: m.label, value: m.total }))} format={(v) => formatRupiah(v)} />
+        </Card>
+      </div>
+    </>
+  );
+}
+
+// Dashboard pengajar: hanya batch yang ia ajar.
+async function TeacherDashboard({ user }: { user: CurrentUser }) {
+  const db = requireDb();
+  const in7days = new Date(requestTime() + 7 * 86400_000).toISOString();
+  const [batchesRes, upcomingRes] = await Promise.all([
+    db.from("batches").select("id, name, status, quota, start_date, programs(name), enrollments(status)").eq("teacher_id", user.id).neq("status", "selesai").order("start_date"),
+    db
+      .from("sessions")
+      .select("id, number, starts_at, kind, topic, batches!inner(id, name, teacher_id, programs(name))")
+      .eq("batches.teacher_id", user.id)
+      .gte("starts_at", new Date(requestTime() - 2 * 3600_000).toISOString())
+      .lt("starts_at", in7days)
+      .order("starts_at"),
+  ]);
+  const batches = (batchesRes.data ?? []) as unknown as BatchRow[];
+  const upcoming = (upcomingRes.data ?? []) as unknown as SessionRow[];
+
+  return (
+    <>
+      <PageTitle title="Dashboard" subtitle={`Halo ${user.fullName.split(" ")[0]}, ini kelas kamu minggu ini.`} />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card title="Kelas 7 hari ke depan" count={upcoming.length}>
+          {upcoming.length === 0 ? (
+            <Empty>Tidak ada kelas dalam 7 hari ke depan.</Empty>
+          ) : (
+            <ul className="divide-y divide-stone-100">
+              {upcoming.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span>
+                    <span className="font-medium text-stone-900">{formatDateTime(s.starts_at)}</span>
+                    <span className="block text-xs text-stone-500">
+                      {s.batches.programs.name} · {s.batches.name} · {s.kind === "ujian" ? "Ujian" : `Kelas ${s.number}`}
+                      {s.topic ? ` · ${s.topic}` : ""}
+                    </span>
+                  </span>
+                  <Link href={`/admin/batch/${s.batches.id}#sesi-${s.id}`} className="shrink-0 font-medium text-red-700 hover:underline">
+                    Absensi
+                  </Link>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+          )}
+        </Card>
+        <Card title="Kelas saya" count={batches.length}>
+          {batches.length === 0 ? (
+            <Empty>Belum ada batch yang ditugaskan ke kamu. Hubungi admin.</Empty>
+          ) : (
+            <ul className="divide-y divide-stone-100">
+              {batches.map((b) => (
+                <li key={b.id} className="py-2 text-sm">
+                  <Link href={`/admin/batch/${b.id}`} className="font-medium text-stone-900 hover:underline">
+                    {b.programs.name} · {b.name}
+                  </Link>{" "}
+                  <Badge value={b.status} />
+                  <span className="block text-xs text-stone-500">{b.enrollments.filter((e) => e.status === "aktif").length} siswa aktif</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </>

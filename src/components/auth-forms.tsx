@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useTransition } from "react";
-import { requestPasswordReset, setPassword, signIn, signOut, type AuthState } from "@/app/masuk/actions";
+import { requestPasswordReset, setPassword, signIn, signOut, type AuthState } from "@/app/(site)/masuk/actions";
 import { withBase } from "@/lib/base-path";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 

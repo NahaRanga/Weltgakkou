@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { register, type RegisterState } from "@/app/daftar/[batchId]/actions";
+import { register, type RegisterState } from "@/app/(site)/daftar/[batchId]/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 
 // Pilihan mengikuti Google Form pendaftaran Weltgakkou.

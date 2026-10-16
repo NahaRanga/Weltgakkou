@@ -3,15 +3,18 @@
 import { useActionState, useState, useTransition } from "react";
 import {
   acceptPayment,
+  addCertification,
   addMaterial,
   addStaff,
   cancelInvoice,
+  changePassword,
   createBatch,
   createNextInstallment,
   markInvoicePaid,
   rejectPayment,
   sendPasswordLink,
   updateBatch,
+  updateProfile,
   type BatchState,
   type FormState,
   type VerifyState,
@@ -274,8 +277,8 @@ export function BatchEditForm({
   );
 }
 
-export function MaterialForm({ programId, sessions }: { programId: string; sessions: { id: string; label: string }[] }) {
-  const [state, action, pending] = useActionState(addMaterial.bind(null, programId), {} as FormState);
+export function MaterialForm({ batchId, sessions, allowProgramWide }: { batchId: string; sessions: { id: string; label: string }[]; allowProgramWide: boolean }) {
+  const [state, action, pending] = useActionState(addMaterial.bind(null, batchId), {} as FormState);
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
@@ -296,7 +299,7 @@ export function MaterialForm({ programId, sessions }: { programId: string; sessi
       </Field>
       <Field label="Untuk sesi">
         <select name="session_id" className={inputClass}>
-          <option value="">Semua batch program ini</option>
+          {allowProgramWide && <option value="">Semua batch program ini</option>}
           {sessions.map((s) => (
             <option key={s.id} value={s.id}>
               {s.label}
@@ -361,5 +364,84 @@ export function PasswordLinkButton({ profileId }: { profileId: string }) {
       {state.ok && <p className="text-xs text-emerald-700">{state.ok}</p>}
       <WhatsappFollowUp state={state} />
     </div>
+  );
+}
+
+export function CertificationForm({ students }: { students: { id: string; full_name: string }[] }) {
+  const [state, action, pending] = useActionState(addCertification, {} as FormState);
+  return (
+    <form action={action} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="sm:col-span-2 lg:col-span-4">
+        <Messages state={state} />
+      </div>
+      <Field label="Siswa">
+        <select name="profile_id" required className={inputClass}>
+          {students.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.full_name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Ujian">
+        <select name="kind" className={inputClass}>
+          {["N5", "N4", "N3", "JFT", "A1", "A2", "B1", "B2"].map((k) => (
+            <option key={k} value={k}>
+              {k === "JFT" ? "JFT-Basic" : /^N/.test(k) ? `JLPT ${k}` : `Goethe ${k}`}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Hasil">
+        <select name="passed" className={inputClass}>
+          <option value="lulus">Lulus</option>
+          <option value="tidak">Belum lulus</option>
+        </select>
+      </Field>
+      <Field label="Tanggal ujian">
+        <input name="exam_date" type="date" className={inputClass} />
+      </Field>
+      <div className="sm:col-span-2 lg:col-span-4">
+        <button className={buttonClass} disabled={pending}>
+          {pending ? "Menyimpan..." : "Catat hasil ujian"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function ProfileForm({ fullName, whatsapp }: { fullName: string; whatsapp: string | null }) {
+  const [state, action, pending] = useActionState(updateProfile, {} as FormState);
+  return (
+    <form action={action} className="space-y-3">
+      <Messages state={state} />
+      <Field label="Nama lengkap">
+        <input name="full_name" defaultValue={fullName} required className={inputClass} />
+      </Field>
+      <Field label="Nomor WhatsApp">
+        <input name="whatsapp" defaultValue={whatsapp ?? ""} inputMode="tel" className={inputClass} />
+      </Field>
+      <button className={buttonClass} disabled={pending}>
+        {pending ? "Menyimpan..." : "Simpan profil"}
+      </button>
+    </form>
+  );
+}
+
+export function ChangePasswordForm() {
+  const [state, action, pending] = useActionState(changePassword, {} as FormState);
+  return (
+    <form action={action} className="space-y-3">
+      <Messages state={state} />
+      <Field label="Password baru (minimal 8 karakter)">
+        <input name="password" type="password" required minLength={8} autoComplete="new-password" className={inputClass} />
+      </Field>
+      <Field label="Ulangi password baru">
+        <input name="confirm" type="password" required minLength={8} autoComplete="new-password" className={inputClass} />
+      </Field>
+      <button className={buttonClass} disabled={pending}>
+        {pending ? "Mengganti..." : "Ganti password"}
+      </button>
+    </form>
   );
 }

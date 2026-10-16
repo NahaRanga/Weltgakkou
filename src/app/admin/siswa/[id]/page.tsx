@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { InvoiceActions, PasswordLinkButton } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { participantColumns, participantRows, type ParticipantProfile } from "@/components/admin/participant";
-import { requireDb } from "@/lib/auth";
+import { requireAdmin, requireDb } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
@@ -23,6 +23,7 @@ type Enrollment = {
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+  await requireAdmin();
   const db = requireDb();
 
   const [profileRes, enrollmentsRes, attendanceRes, resultsRes] = await Promise.all([

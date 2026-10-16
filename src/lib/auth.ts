@@ -42,7 +42,14 @@ export async function requireUser(next: string) {
 
 export async function requireAdmin() {
   const user = await requireUser("/admin");
-  if (user.role !== "admin") redirect("/belajar");
+  if (user.role !== "admin") redirect(user.role === "pengajar" ? "/admin" : "/belajar");
+  return user;
+}
+
+// Admin dan pengajar boleh masuk /admin; pengajar hanya melihat batch yang ia ajar.
+export async function requireStaff() {
+  const user = await requireUser("/admin");
+  if (user.role !== "admin" && user.role !== "pengajar") redirect("/belajar");
   return user;
 }
 

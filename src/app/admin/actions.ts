@@ -2,8 +2,9 @@
 
 import { refresh } from "next/cache";
 import { z } from "zod";
-import { createPasswordLink } from "@/app/masuk/actions";
-import { requireAdmin, requireDb } from "@/lib/auth";
+import { createPasswordLink } from "@/app/(site)/masuk/actions";
+import { requireAdmin, requireDb, requireStaff } from "@/lib/auth";
+import { getSupabaseAuth } from "@/lib/supabase-server";
 import { createInvoice } from "@/lib/billing";
 import { sendEmail } from "@/lib/email";
 import { formatDate, siteUrl } from "@/lib/format";
@@ -243,8 +244,23 @@ export async function updateBatch(batchId: string, _prev: FormState, formData: F
   return { ok: "Batch disimpan." };
 }
 
+// Pengajar hanya boleh mengubah batch yang ia ajar; admin boleh semua.
+async function requireBatchStaff(batchId: string) {
+  const user = await requireStaff();
+  if (user.role === "admin") return user;
+  const { data } = await requireDb().from("batches").select("teacher_id").eq("id", batchId).maybeSingle();
+  if (!data || data.teacher_id !== user.id) throw new Error("Batch ini bukan kelas Anda.");
+  return user;
+}
+
+async function requireSessionStaff(sessionId: string) {
+  const { data } = await requireDb().from("sessions").select("batch_id").eq("id", sessionId).maybeSingle();
+  if (!data) throw new Error("Sesi tidak ditemukan.");
+  return requireBatchStaff(data.batch_id);
+}
+
 export async function updateSession(sessionId: string, formData: FormData) {
-  await requireAdmin();
+  await requireSessionStaff(sessionId);
   const topic = String(formData.get("topic") ?? "").trim().slice(0, 120);
   const meetingUrl = String(formData.get("meeting_url") ?? "").trim();
   if (meetingUrl && !/^https:\/\//.test(meetingUrl)) return;
@@ -254,7 +270,7 @@ export async function updateSession(sessionId: string, formData: FormData) {
 
 // Absensi: baris di tabel attendance berarti hadir (sama seperti tombol "Masuk kelas" siswa).
 export async function saveAttendance(sessionId: string, studentIds: string[], formData: FormData) {
-  await requireAdmin();
+  await requireSessionStaff(sessionId);
   const db = requireDb();
   const present = new Set(formData.getAll("present").map(String));
   const absent = studentIds.filter((id) => !present.has(id));
@@ -269,7 +285,7 @@ export async function saveAttendance(sessionId: string, studentIds: string[], fo
 
 // Nilai ujian per sesi ujian. Baris exams dibuat otomatis saat nilai pertama disimpan.
 export async function saveExamScores(sessionId: string, formData: FormData) {
-  await requireAdmin();
+  await requireSessionStaff(sessionId);
   const db = requireDb();
   const maxScore = Math.max(1, Number(formData.get("max_score") ?? 100) || 100);
   const { data: session } = await db.from("sessions").select("topic, number").eq("id", sessionId).maybeSingle();
@@ -307,11 +323,20 @@ const materialSchema = z.object({
   session_id: z.union([z.literal(""), z.uuid()]),
 });
 
-export async function addMaterial(programId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireAdmin();
+export async function addMaterial(batchId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireBatchStaff(batchId);
+  const { data: batch } = await requireDb().from("batches").select("program_id").eq("id", batchId).maybeSingle();
+  if (!batch) return { error: "Batch tidak ditemukan." };
+  const programId = batch.program_id as string;
   const parsed = materialSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: "Isi judul dan link yang valid (diawali https://)." };
   const m = parsed.data;
+  // Materi untuk semua batch satu program hanya boleh dibuat admin.
+  if (!m.session_id && user.role !== "admin") return { error: "Pilih sesi untuk materi ini." };
+  if (m.session_id) {
+    const { data: session } = await requireDb().from("sessions").select("batch_id").eq("id", m.session_id).maybeSingle();
+    if (session?.batch_id !== batchId) return { error: "Sesi tidak ditemukan di batch ini." };
+  }
   const { error } = await requireDb()
     .from("materials")
     .insert({ title: m.title, kind: m.kind, url: m.url, session_id: m.session_id || null, program_id: m.session_id ? null : programId });
@@ -321,8 +346,15 @@ export async function addMaterial(programId: string, _prev: FormState, formData:
 }
 
 export async function deleteMaterial(materialId: string) {
-  await requireAdmin();
-  await requireDb().from("materials").delete().eq("id", materialId);
+  const user = await requireStaff();
+  const db = requireDb();
+  if (user.role !== "admin") {
+    const { data } = await db.from("materials").select("sessions(batch_id)").eq("id", materialId).maybeSingle();
+    const batchId = (data?.sessions as unknown as { batch_id: string } | null)?.batch_id;
+    if (!batchId) return;
+    await requireBatchStaff(batchId);
+  }
+  await db.from("materials").delete().eq("id", materialId);
   refresh();
 }
 
@@ -416,4 +448,61 @@ export async function sendPasswordLink(profileId: string): Promise<FormState> {
   const text = `Halo ${data.full_name}, ini link untuk mengatur password akun Weltgakkou kamu (berlaku 1 jam):\n${link}\n\nSetelah itu masuk di ${siteUrl()}/masuk.`;
   const emailed = await sendEmail(data.email, "Atur password akun Weltgakkou", text);
   return emailed ? { ok: `Link dikirim ke ${data.email}.` } : { ok: "Kirim lewat WhatsApp:", whatsappText: text, whatsapp: data.whatsapp ?? undefined };
+}
+
+// ---------- Dashboard v3 ----------
+
+const certificationSchema = z.object({
+  profile_id: z.uuid(),
+  kind: z.enum(["N5", "N4", "N3", "JFT", "A1", "A2", "B1", "B2"]),
+  passed: z.enum(["lulus", "tidak"]).transform((v) => v === "lulus"),
+  exam_date: z.union([z.literal(""), z.iso.date()]),
+});
+
+export async function addCertification(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const parsed = certificationSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Pilih siswa, jenis ujian, dan hasilnya." };
+  const c = parsed.data;
+  const { error } = await requireDb()
+    .from("certifications")
+    .insert({ profile_id: c.profile_id, kind: c.kind, passed: c.passed, exam_date: c.exam_date || null });
+  if (error) return { error: error.message };
+  refresh();
+  return { ok: "Hasil ujian dicatat." };
+}
+
+export async function setCertificationBonus(id: string, paid: boolean) {
+  await requireAdmin();
+  await requireDb().from("certifications").update({ bonus_paid: paid }).eq("id", id);
+  refresh();
+}
+
+export async function deleteCertification(id: string) {
+  await requireAdmin();
+  await requireDb().from("certifications").delete().eq("id", id);
+  refresh();
+}
+
+export async function updateProfile(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireStaff();
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  const whatsapp = String(formData.get("whatsapp") ?? "").replace(/\D/g, "").replace(/^0/, "62");
+  if (fullName.length < 2) return { error: "Nama minimal 2 huruf." };
+  const { error } = await requireDb().from("profiles").update({ full_name: fullName, whatsapp: whatsapp || null }).eq("id", user.id);
+  if (error) return { error: error.message };
+  refresh();
+  return { ok: "Profil disimpan." };
+}
+
+export async function changePassword(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireStaff();
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) return { error: "Password minimal 8 karakter." };
+  if (password !== String(formData.get("confirm") ?? "")) return { error: "Kedua password tidak sama." };
+  const auth = await getSupabaseAuth();
+  if (!auth) return { error: "Login belum aktif." };
+  const { error } = await auth.auth.updateUser({ password });
+  if (error) return { error: error.code === "same_password" ? "Password baru sama dengan yang lama." : "Password gagal diganti. Coba keluar lalu masuk lagi." };
+  return { ok: "Password diganti. Pakai password baru saat login berikutnya." };
 }

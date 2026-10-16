@@ -8,6 +8,10 @@ import "./globals.css";
 const notoSans = Noto_Sans({ variable: "--font-noto-sans", subsets: ["latin"] });
 const notoJp = Noto_Sans_JP({ variable: "--font-noto-jp", subsets: ["latin"], weight: ["400", "700"] });
 
+// Semua halaman dirender saat request. Kunci Supabase baru tersedia saat runtime (secret
+// Cloudflare), jadi halaman yang dibangun statis saat build tidak bisa membaca sesi/data.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: { default: `${site.name}: ${site.tagline}`, template: `%s | ${site.name}` },
   description:

@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { requestPasswordReset, setPassword, signIn, type AuthState } from "@/app/masuk/actions";
+import { useActionState, useEffect, useTransition } from "react";
+import { requestPasswordReset, setPassword, signIn, signOut, type AuthState } from "@/app/masuk/actions";
+import { withBase } from "@/lib/base-path";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
+
+// Muat ulang penuh ke halaman tujuan supaya cookie sesi yang baru dipasang ikut terkirim.
+function useHardRedirect(to?: string) {
+  useEffect(() => {
+    if (to) window.location.assign(withBase(to));
+  }, [to]);
+}
 
 export function SignInForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signIn, {} as AuthState);
+  useHardRedirect(state.redirectTo);
   return (
     <form action={action} className="space-y-4">
       {state.error && <Notice tone="error">{state.error}</Notice>}
@@ -18,7 +27,7 @@ export function SignInForm({ next }: { next?: string }) {
         <input name="password" type="password" required autoComplete="current-password" className={inputClass} />
       </Field>
       <button className={`${buttonClass} w-full`} disabled={pending}>
-        {pending ? "Masuk..." : "Masuk"}
+        {pending || state.redirectTo ? "Masuk..." : "Masuk"}
       </button>
       <Link href="/masuk/lupa" className="block text-center text-sm text-stone-600 hover:text-stone-900">
         Lupa password atau belum pernah mengatur password?
@@ -45,6 +54,7 @@ export function ResetForm() {
 
 export function SetPasswordForm() {
   const [state, action, pending] = useActionState(setPassword, {} as AuthState);
+  useHardRedirect(state.redirectTo);
   return (
     <form action={action} className="space-y-4">
       {state.error && <Notice tone="error">{state.error}</Notice>}
@@ -58,5 +68,23 @@ export function SetPasswordForm() {
         {pending ? "Menyimpan..." : "Simpan dan mulai belajar"}
       </button>
     </form>
+  );
+}
+
+export function SignOutButton() {
+  const [pending, start] = useTransition();
+  return (
+    <button
+      onClick={() =>
+        start(async () => {
+          await signOut();
+          window.location.assign(withBase("/"));
+        })
+      }
+      disabled={pending}
+      className="text-stone-600 hover:text-stone-900"
+    >
+      Keluar
+    </button>
   );
 }

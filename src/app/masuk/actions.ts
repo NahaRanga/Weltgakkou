@@ -1,12 +1,14 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getSupabaseAuth } from "@/lib/supabase-server";
 import { sendEmail } from "@/lib/email";
 import { siteUrl } from "@/lib/format";
 
-export type AuthState = { error?: string; ok?: string };
+// redirectTo: halaman tujuan setelah berhasil. Pindah halaman dilakukan browser dengan
+// muat ulang penuh, karena redirect() dari Server Action di Worker gagal mengambil halaman
+// tujuan (Worker tidak bisa memanggil rute dirinya sendiri) dan sesi login ikut hilang.
+export type AuthState = { error?: string; ok?: string; redirectTo?: string };
 
 function safeNext(raw: FormDataEntryValue | null) {
   const next = String(raw ?? "");
@@ -27,13 +29,12 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
     console.error("Login gagal", error.status, error.code, error.message);
     return { error: `Login sedang gangguan (${error.code ?? error.status ?? "tidak diketahui"}). Hubungi admin.` };
   }
-  redirect(safeNext(formData.get("next")));
+  return { redirectTo: safeNext(formData.get("next")) };
 }
 
 export async function signOut() {
   const auth = await getSupabaseAuth();
   await auth?.auth.signOut();
-  redirect("/");
 }
 
 // Link atur password dibuat di server lalu dikirim lewat Resend, supaya tidak
@@ -75,5 +76,5 @@ export async function setPassword(_prev: AuthState, formData: FormData): Promise
   if (!auth) return { error: "Login belum aktif. Hubungi admin." };
   const { error } = await auth.auth.updateUser({ password });
   if (error) return { error: "Link sudah kedaluwarsa. Minta link baru lewat halaman lupa password." };
-  redirect("/belajar");
+  return { redirectTo: "/belajar" };
 }

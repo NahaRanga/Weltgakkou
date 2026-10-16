@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { signOut } from "@/app/masuk/actions";
+import { SignOutButton } from "@/components/auth-forms";
 import { Notice } from "@/components/ui/form";
 import { requireDb, requireUser, type CurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -75,9 +75,7 @@ async function LearnContent({ user }: { user: CurrentUser }) {
               Admin
             </Link>
           )}
-          <form action={signOut}>
-            <button className="text-stone-600 hover:text-stone-900">Keluar</button>
-          </form>
+          <SignOutButton />
         </div>
       </div>
 

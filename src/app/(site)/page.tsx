@@ -58,8 +58,8 @@ export default function Home() {
           <Image
             src={withBase("/images/hero.jpg")}
             alt="Ilustrasi anak muda Indonesia belajar bahasa Jepang online bersama"
-            width={1600}
-            height={900}
+            width={1200}
+            height={1007}
             priority
             className="w-full rounded-3xl shadow-xl shadow-red-900/10"
           />

@@ -42,7 +42,7 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
             width={1600}
             height={1200}
             priority
-            className="mt-6 aspect-[16/9] w-full rounded-2xl object-cover"
+            className="mt-6 w-full rounded-2xl sm:max-w-lg"
           />
         )}
 

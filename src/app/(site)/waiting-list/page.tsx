@@ -19,7 +19,7 @@ export default function WaitingListPage() {
         width={1600}
         height={1200}
         priority
-        className="mb-8 aspect-[16/9] w-full rounded-2xl object-cover"
+        className="mb-8 w-full rounded-2xl"
       />
       <h1 className="text-3xl font-bold text-stone-900">Masuk waiting list</h1>
       <p className="mb-8 mt-2 text-stone-600">

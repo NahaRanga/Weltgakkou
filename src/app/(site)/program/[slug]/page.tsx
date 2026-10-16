@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { withBase } from "@/lib/base-path";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getOpenBatches } from "@/lib/batches";
 import { formatDate } from "@/lib/format";
 import { WaitingListForm } from "@/components/waiting-list-form";
-import { formatRupiah, getProgram, programs } from "@/lib/programs";
+import { formatRupiah, getProgram, programImage, programs } from "@/lib/programs";
 
 export function generateStaticParams() {
   return programs.map((p) => ({ slug: p.slug }));
@@ -22,6 +24,7 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
   if (!program) notFound();
 
   const formPrograms = programs.map(({ slug, name, open }) => ({ slug, name, open }));
+  const image = programImage(program);
 
   return (
     <div className="mx-auto grid max-w-5xl gap-10 px-4 py-12 lg:grid-cols-[1fr_380px]">
@@ -32,6 +35,16 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
         <p className="mt-6 text-sm font-medium text-red-700">Level {program.level}</p>
         <h1 className="mt-1 text-3xl font-bold text-stone-900">{program.name}</h1>
         <p className="mt-3 text-lg text-stone-600">{program.summary}</p>
+        {image && (
+          <Image
+            src={withBase(image.src)}
+            alt={image.alt}
+            width={1600}
+            height={1200}
+            priority
+            className="mt-6 aspect-[16/9] w-full rounded-2xl object-cover"
+          />
+        )}
 
         <dl className="mt-8 grid grid-cols-2 gap-4 rounded-xl border border-stone-200 bg-white p-5 sm:grid-cols-3">
           <div>

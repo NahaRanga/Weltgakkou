@@ -139,3 +139,17 @@ export function formatRupiah(value: number) {
     maximumFractionDigits: 0,
   }).format(value);
 }
+
+// Ilustrasi program di public/images (dibuat dengan Gemini, 4:3). Program Jerman memakai satu gambar.
+const programImages: Record<string, { src: string; alt: string }> = {
+  kiso: { src: "/images/program-kiso.jpg", alt: "Ilustrasi belajar menulis hiragana dan katakana dengan flashcard" },
+  "jlpt-n5": { src: "/images/program-n5.jpg", alt: "Ilustrasi anak muda mulai ngobrol bahasa Jepang dasar" },
+  "jlpt-n4": { src: "/images/program-n4.jpg", alt: "Ilustrasi anak muda memakai bahasa Jepang saat bekerja" },
+  "jlpt-n3": { src: "/images/program-n3.jpg", alt: "Ilustrasi membaca manga di tablet dengan sertifikat N3" },
+  "jft-basic": { src: "/images/program-jft.jpg", alt: "Ilustrasi paspor, koper, dan pesawat menuju kerja di Jepang" },
+};
+const germanImage = { src: "/images/program-jerman.jpg", alt: "Ilustrasi belajar bahasa Jerman dengan Gerbang Brandenburg" };
+
+export function programImage(program: Program) {
+  return programImages[program.slug] ?? (program.language === "de" ? germanImage : null);
+}

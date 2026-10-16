@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { withBase } from "@/lib/base-path";
 import { ProgramCard } from "@/components/program-card";
 import { programs } from "@/lib/programs";
 
@@ -27,29 +29,52 @@ const reasons = [
 export default function Home() {
   return (
     <>
-      <section className="bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:py-24">
-          <p className="font-jp text-red-700">日本語を、オンラインで。</p>
-          <h1 className="mt-3 max-w-3xl text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
-            Kursus bahasa Jepang online dari nol sampai JLPT N3
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-stone-600">
-            Kelas live kecil, ujian mingguan, dan jalur belajar yang jelas untuk kerja, studi, atau Tokutei Ginou di
-            Jepang.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/waiting-list" className="rounded-lg bg-red-700 px-5 py-3 font-semibold text-white hover:bg-red-800">
-              Masuk waiting list
-            </Link>
-            <Link href="#program" className="rounded-lg border border-stone-300 px-5 py-3 font-semibold text-stone-800 hover:border-stone-500">
-              Lihat program
-            </Link>
+      <section className="overflow-hidden bg-gradient-to-b from-red-50 via-white to-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 sm:py-16 lg:grid-cols-[1fr_1.1fr]">
+          <div>
+            <p className="font-jp text-red-700">日本語を、オンラインで。</p>
+            <h1 className="mt-3 max-w-3xl text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
+              Kursus bahasa Jepang online dari nol sampai JLPT N3
+            </h1>
+            <p className="mt-4 max-w-2xl text-lg text-stone-600">
+              Kelas live kecil, ujian mingguan, dan jalur belajar yang jelas
+              untuk kerja, studi, atau Tokutei Ginou di Jepang.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/waiting-list"
+                className="rounded-lg bg-red-700 px-5 py-3 font-semibold text-white hover:bg-red-800"
+              >
+                Masuk waiting list
+              </Link>
+              <Link
+                href="#program"
+                className="rounded-lg border border-stone-300 px-5 py-3 font-semibold text-stone-800 hover:border-stone-500"
+              >
+                Lihat program
+              </Link>
+            </div>
           </div>
+          <Image
+            src={withBase("/images/hero.jpg")}
+            alt="Ilustrasi anak muda Indonesia belajar bahasa Jepang online bersama"
+            width={1600}
+            height={900}
+            priority
+            className="w-full rounded-3xl shadow-xl shadow-red-900/10"
+          />
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-16">
-        <div className="grid gap-6 sm:grid-cols-2">
+      <section className="mx-auto grid max-w-5xl items-center gap-10 px-4 py-16 lg:grid-cols-[0.9fr_1fr]">
+        <Image
+          src={withBase("/images/kelas-online.jpg")}
+          alt="Ilustrasi kelas online lewat video call bersama sensei"
+          width={1600}
+          height={1200}
+          className="w-full rounded-3xl"
+        />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
           {reasons.map((r) => (
             <div key={r.title}>
               <h2 className="font-semibold text-stone-900">{r.title}</h2>
@@ -60,16 +85,26 @@ export default function Home() {
       </section>
 
       <section id="program" className="mx-auto max-w-5xl scroll-mt-8 px-4 py-8">
-        <h2 className="text-2xl font-bold text-stone-900">Program bahasa Jepang</h2>
-        <p className="mt-1 text-stone-600">Mulai dari Kiso bila belum bisa hiragana, lalu naik level per tiga sampai enam bulan.</p>
+        <h2 className="text-2xl font-bold text-stone-900">
+          Program bahasa Jepang
+        </h2>
+        <p className="mt-1 text-stone-600">
+          Mulai dari Kiso bila belum bisa hiragana, lalu naik level per tiga
+          sampai enam bulan.
+        </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {japanese.map((p) => (
             <ProgramCard key={p.slug} program={p} />
           ))}
         </div>
 
-        <h2 className="mt-14 text-2xl font-bold text-stone-900">Bahasa Jerman (segera)</h2>
-        <p className="mt-1 text-stone-600">Untuk persiapan Ausbildung dan kerja di Jerman. Daftar waiting list untuk dikabari saat kelas dibuka.</p>
+        <h2 className="mt-14 text-2xl font-bold text-stone-900">
+          Bahasa Jerman (segera)
+        </h2>
+        <p className="mt-1 text-stone-600">
+          Untuk persiapan Ausbildung dan kerja di Jerman. Daftar waiting list
+          untuk dikabari saat kelas dibuka.
+        </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {german.map((p) => (
             <ProgramCard key={p.slug} program={p} />
@@ -78,14 +113,27 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16">
-        <div className="rounded-2xl bg-stone-900 px-6 py-10 text-white sm:px-10">
-          <h2 className="text-2xl font-bold">Batch pertama segera dibuka</h2>
-          <p className="mt-2 max-w-xl text-stone-300">
-            Kuota tiap kelas terbatas. Orang di waiting list dikabari lebih dulu saat jadwal dan harga promo keluar.
-          </p>
-          <Link href="/waiting-list" className="mt-6 inline-block rounded-lg bg-white px-5 py-3 font-semibold text-stone-900 hover:bg-stone-100">
-            Masuk waiting list
-          </Link>
+        <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-stone-900 px-6 py-10 text-white sm:px-10 md:grid-cols-[1fr_320px]">
+          <div>
+            <h2 className="text-2xl font-bold">Batch pertama segera dibuka</h2>
+            <p className="mt-2 max-w-xl text-stone-300">
+              Kuota tiap kelas terbatas. Orang di waiting list dikabari lebih
+              dulu saat jadwal dan harga promo keluar.
+            </p>
+            <Link
+              href="/waiting-list"
+              className="mt-6 inline-block rounded-lg bg-white px-5 py-3 font-semibold text-stone-900 hover:bg-stone-100"
+            >
+              Masuk waiting list
+            </Link>
+          </div>
+          <Image
+            src={withBase("/images/waiting-list.jpg")}
+            alt="Ilustrasi notifikasi HP dan tiket kelas"
+            width={1600}
+            height={1200}
+            className="hidden w-full rounded-2xl md:block"
+          />
         </div>
       </section>
     </>

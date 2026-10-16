@@ -32,7 +32,7 @@ export default function SectorsPage() {
       kicker="特定技能の分野"
       title="Bidang kerja Tokutei Ginou"
       intro={`Tokutei Ginou (SSW) membuka ${sectors.length} bidang kerja. Semua butuh bahasa Jepang minimal JFT-Basic A2 atau JLPT N4, ditambah ujian keterampilan sesuai bidangnya.`}
-      image={{ src: "/images/program-jft.jpg", alt: "Ilustrasi pekerja muda di Jepang" }}
+      image={{ src: "/images/bidang-kerja.jpg", alt: "Ilustrasi pekerja muda Indonesia di bidang perawat lansia, restoran, pertanian, hotel, bengkel, dan konstruksi" }}
     >
       <Section title="Daftar bidang dan kosakata awalnya" subtitle="Di kelas, kosakata kerja seperti ini dilatih lewat percakapan supaya siap saat wawancara.">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

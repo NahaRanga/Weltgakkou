@@ -70,7 +70,7 @@ export default function CurriculumPage() {
       kicker="カリキュラム"
       title="Kurikulum dan lama kursus"
       intro="Belajar naik level bertahap. Dari belum bisa hiragana sampai N4 sekitar 7 bulan, dan sampai N3 sekitar 13 bulan."
-      image={{ src: "/images/program-n4.jpg", alt: "Ilustrasi belajar kanji dan tata bahasa" }}
+      image={{ src: "/images/kurikulum.jpg", alt: "Ilustrasi anak muda menaiki tangga level bahasa Jepang menuju Jepang" }}
     >
       <Section title="Berapa lama sampai level tertentu?" subtitle="Dihitung dari nol, kalau ikut kelas secara rutin.">
         <div className="grid gap-3 sm:grid-cols-4">

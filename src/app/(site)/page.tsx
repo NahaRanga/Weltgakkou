@@ -37,9 +37,18 @@ const journey = [
 export default function Home() {
   return (
     <>
-      <section className="overflow-hidden bg-gradient-to-b from-red-50 via-white to-white">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 sm:py-16 lg:grid-cols-[1fr_1.1fr]">
-          <div>
+      {/* Ilustrasi lebar: sisi kiri gambar kosong, jadi di layar lebar teks ditaruh di atasnya. */}
+      <section className="relative overflow-hidden bg-[#fff8ed]">
+        <Image
+          src={withBase("/images/hero-wide.jpg")}
+          alt="Ilustrasi tiga anak muda Indonesia belajar bahasa Jepang bersama lewat laptop dan HP"
+          width={1600}
+          height={893}
+          priority
+          className="absolute inset-y-0 right-0 hidden h-full w-auto max-w-none lg:block"
+        />
+        <div className="relative mx-auto max-w-6xl px-4 py-12 sm:py-16 lg:py-28">
+          <div className="lg:max-w-[46%]">
             <p className="font-jp text-red-700">日本語を、オンラインで。</p>
             <h1 className="mt-3 max-w-3xl text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
               Kursus bahasa Jepang online dari nol sampai JLPT N3
@@ -64,12 +73,12 @@ export default function Home() {
             </div>
           </div>
           <Image
-            src={withBase("/images/hero.jpg")}
-            alt="Ilustrasi anak muda Indonesia belajar bahasa Jepang online bersama"
-            width={1200}
-            height={1007}
+            src={withBase("/images/hero-wide.jpg")}
+            alt=""
+            width={1600}
+            height={893}
             priority
-            className="w-full rounded-3xl shadow-xl shadow-red-900/10"
+            className="-mx-4 mt-4 aspect-[5/4] w-[calc(100%+2rem)] max-w-none object-cover object-right sm:mx-0 sm:w-full sm:aspect-[16/9] lg:hidden"
           />
         </div>
       </section>

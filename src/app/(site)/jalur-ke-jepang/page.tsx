@@ -54,7 +54,7 @@ export default function PathPage() {
       kicker="日本への道"
       title="Jalur ke Jepang dan timeline sampai berangkat"
       intro="Ada tiga jalur yang paling umum dari Indonesia. Semuanya dimulai dari bahasa Jepang, dan dari nol sampai berangkat biasanya butuh sekitar satu tahun."
-      image={{ src: "/images/program-jft.jpg", alt: "Ilustrasi persiapan berangkat kerja ke Jepang" }}
+      image={{ src: "/images/jalur-ke-jepang.jpg", alt: "Ilustrasi perjalanan dari belajar, dokumen, wawancara, visa, sampai terbang ke Jepang", width: 1200, height: 670, wide: true }}
     >
       <Section title="Tiga jalur yang umum">
         <div className="grid gap-4 md:grid-cols-3">

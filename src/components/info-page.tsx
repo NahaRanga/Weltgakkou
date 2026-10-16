@@ -17,14 +17,24 @@ export function InfoPage({
   kicker: string;
   title: string;
   intro: ReactNode;
-  image?: { src: string; alt: string };
+  image?: { src: string; alt: string; width?: number; height?: number; wide?: boolean };
   children: ReactNode;
 }) {
+  const pic = image && (
+    <Image
+      src={withBase(image.src)}
+      alt={image.alt}
+      width={image.width ?? 1200}
+      height={image.height ?? 896}
+      priority
+      className={`w-full rounded-3xl ${image.wide ? "mt-8" : ""}`}
+    />
+  );
   const others = infoPages.filter((p) => p.href !== path);
   return (
     <>
       <section className="bg-gradient-to-b from-red-50 via-white to-white">
-        <div className={`mx-auto grid max-w-5xl items-center gap-8 px-4 py-12 ${image ? "md:grid-cols-[1fr_380px]" : ""}`}>
+        <div className={`mx-auto grid max-w-5xl items-center gap-8 px-4 py-12 ${image && !image.wide ? "md:grid-cols-[1fr_380px]" : ""}`}>
           <div>
             <Link href="/info" className="text-sm text-stone-500 hover:text-stone-800">
               ← Info
@@ -32,8 +42,9 @@ export function InfoPage({
             <p className="font-jp mt-5 text-sm font-medium text-red-700">{kicker}</p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">{title}</h1>
             <div className="mt-3 max-w-2xl text-lg text-stone-600">{intro}</div>
+            {image?.wide && pic}
           </div>
-          {image && <Image src={withBase(image.src)} alt={image.alt} width={1200} height={896} priority className="w-full rounded-3xl" />}
+          {image && !image.wide && pic}
         </div>
       </section>
 

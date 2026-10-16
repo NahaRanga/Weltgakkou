@@ -134,7 +134,9 @@ async function RecordingPackageOffer({ slug }: { slug: string }) {
   const pkg = await getRecordingPackage(slug);
   if (!pkg) return null;
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-6">
+    <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+      <Image src={withBase("/images/paket-rekaman.jpg")} alt="Ilustrasi belajar lewat video rekaman" width={1200} height={896} className="aspect-[2/1] w-full object-cover" />
+      <div className="p-6">
       <p className="text-sm font-medium text-red-700">Paket rekaman video</p>
       <h2 className="mt-1 text-lg font-semibold text-stone-900">Belajar mandiri, kapan saja</h2>
       <p className="mt-1 text-sm text-stone-600">
@@ -145,6 +147,7 @@ async function RecordingPackageOffer({ slug }: { slug: string }) {
       <Link href={`/daftar/${pkg.batchId}`} className="mt-3 inline-block rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-700">
         Beli paket rekaman
       </Link>
+      </div>
     </div>
   );
 }

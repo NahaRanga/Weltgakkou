@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { InfoPage, Section } from "@/components/info-page";
+import { withBase } from "@/lib/base-path";
 
 export const metadata: Metadata = {
   title: "Cara belajar",
@@ -56,6 +58,13 @@ export default function HowPage() {
       </Section>
 
       <Section title="Pilih paket">
+        <Image
+          src={withBase("/images/paket-rekaman.jpg")}
+          alt="Ilustrasi belajar lewat video rekaman di rumah, kapan saja"
+          width={1200}
+          height={896}
+          className="mb-4 w-full rounded-3xl sm:max-w-md"
+        />
         <div className="grid gap-4 md:grid-cols-2">
           {packages.map((p) => (
             <div key={p.name} className="rounded-2xl border border-stone-200 bg-white p-6">

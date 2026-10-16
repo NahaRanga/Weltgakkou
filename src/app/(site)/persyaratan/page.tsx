@@ -24,6 +24,7 @@ export default function RequirementsPage() {
       kicker="応募条件"
       title="Persyaratan umum ke Jepang"
       intro="Ini syarat yang paling sering diminta. Syarat pastinya ditentukan oleh perusahaan, LPK, atau sekolah yang kamu tuju."
+      image={{ src: "/images/persyaratan.jpg", alt: "Ilustrasi menyiapkan paspor, ijazah, pas foto, dan checklist dokumen" }}
     >
       <Section title="Syarat yang sering diminta">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

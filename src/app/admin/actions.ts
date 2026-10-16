@@ -216,3 +216,204 @@ export async function setLeadStatus(leadId: string, status: "baru" | "dihubungi"
   await requireDb().from("leads").update({ status }).eq("id", leadId);
   refresh();
 }
+
+// ---------- Dashboard v2 ----------
+
+export type FormState = { error?: string; ok?: string; whatsappText?: string; whatsapp?: string };
+
+const batchUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  schedule_label: z.string().trim().min(2).max(120),
+  quota: z.coerce.number().int().min(1).max(50),
+  meeting_url: z.union([z.literal(""), z.url()]),
+  teacher_id: z.union([z.literal(""), z.uuid()]),
+});
+
+export async function updateBatch(batchId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const parsed = batchUpdateSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Periksa lagi isian: " + parsed.error.issues.map((i) => i.path.join(".")).join(", ") };
+  const b = parsed.data;
+  const { error } = await requireDb()
+    .from("batches")
+    .update({ name: b.name, schedule_label: b.schedule_label, quota: b.quota, meeting_url: b.meeting_url || null, teacher_id: b.teacher_id || null })
+    .eq("id", batchId);
+  if (error) return { error: error.message };
+  refresh();
+  return { ok: "Batch disimpan." };
+}
+
+export async function updateSession(sessionId: string, formData: FormData) {
+  await requireAdmin();
+  const topic = String(formData.get("topic") ?? "").trim().slice(0, 120);
+  const meetingUrl = String(formData.get("meeting_url") ?? "").trim();
+  if (meetingUrl && !/^https:\/\//.test(meetingUrl)) return;
+  await requireDb().from("sessions").update({ topic: topic || null, meeting_url: meetingUrl || null }).eq("id", sessionId);
+  refresh();
+}
+
+// Absensi: baris di tabel attendance berarti hadir (sama seperti tombol "Masuk kelas" siswa).
+export async function saveAttendance(sessionId: string, studentIds: string[], formData: FormData) {
+  await requireAdmin();
+  const db = requireDb();
+  const present = new Set(formData.getAll("present").map(String));
+  const absent = studentIds.filter((id) => !present.has(id));
+  if (present.size) {
+    await db
+      .from("attendance")
+      .upsert([...present].map((profile_id) => ({ session_id: sessionId, profile_id, present: true })), { onConflict: "session_id,profile_id" });
+  }
+  if (absent.length) await db.from("attendance").delete().eq("session_id", sessionId).in("profile_id", absent);
+  refresh();
+}
+
+// Nilai ujian per sesi ujian. Baris exams dibuat otomatis saat nilai pertama disimpan.
+export async function saveExamScores(sessionId: string, formData: FormData) {
+  await requireAdmin();
+  const db = requireDb();
+  const maxScore = Math.max(1, Number(formData.get("max_score") ?? 100) || 100);
+  const { data: session } = await db.from("sessions").select("topic, number").eq("id", sessionId).maybeSingle();
+  if (!session) return;
+  let { data: exam } = await db.from("exams").select("id").eq("session_id", sessionId).maybeSingle();
+  if (!exam) {
+    const { data } = await db
+      .from("exams")
+      .insert({ session_id: sessionId, title: session.topic ?? `Ujian sesi ${session.number}`, max_score: maxScore })
+      .select("id")
+      .single();
+    exam = data;
+  } else {
+    await db.from("exams").update({ max_score: maxScore }).eq("id", exam.id);
+  }
+  if (!exam) return;
+  const rows: { exam_id: string; profile_id: string; score: number }[] = [];
+  const cleared: string[] = [];
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("score_")) continue;
+    const profileId = key.slice(6);
+    const raw = String(value).trim().replace(",", ".");
+    if (raw === "") cleared.push(profileId);
+    else if (!Number.isNaN(Number(raw))) rows.push({ exam_id: exam.id, profile_id: profileId, score: Math.min(maxScore, Math.max(0, Number(raw))) });
+  }
+  if (rows.length) await db.from("exam_results").upsert(rows, { onConflict: "exam_id,profile_id" });
+  if (cleared.length) await db.from("exam_results").delete().eq("exam_id", exam.id).in("profile_id", cleared);
+  refresh();
+}
+
+const materialSchema = z.object({
+  title: z.string().trim().min(2).max(120),
+  kind: z.enum(["pdf", "video", "link"]),
+  url: z.url(),
+  session_id: z.union([z.literal(""), z.uuid()]),
+});
+
+export async function addMaterial(programId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const parsed = materialSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Isi judul dan link yang valid (diawali https://)." };
+  const m = parsed.data;
+  const { error } = await requireDb()
+    .from("materials")
+    .insert({ title: m.title, kind: m.kind, url: m.url, session_id: m.session_id || null, program_id: m.session_id ? null : programId });
+  if (error) return { error: error.message };
+  refresh();
+  return { ok: "Materi ditambahkan." };
+}
+
+export async function deleteMaterial(materialId: string) {
+  await requireAdmin();
+  await requireDb().from("materials").delete().eq("id", materialId);
+  refresh();
+}
+
+export async function setEnrollmentStatus(enrollmentId: string, status: "aktif" | "selesai" | "keluar") {
+  await requireAdmin();
+  await requireDb().from("enrollments").update({ status }).eq("id", enrollmentId);
+  refresh();
+}
+
+// Tagihan yang dibayar tanpa unggah bukti (misalnya transfer dicek langsung di mutasi).
+export async function markInvoicePaid(invoiceId: string): Promise<VerifyState> {
+  await requireAdmin();
+  const db = requireDb();
+  const { data } = await db.from("invoices").select("status").eq("id", invoiceId).maybeSingle();
+  if (!data || !["belum", "ditolak", "menunggu_verifikasi"].includes(data.status)) return { error: "Tagihan ini tidak bisa ditandai lunas." };
+  if (data.status !== "menunggu_verifikasi") await db.from("invoices").update({ status: "menunggu_verifikasi" }).eq("id", invoiceId);
+  // Tanpa refresh(), sama seperti acceptPayment: pesan WhatsApp harus tetap tampil.
+  return acceptPayment(invoiceId);
+}
+
+export async function cancelInvoice(invoiceId: string) {
+  await requireAdmin();
+  await requireDb().from("invoices").update({ status: "kedaluwarsa" }).eq("id", invoiceId).in("status", ["belum", "ditolak"]);
+  refresh();
+}
+
+export async function setReferralPaid(referralId: string, paid: boolean) {
+  await requireAdmin();
+  await requireDb().from("referrals").update({ paid }).eq("id", referralId);
+  refresh();
+}
+
+export async function setLeadNote(leadId: string, formData: FormData) {
+  await requireAdmin();
+  await requireDb()
+    .from("leads")
+    .update({ note: String(formData.get("note") ?? "").trim().slice(0, 300) || null })
+    .eq("id", leadId);
+  refresh();
+}
+
+const staffSchema = z.object({
+  full_name: z.string().trim().min(2).max(80),
+  email: z.email().transform((v) => v.toLowerCase()),
+  whatsapp: z.string().trim().max(20).optional(),
+  role: z.enum(["pengajar", "admin", "konten"]),
+});
+
+// Menambah anggota tim. Akun dibuat tanpa password; link atur password dikirim lewat WhatsApp/email.
+export async function addStaff(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const parsed = staffSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Isi nama dan email yang valid." };
+  const s = parsed.data;
+  const db = requireDb();
+  const whatsapp = s.whatsapp ? s.whatsapp.replace(/\D/g, "").replace(/^0/, "62") : null;
+
+  const { data: existing } = await db.from("profiles").select("id").eq("email", s.email).maybeSingle();
+  if (existing) {
+    await db.from("profiles").update({ role: s.role, full_name: s.full_name, ...(whatsapp ? { whatsapp } : {}) }).eq("id", existing.id);
+  } else {
+    const { data: created, error } = await db.auth.admin.createUser({ email: s.email, email_confirm: true, user_metadata: { full_name: s.full_name } });
+    if (error || !created.user) return { error: "Akun tidak bisa dibuat: " + (error?.message ?? "tidak diketahui") };
+    const { error: profileError } = await db
+      .from("profiles")
+      .insert({ id: created.user.id, email: s.email, full_name: s.full_name, whatsapp, role: s.role });
+    if (profileError) return { error: profileError.message };
+  }
+
+  const link = await createPasswordLink(s.email);
+  const text = `Halo ${s.full_name}, akun Weltgakkou kamu sudah dibuat (${s.role}).\n\nAtur password lewat link ini (berlaku 1 jam):\n${link}\n\nSetelah itu masuk di ${siteUrl()}/masuk dengan email ${s.email}.`;
+  const emailed = link ? await sendEmail(s.email, "Akun Weltgakkou", text) : false;
+  refresh();
+  if (emailed) return { ok: `Akun ${s.full_name} siap. Link atur password dikirim ke ${s.email}.` };
+  return { ok: `Akun ${s.full_name} siap. Kirim pesan ini lewat WhatsApp:`, whatsappText: text, whatsapp: whatsapp ?? undefined };
+}
+
+export async function setRole(profileId: string, role: "siswa" | "pengajar" | "admin" | "konten") {
+  const admin = await requireAdmin();
+  if (profileId === admin.id) return; // admin tidak bisa menurunkan dirinya sendiri
+  await requireDb().from("profiles").update({ role }).eq("id", profileId);
+  refresh();
+}
+
+export async function sendPasswordLink(profileId: string): Promise<FormState> {
+  await requireAdmin();
+  const { data } = await requireDb().from("profiles").select("full_name, email, whatsapp").eq("id", profileId).maybeSingle();
+  if (!data?.email) return { error: "Profil ini belum punya email." };
+  const link = await createPasswordLink(data.email);
+  if (!link) return { error: "Link tidak bisa dibuat." };
+  const text = `Halo ${data.full_name}, ini link untuk mengatur password akun Weltgakkou kamu (berlaku 1 jam):\n${link}\n\nSetelah itu masuk di ${siteUrl()}/masuk.`;
+  const emailed = await sendEmail(data.email, "Atur password akun Weltgakkou", text);
+  return emailed ? { ok: `Link dikirim ke ${data.email}.` } : { ok: "Kirim lewat WhatsApp:", whatsappText: text, whatsapp: data.whatsapp ?? undefined };
+}

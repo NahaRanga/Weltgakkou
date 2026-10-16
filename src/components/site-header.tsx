@@ -17,7 +17,8 @@ export async function SiteHeader() {
   const items = user
     ? [
         ...nav,
-        { href: "/belajar", label: "Area belajar", mobile: true },
+        // Di HP admin cukup melihat menu Admin supaya header tidak bertumpuk.
+        { href: "/belajar", label: "Area belajar", mobile: user.role !== "admin" },
         ...(user.role === "admin" ? [{ href: "/admin", label: "Admin", mobile: true }] : []),
       ]
     : [...nav, { href: "/belajar", label: "Masuk", mobile: true }];

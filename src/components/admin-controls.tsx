@@ -3,16 +3,23 @@
 import { useActionState, useState, useTransition } from "react";
 import {
   acceptPayment,
+  addMaterial,
+  addStaff,
+  cancelInvoice,
   createBatch,
   createNextInstallment,
+  markInvoicePaid,
   rejectPayment,
+  sendPasswordLink,
+  updateBatch,
   type BatchState,
+  type FormState,
   type VerifyState,
 } from "@/app/admin/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 import { withBase } from "@/lib/base-path";
 
-function WhatsappFollowUp({ state }: { state: VerifyState }) {
+function WhatsappFollowUp({ state }: { state: { whatsappText?: string; whatsapp?: string } }) {
   if (!state.whatsappText) return null;
   const href = state.whatsapp
     ? `https://wa.me/${state.whatsapp}?text=${encodeURIComponent(state.whatsappText)}`
@@ -172,5 +179,187 @@ export function BatchForm({ programs }: { programs: { id: string; name: string; 
         </button>
       </div>
     </form>
+  );
+}
+
+export function InvoiceActions({ invoiceId }: { invoiceId: string }) {
+  const [state, setState] = useState<VerifyState>({});
+  const [pending, start] = useTransition();
+  if (state.done) {
+    return (
+      <div>
+        <span className="text-sm font-medium text-emerald-700">Ditandai lunas</span>
+        <WhatsappFollowUp state={state} />
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        className="rounded-lg border border-emerald-300 px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
+        disabled={pending}
+        onClick={() => {
+          if (confirm("Tandai tagihan ini lunas? Pastikan uangnya sudah masuk ke rekening.")) start(async () => setState(await markInvoicePaid(invoiceId)));
+        }}
+      >
+        Tandai lunas
+      </button>
+      <button
+        className="rounded-lg border border-stone-300 px-2.5 py-1 text-xs text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+        disabled={pending}
+        onClick={() => {
+          if (confirm("Batalkan tagihan ini?")) start(async () => cancelInvoice(invoiceId));
+        }}
+      >
+        Batalkan
+      </button>
+      {state.error && <span className="text-xs text-red-700">{state.error}</span>}
+    </div>
+  );
+}
+
+function Messages({ state }: { state: FormState }) {
+  return (
+    <>
+      {state.error && <Notice tone="error">{state.error}</Notice>}
+      {state.ok && <Notice tone="ok">{state.ok}</Notice>}
+      <WhatsappFollowUp state={state} />
+    </>
+  );
+}
+
+export function BatchEditForm({
+  batch,
+  teachers,
+}: {
+  batch: { id: string; name: string; schedule_label: string; quota: number; meeting_url: string | null; teacher_id: string | null };
+  teachers: { id: string; full_name: string }[];
+}) {
+  const [state, action, pending] = useActionState(updateBatch.bind(null, batch.id), {} as FormState);
+  return (
+    <form action={action} className="grid gap-4 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <Messages state={state} />
+      </div>
+      <Field label="Nama batch">
+        <input name="name" defaultValue={batch.name} required className={inputClass} />
+      </Field>
+      <Field label="Kuota">
+        <input name="quota" type="number" min={1} max={50} defaultValue={batch.quota} required className={inputClass} />
+      </Field>
+      <Field label="Keterangan jadwal">
+        <input name="schedule_label" defaultValue={batch.schedule_label} required className={inputClass} />
+      </Field>
+      <Field label="Pengajar">
+        <select name="teacher_id" defaultValue={batch.teacher_id ?? ""} className={inputClass}>
+          <option value="">Belum ditentukan</option>
+          {teachers.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.full_name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <div className="sm:col-span-2">
+        <Field label="Link Google Meet batch">
+          <input name="meeting_url" type="url" defaultValue={batch.meeting_url ?? ""} placeholder="https://meet.google.com/..." className={inputClass} />
+        </Field>
+      </div>
+      <div className="sm:col-span-2">
+        <button className={buttonClass} disabled={pending}>
+          {pending ? "Menyimpan..." : "Simpan batch"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function MaterialForm({ programId, sessions }: { programId: string; sessions: { id: string; label: string }[] }) {
+  const [state, action, pending] = useActionState(addMaterial.bind(null, programId), {} as FormState);
+  return (
+    <form action={action} className="grid gap-3 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <Messages state={state} />
+      </div>
+      <Field label="Judul materi">
+        <input name="title" required placeholder="Bab 1: Salam dan perkenalan" className={inputClass} />
+      </Field>
+      <Field label="Jenis">
+        <select name="kind" className={inputClass}>
+          <option value="pdf">PDF</option>
+          <option value="video">Video</option>
+          <option value="link">Link lain</option>
+        </select>
+      </Field>
+      <Field label="Link (Google Drive, YouTube, dll.)">
+        <input name="url" type="url" required placeholder="https://drive.google.com/..." className={inputClass} />
+      </Field>
+      <Field label="Untuk sesi">
+        <select name="session_id" className={inputClass}>
+          <option value="">Semua batch program ini</option>
+          {sessions.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <div className="sm:col-span-2">
+        <button className={buttonClass} disabled={pending}>
+          {pending ? "Menyimpan..." : "Tambah materi"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function StaffForm() {
+  const [state, action, pending] = useActionState(addStaff, {} as FormState);
+  return (
+    <form action={action} className="grid gap-3 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <Messages state={state} />
+      </div>
+      <Field label="Nama lengkap">
+        <input name="full_name" required className={inputClass} />
+      </Field>
+      <Field label="Email (untuk login)">
+        <input name="email" type="email" required className={inputClass} />
+      </Field>
+      <Field label="Nomor WhatsApp">
+        <input name="whatsapp" inputMode="tel" placeholder="081234567890" className={inputClass} />
+      </Field>
+      <Field label="Peran">
+        <select name="role" className={inputClass}>
+          <option value="pengajar">Pengajar</option>
+          <option value="konten">Konten</option>
+          <option value="admin">Admin</option>
+        </select>
+      </Field>
+      <div className="sm:col-span-2">
+        <button className={buttonClass} disabled={pending}>
+          {pending ? "Membuat akun..." : "Tambah anggota tim"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function PasswordLinkButton({ profileId }: { profileId: string }) {
+  const [state, setState] = useState<FormState>({});
+  const [pending, start] = useTransition();
+  return (
+    <div>
+      <button
+        className="text-xs font-medium text-red-700 hover:underline disabled:opacity-60"
+        disabled={pending}
+        onClick={() => start(async () => setState(await sendPasswordLink(profileId)))}
+      >
+        {pending ? "Membuat link..." : "Kirim link atur password"}
+      </button>
+      {state.error && <p className="text-xs text-red-700">{state.error}</p>}
+      {state.ok && <p className="text-xs text-emerald-700">{state.ok}</p>}
+      <WhatsappFollowUp state={state} />
+    </div>
   );
 }

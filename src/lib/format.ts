@@ -20,3 +20,8 @@ export function formatDate(iso: string) {
 export function siteUrl() {
   return (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
+
+// Waktu saat request; halaman admin dan siswa selalu dirender per request.
+export function requestTime() {
+  return Date.now();
+}

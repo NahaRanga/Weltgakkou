@@ -1,315 +1,188 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import { setBatchMeetingUrl, setBatchStatus, setLeadStatus } from "@/app/admin/actions";
-import { BatchForm, InstallmentButton, VerifyButtons } from "@/components/admin-controls";
-import { inputClass } from "@/components/ui/form";
-import { requireAdmin, requireDb, type CurrentUser } from "@/lib/auth";
-import { expireOverdueInvoices } from "@/lib/billing";
-import { formatDate, formatDateTime } from "@/lib/format";
+import Link from "next/link";
+import { Badge, Card, Empty, PageTitle, Stat, WaLink } from "@/components/admin/ui";
+import { requireDb } from "@/lib/auth";
+import { formatDateTime, requestTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
-import { withBase } from "@/lib/base-path";
 
-export const metadata: Metadata = { title: "Admin", robots: { index: false } };
+export const metadata = { title: "Ringkasan" };
 
-export default async function AdminPage() {
-  // Cek login sebelum streaming dimulai, supaya redirect berupa HTTP biasa.
-  const admin = await requireAdmin();
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <Suspense fallback={<p className="text-stone-500">Memuat data admin...</p>}>
-        <AdminContent admin={admin} />
-      </Suspense>
-    </div>
-  );
+// Awal bulan berjalan menurut WIB, dalam ISO UTC.
+function monthStartIso(offsetMonths = 0) {
+  const now = new Date(requestTime() + 7 * 3600_000);
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offsetMonths, 1) - 7 * 3600_000);
+  return d.toISOString();
 }
 
-function Section({ title, children, count }: { title: string; children: React.ReactNode; count?: number }) {
-  return (
-    <section className="mt-10">
-      <h2 className="text-xl font-bold text-stone-900">
-        {title}
-        {count !== undefined && <span className="ml-2 text-base font-normal text-stone-500">{count}</span>}
-      </h2>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
+function todayRangeIso() {
+  const now = new Date(requestTime() + 7 * 3600_000);
+  const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - 7 * 3600_000;
+  return [new Date(start).toISOString(), new Date(start + 86400_000).toISOString()];
 }
 
-type PendingInvoice = {
-  id: string;
-  code: string;
-  amount: number;
-  unique_code: number;
-  installment_no: number;
-  method: string | null;
-  enrollments: { profiles: { full_name: string; whatsapp: string | null }; batches: { name: string; programs: { name: string } } };
-  payment_proofs: { file_path: string; uploaded_at: string }[];
-};
+type BatchRow = { id: string; name: string; status: string; quota: number; start_date: string; programs: { name: string }; enrollments: { status: string }[] };
+type SessionRow = { id: string; number: number; starts_at: string; kind: string; topic: string | null; batches: { id: string; name: string; programs: { name: string } } };
+type RecentRow = { id: string; status: string; created_at: string; profiles: { full_name: string; whatsapp: string | null }; batches: { id: string; name: string; programs: { name: string } } };
+type DueRow = { id: string; code: string; amount: number; due_at: string; installment_no: number; enrollments: { profiles: { full_name: string; whatsapp: string | null } } };
 
-type ParticipantProfile = {
-  full_name: string;
-  whatsapp: string | null;
-  email: string | null;
-  nickname: string | null;
-  gender: string | null;
-  birth_place_date: string | null;
-  domicile: string | null;
-  address: string | null;
-  education: string | null;
-  occupation: string | null;
-  tiktok: string | null;
-  instagram: string | null;
-  studied_before: boolean | null;
-  prior_level: string | null;
-  learning_goal: string | null;
-};
-
-type BatchRow = {
-  id: string;
-  name: string;
-  status: "buka" | "berjalan" | "selesai";
-  start_date: string;
-  quota: number;
-  meeting_url: string | null;
-  programs: { name: string };
-  enrollments: {
-    id: string;
-    status: string;
-    plan: string;
-    profiles: ParticipantProfile;
-    invoices: { installment_no: number; status: string }[];
-  }[];
-};
-
-async function AdminContent({ admin }: { admin: CurrentUser }) {
+export default async function AdminOverview() {
   const db = requireDb();
-  await expireOverdueInvoices(db);
+  const [start, end] = todayRangeIso();
+  const in3days = new Date(requestTime() + 3 * 86400_000).toISOString();
 
-  const [pendingRes, batchesRes, leadsRes, programsRes] = await Promise.all([
-    db
-      .from("invoices")
-      .select(
-        "id, code, amount, unique_code, installment_no, method, enrollments(profiles(full_name, whatsapp), batches(name, programs(name))), payment_proofs(file_path, uploaded_at)",
-      )
-      .eq("status", "menunggu_verifikasi")
-      .order("created_at"),
-    db
-      .from("batches")
-      .select(
-        "id, name, status, start_date, quota, meeting_url, programs(name), enrollments(id, status, plan, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
-      )
-      .neq("status", "selesai")
-      .order("start_date"),
-    db.from("leads").select("id, full_name, whatsapp, program_slug, source, status, created_at").order("created_at", { ascending: false }).limit(50),
-    db.from("programs").select("id, name, months").eq("active", true).order("created_at"),
+  const [paidRes, activeRes, waitingRes, proofsRes, leadsRes, batchesRes, todayRes, recentRes, dueRes] = await Promise.all([
+    db.from("invoices").select("amount, paid_at").eq("status", "lunas").gte("paid_at", monthStartIso(-5)),
+    db.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "aktif"),
+    db.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "menunggu_bayar"),
+    db.from("invoices").select("id", { count: "exact", head: true }).eq("status", "menunggu_verifikasi"),
+    db.from("leads").select("id", { count: "exact", head: true }).eq("status", "baru"),
+    db.from("batches").select("id, name, status, quota, start_date, programs(name), enrollments(status)").neq("status", "selesai").order("start_date"),
+    db.from("sessions").select("id, number, starts_at, kind, topic, batches!inner(id, name, status, programs(name))").gte("starts_at", start).lt("starts_at", end).neq("batches.status", "selesai").order("starts_at"),
+    db.from("enrollments").select("id, status, created_at, profiles(full_name, whatsapp), batches(id, name, programs(name))").order("created_at", { ascending: false }).limit(6),
+    db.from("invoices").select("id, code, amount, due_at, installment_no, enrollments(profiles(full_name, whatsapp))").eq("status", "belum").lte("due_at", in3days).order("due_at").limit(8),
   ]);
 
-  const pending = (pendingRes.data ?? []) as unknown as PendingInvoice[];
-  const batches = (batchesRes.data ?? []) as unknown as BatchRow[];
+  const paid = paidRes.data ?? [];
+  const thisMonth = monthStartIso(0);
+  const incomeThisMonth = paid.filter((i) => i.paid_at >= thisMonth).reduce((s, i) => s + i.amount, 0);
+  const months = Array.from({ length: 6 }, (_, k) => {
+    const from = monthStartIso(k - 5);
+    const to = monthStartIso(k - 4);
+    const label = new Intl.DateTimeFormat("id-ID", { month: "short", year: "2-digit", timeZone: "Asia/Jakarta" }).format(new Date(from));
+    return { label, total: paid.filter((i) => i.paid_at >= from && i.paid_at < to).reduce((s, i) => s + i.amount, 0) };
+  });
 
-  // Link foto bukti berlaku 1 jam (bucket privat).
-  const proofUrls = new Map<string, string>();
-  await Promise.all(
-    pending.map(async (inv) => {
-      const latest = [...inv.payment_proofs].sort((a, b) => b.uploaded_at.localeCompare(a.uploaded_at))[0];
-      if (!latest) return;
-      const { data } = await db.storage.from("payment-proofs").createSignedUrl(latest.file_path, 3600);
-      if (data) proofUrls.set(inv.id, data.signedUrl);
-    }),
-  );
+  const batches = (batchesRes.data ?? []) as unknown as BatchRow[];
+  const today = (todayRes.data ?? []) as unknown as SessionRow[];
+  const recent = (recentRes.data ?? []) as unknown as RecentRow[];
+  const due = (dueRes.data ?? []) as unknown as DueRow[];
 
   return (
     <>
-      <h1 className="text-3xl font-bold text-stone-900">Admin Weltgakkou</h1>
-      <p className="text-stone-600">Masuk sebagai {admin.fullName}</p>
+      <PageTitle title="Ringkasan" subtitle="Keadaan Weltgakkou hari ini." />
 
-      <Section title="Menunggu verifikasi" count={pending.length}>
-        {pending.length === 0 ? (
-          <p className="text-stone-500">Tidak ada bukti bayar yang menunggu.</p>
-        ) : (
-          <div className="space-y-4">
-            {pending.map((inv) => (
-              <div key={inv.id} className="grid gap-4 rounded-xl border border-stone-200 bg-white p-5 sm:grid-cols-[1fr_200px]">
-                <div className="space-y-2">
-                  <p className="font-semibold text-stone-900">{inv.enrollments.profiles.full_name}</p>
-                  <p className="text-sm text-stone-600">
-                    {inv.enrollments.batches.programs.name} · {inv.enrollments.batches.name}
-                    {inv.installment_no > 1 ? ` · cicilan ke-${inv.installment_no}` : ""}
-                  </p>
-                  <p className="text-2xl font-bold text-stone-900">{formatRupiah(inv.amount)}</p>
-                  <p className="text-sm text-stone-600">
-                    Kode unik {inv.unique_code} · {inv.method === "qris" ? "QRIS" : "Transfer"} · tagihan {inv.code}
-                  </p>
-                  <VerifyButtons invoiceId={inv.id} />
-                </div>
-                {proofUrls.get(inv.id) && (
-                  <a href={proofUrls.get(inv.id)} target="_blank" rel="noreferrer" className="block">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={proofUrls.get(inv.id)} alt="Bukti bayar" className="max-h-64 w-full rounded-lg border object-contain" />
-                    <span className="text-xs text-stone-500">Buka ukuran penuh</span>
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <Stat label="Bukti bayar dicek" value={proofsRes.count ?? 0} href="/admin/pembayaran" tone="alert" />
+        <Stat label="Waiting list baru" value={leadsRes.count ?? 0} href="/admin/waiting-list?status=baru" tone="alert" />
+        <Stat label="Siswa aktif" value={activeRes.count ?? 0} href="/admin/siswa" />
+        <Stat label="Menunggu bayar" value={waitingRes.count ?? 0} href="/admin/pembayaran?status=belum" />
+        <Stat label="Pemasukan bulan ini" value={formatRupiah(incomeThisMonth)} href="/admin/pembayaran?status=lunas" />
+        <Stat label="Batch aktif" value={batches.length} href="/admin/batch" />
+      </div>
 
-      <Section title="Batch berjalan dan dibuka" count={batches.length}>
-        <div className="space-y-4">
-          {batches.map((b) => {
-            const active = b.enrollments.filter((e) => e.status === "aktif");
-            const waiting = b.enrollments.filter((e) => e.status === "menunggu_bayar");
-            return (
-              <details key={b.id} className="rounded-xl border border-stone-200 bg-white p-5">
-                <summary className="cursor-pointer">
-                  <span className="font-semibold text-stone-900">
-                    {b.programs.name} · {b.name}
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <Card title="Kelas hari ini" count={today.length}>
+          {today.length === 0 ? (
+            <Empty>Tidak ada kelas atau ujian hari ini.</Empty>
+          ) : (
+            <ul className="divide-y divide-stone-100">
+              {today.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span>
+                    <span className="font-medium text-stone-900">{new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }).format(new Date(s.starts_at))}</span>{" "}
+                    {s.batches.programs.name} · {s.batches.name} · {s.kind === "ujian" ? "Ujian" : `Kelas ${s.number}`}
+                    {s.topic ? ` · ${s.topic}` : ""}
                   </span>
-                  <span className="ml-2 text-sm text-stone-600">
-                    mulai {formatDate(b.start_date)} · {active.length} aktif, {waiting.length} menunggu bayar, kuota {b.quota} ·{" "}
-                    {b.status}
-                  </span>
-                </summary>
-                <div className="mt-4 space-y-4">
-                  <form action={setBatchMeetingUrl.bind(null, b.id)} className="flex flex-wrap gap-2">
-                    <input name="meeting_url" defaultValue={b.meeting_url ?? ""} placeholder="https://meet.google.com/..." className={`${inputClass} max-w-md flex-1`} />
-                    <button className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-semibold">Simpan link Meet</button>
-                  </form>
-                  <div className="flex gap-2 text-sm">
-                    {(["buka", "berjalan", "selesai"] as const)
-                      .filter((s) => s !== b.status)
-                      .map((s) => (
-                        <form key={s} action={setBatchStatus.bind(null, b.id, s)}>
-                          <button className="rounded-lg border border-stone-300 px-3 py-1.5">Tandai {s}</button>
-                        </form>
-                      ))}
-                    <a href={withBase(`/daftar/${b.id}`)} className="px-3 py-1.5 text-red-700 underline">
-                      Link pendaftaran
-                    </a>
-                  </div>
-                  <table className="w-full text-left text-sm">
-                    <thead className="text-stone-500">
-                      <tr>
-                        <th className="py-1">Siswa</th>
-                        <th>Status</th>
-                        <th>Bayar</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {b.enrollments
-                        .filter((e) => e.status !== "keluar")
-                        .map((e) => {
-                          const paid = e.invoices.filter((i) => i.status === "lunas").length;
-                          return (
-                            <tr key={e.id} className="border-t border-stone-100">
-                              <td className="py-2">
-                                {e.profiles.full_name}
-                                {e.profiles.whatsapp && (
-                                  <a href={`https://wa.me/${e.profiles.whatsapp}`} target="_blank" rel="noreferrer" className="ml-2 text-emerald-700">
-                                    WA
-                                  </a>
-                                )}
-                                <ParticipantDetails p={e.profiles} />
-                              </td>
-                              <td>{e.status === "aktif" ? "Aktif" : "Menunggu bayar"}</td>
-                              <td>{e.plan === "bulanan" ? `${paid} bulan lunas` : paid ? "Lunas" : "-"}</td>
-                              <td>{e.plan === "bulanan" && e.status === "aktif" && <InstallmentButton enrollmentId={e.id} />}</td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-            );
-          })}
-        </div>
-      </Section>
+                  <Link href={`/admin/batch/${s.batches.id}#sesi-${s.id}`} className="shrink-0 font-medium text-red-700 hover:underline">
+                    Absensi
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
-      <Section title="Buat batch baru">
-        <div className="rounded-xl border border-stone-200 bg-white p-5">
-          <BatchForm programs={programsRes.data ?? []} />
-        </div>
-      </Section>
-
-      <Section title="Waiting list terbaru" count={leadsRes.data?.length}>
-        <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-stone-50 text-stone-500">
-              <tr>
-                <th className="p-3">Nama</th>
-                <th>Program</th>
-                <th>Sumber</th>
-                <th>Masuk</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(leadsRes.data ?? []).map((l) => (
-                <tr key={l.id} className="border-t border-stone-100">
-                  <td className="p-3">
-                    {l.full_name}{" "}
-                    <a href={`https://wa.me/${l.whatsapp}`} target="_blank" rel="noreferrer" className="text-emerald-700">
-                      WA
-                    </a>
-                  </td>
-                  <td>{l.program_slug}</td>
-                  <td>{l.source ?? "-"}</td>
-                  <td>{formatDateTime(l.created_at)}</td>
-                  <td>
-                    <div className="flex flex-wrap gap-1">
-                      {(["baru", "dihubungi", "daftar", "batal"] as const).map((s) => (
-                        <form key={s} action={setLeadStatus.bind(null, l.id, s)}>
-                          <button
-                            className={`rounded px-2 py-0.5 text-xs ${l.status === s ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"}`}
-                          >
-                            {s}
-                          </button>
-                        </form>
-                      ))}
+        <Card title="Isi batch">
+          {batches.length === 0 ? (
+            <Empty>
+              Belum ada batch.{" "}
+              <Link href="/admin/batch#buat" className="font-medium text-red-700 underline">
+                Buat batch pertama
+              </Link>
+            </Empty>
+          ) : (
+            <ul className="space-y-3">
+              {batches.map((b) => {
+                const active = b.enrollments.filter((e) => e.status === "aktif").length;
+                const waiting = b.enrollments.filter((e) => e.status === "menunggu_bayar").length;
+                const pct = Math.min(100, Math.round(((active + waiting) / b.quota) * 100));
+                return (
+                  <li key={b.id}>
+                    <Link href={`/admin/batch/${b.id}`} className="block text-sm hover:underline">
+                      <span className="font-medium text-stone-900">
+                        {b.programs.name} · {b.name}
+                      </span>{" "}
+                      <Badge value={b.status} />
+                    </Link>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-stone-100">
+                      <div className="h-full rounded-full bg-emerald-600" style={{ width: `${Math.round((active / b.quota) * 100)}%` }} />
                     </div>
-                  </td>
+                    <p className="mt-1 text-xs text-stone-500">
+                      {active} aktif, {waiting} menunggu bayar dari kuota {b.quota} ({pct}% terisi)
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+
+        <Card title="Pendaftar terbaru">
+          {recent.length === 0 ? (
+            <Empty>Belum ada pendaftar.</Empty>
+          ) : (
+            <ul className="divide-y divide-stone-100">
+              {recent.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span>
+                    <span className="font-medium text-stone-900">{r.profiles.full_name}</span> <WaLink number={r.profiles.whatsapp} />
+                    <span className="block text-xs text-stone-500">
+                      {r.batches.programs.name} · {r.batches.name} · {formatDateTime(r.created_at)}
+                    </span>
+                  </span>
+                  <Badge value={r.status} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card title="Tagihan jatuh tempo (3 hari)" count={due.length}>
+          {due.length === 0 ? (
+            <Empty>Tidak ada tagihan yang segera jatuh tempo.</Empty>
+          ) : (
+            <ul className="divide-y divide-stone-100">
+              {due.map((d) => (
+                <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span>
+                    <span className="font-medium text-stone-900">{d.enrollments.profiles.full_name}</span>{" "}
+                    <WaLink
+                      number={d.enrollments.profiles.whatsapp}
+                      text={`Halo ${d.enrollments.profiles.full_name}, mengingatkan tagihan Weltgakkou ${d.code} sebesar ${formatRupiah(d.amount)} jatuh tempo ${formatDateTime(d.due_at)}. Terima kasih!`}
+                    />
+                    <span className="block text-xs text-stone-500">
+                      {d.code} · {d.installment_no > 1 ? `cicilan ke-${d.installment_no} · ` : ""}jatuh tempo {formatDateTime(d.due_at)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-medium">{formatRupiah(d.amount)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card title="Pemasukan 6 bulan terakhir" className="xl:col-span-2">
+          <table className="w-full text-sm">
+            <tbody>
+              {months.map((m) => (
+                <tr key={m.label} className="border-t border-stone-100 first:border-0">
+                  <td className="w-20 py-1.5 text-stone-500">{m.label}</td>
+                  <td className="py-1.5 text-right font-medium tabular-nums text-stone-900">{formatRupiah(m.total)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </Section>
+        </Card>
+      </div>
     </>
-  );
-}
-
-function ParticipantDetails({ p }: { p: ParticipantProfile }) {
-  const studied = p.studied_before === null ? null : p.studied_before ? `Sudah${p.prior_level ? ` (${p.prior_level})` : ""}` : "Belum";
-  const rows: [string, string | null][] = [
-    ["Panggilan", p.nickname],
-    ["Email", p.email],
-    ["Jenis kelamin", p.gender],
-    ["TTL", p.birth_place_date],
-    ["Domisili", p.domicile],
-    ["Alamat", p.address],
-    ["Pendidikan", p.education],
-    ["Pekerjaan", p.occupation],
-    ["TikTok", p.tiktok],
-    ["Instagram", p.instagram],
-    ["Pernah belajar", studied],
-    ["Tujuan", p.learning_goal],
-  ];
-  return (
-    <details className="mt-1 text-xs text-stone-600">
-      <summary className="cursor-pointer text-stone-500">Data peserta</summary>
-      <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-        {rows
-          .filter(([, value]) => value)
-          .map(([label, value]) => (
-            <div key={label} className="contents">
-              <dt className="text-stone-500">{label}</dt>
-              <dd className="text-stone-800">{value}</dd>
-            </div>
-          ))}
-      </dl>
-    </details>
   );
 }

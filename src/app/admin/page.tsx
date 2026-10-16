@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { setBatchMeetingUrl, setBatchStatus, setLeadStatus } from "@/app/admin/actions";
 import { BatchForm, InstallmentButton, VerifyButtons } from "@/components/admin-controls";
 import { inputClass } from "@/components/ui/form";
-import { requireAdmin, requireDb } from "@/lib/auth";
+import { requireAdmin, requireDb, type CurrentUser } from "@/lib/auth";
 import { expireOverdueInvoices } from "@/lib/billing";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
@@ -11,11 +11,13 @@ import { withBase } from "@/lib/base-path";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  // Cek login sebelum streaming dimulai, supaya redirect berupa HTTP biasa.
+  const admin = await requireAdmin();
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <Suspense fallback={<p className="text-stone-500">Memuat data admin...</p>}>
-        <AdminContent />
+        <AdminContent admin={admin} />
       </Suspense>
     </div>
   );
@@ -79,8 +81,7 @@ type BatchRow = {
   }[];
 };
 
-async function AdminContent() {
-  const admin = await requireAdmin();
+async function AdminContent({ admin }: { admin: CurrentUser }) {
   const db = requireDb();
   await expireOverdueInvoices(db);
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { signOut } from "@/app/masuk/actions";
 import { Notice } from "@/components/ui/form";
-import { requireDb, requireUser } from "@/lib/auth";
+import { requireDb, requireUser, type CurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 import { withBase } from "@/lib/base-path";
@@ -19,11 +19,13 @@ function requestTime() {
   return Date.now();
 }
 
-export default function LearnPage() {
+export default async function LearnPage() {
+  // Cek login sebelum streaming dimulai, supaya pengunjung tanpa sesi mendapat redirect HTTP biasa.
+  const user = await requireUser("/belajar");
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <Suspense fallback={<p className="text-stone-500">Memuat kelas kamu...</p>}>
-        <LearnContent />
+        <LearnContent user={user} />
       </Suspense>
     </div>
   );
@@ -46,11 +48,10 @@ type Enrollment = {
   invoices: { code: string; status: string; amount: number; installment_no: number; due_at: string }[];
 };
 
-async function LearnContent() {
-  const user = await requireUser("/belajar");
+async function LearnContent({ user }: { user: CurrentUser }) {
   const db = requireDb();
 
-  const { data } = await db
+  const { data, error } = await db
     .from("enrollments")
     .select(
       "id, status, plan, batch_id, batches(id, name, start_date, schedule_label, meeting_url, programs(id, name), sessions(id, number, starts_at, kind, topic)), invoices(code, status, amount, installment_no, due_at)",
@@ -58,6 +59,7 @@ async function LearnContent() {
     .eq("profile_id", user.id)
     .neq("status", "keluar")
     .order("created_at", { ascending: false });
+  if (error) console.error("Gagal memuat kelas", error.code, error.message);
   const enrollments = (data ?? []) as unknown as Enrollment[];
 
   return (
@@ -79,7 +81,13 @@ async function LearnContent() {
         </div>
       </div>
 
-      {enrollments.length === 0 && (
+      {error && (
+        <div className="mt-8">
+          <Notice tone="error">Data kelas sedang tidak bisa dimuat. Coba lagi sebentar lagi atau hubungi admin.</Notice>
+        </div>
+      )}
+
+      {!error && enrollments.length === 0 && (
         <div className="mt-8">
           <Notice tone="info">
             Kamu belum terdaftar di kelas mana pun.{" "}
@@ -100,8 +108,8 @@ async function LearnContent() {
 async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollment; userId: string }) {
   const db = requireDb();
   const batch = e.batches;
-  const sessions = [...batch.sessions].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-  const openInvoice = e.invoices.find((i) => i.status === "belum" || i.status === "ditolak");
+  const sessions = [...(batch.sessions ?? [])].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const openInvoice = (e.invoices ?? []).find((i) => i.status === "belum" || i.status === "ditolak");
 
   if (e.status === "menunggu_bayar") {
     return (

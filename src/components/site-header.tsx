@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { SignOutButton } from "@/components/auth-forms";
+import { SocialLinks } from "@/components/social-links";
 import { getCurrentUser } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 
@@ -32,6 +33,7 @@ export async function SiteHeader() {
           <span className="font-jp hidden text-sm font-normal text-red-700 sm:inline">世界学校</span>
         </Link>
         <nav className="flex shrink-0 items-center gap-4 text-sm">
+          <SocialLinks className="hidden border-r border-stone-200 pr-4 lg:flex" />
           {items.map((item) => (
             <Link
               key={item.href}

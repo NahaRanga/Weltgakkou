@@ -13,8 +13,8 @@ const reasons = [
     body: "Belajar langsung bersama pengajar lewat Zoom, Senin sampai Kamis, dalam kelas kecil maksimal 10 orang.",
   },
   {
-    title: "Ujian setiap Jumat",
-    body: "Progres dicek tiap minggu supaya kamu tahu bagian mana yang perlu diulang sebelum ujian JLPT atau JFT.",
+    title: "Tes kemampuan tiap Jumat",
+    body: "Bukan ujian yang menentukan lulus. Tes santai ini menunjukkan sampai mana kemampuanmu dan seberapa siap kamu ikut JLPT atau JFT.",
   },
   {
     title: "Pengajar dari dunia LPK",
@@ -37,7 +37,7 @@ export default function Home() {
               Kursus bahasa Jepang online dari nol sampai JLPT N3
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-stone-600">
-              Kelas live kecil, ujian mingguan, dan jalur belajar yang jelas
+              Kelas live kecil, tes kemampuan mingguan, dan jalur belajar yang jelas
               untuk kerja, studi, atau Tokutei Ginou di Jepang.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">

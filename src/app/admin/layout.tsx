@@ -21,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       { href: "/admin", label: "Dashboard", icon: "dashboard" },
       { href: "/admin/jadwal", label: "Jadwal", icon: "jadwal" },
       { href: "/admin/batch", label: "Batch & kelas", icon: "batch" },
+      { href: "/admin/rekaman", label: "Video rekaman", icon: "video" },
       { href: "/admin/pembayaran", label: "Pembayaran", icon: "bayar", badge: proofs.count ?? 0 },
       { href: "/admin/siswa", label: "Siswa", icon: "siswa" },
       { href: "/admin/sertifikasi", label: "Sertifikasi", icon: "sertifikat" },
@@ -34,6 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       { href: "/admin", label: "Dashboard", icon: "dashboard" },
       { href: "/admin/jadwal", label: "Jadwal", icon: "jadwal" },
       { href: "/admin/batch", label: "Kelas saya", icon: "batch" },
+      { href: "/admin/rekaman", label: "Video rekaman", icon: "video" },
     ];
   }
 

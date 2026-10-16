@@ -17,6 +17,7 @@ const icons: Record<string, string> = {
   sertifikat: "M12 15a5 5 0 100-10 5 5 0 000 10zm-3 4l3-2 3 2v-5.5M9 19v-5.5",
   waiting: "M12 7v5l3 2M12 21a9 9 0 100-18 9 9 0 000 18z",
   referral: "M8 12h8M12 8v8M4 12a8 8 0 1016 0 8 8 0 00-16 0z",
+  video: "M15 10l5-3v10l-5-3M4 6h11v12H4z",
   laporan: "M4 20V10m6 10V4m6 16v-8m4 8H2",
   tim: "M17 20a5 5 0 00-10 0M12 12a4 4 0 100-8 4 4 0 000 8zm7 8a4 4 0 00-3-3.9M19 4.5a3.5 3.5 0 010 7",
   profil: "M12 12a4 4 0 100-8 4 4 0 000 8zm-8 9a8 8 0 0116 0",

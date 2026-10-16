@@ -64,6 +64,8 @@ const badgeTones: Record<string, string> = {
   // status batch
   buka: "bg-sky-100 text-sky-900",
   berjalan: "bg-emerald-100 text-emerald-900",
+  // paket rekaman
+  dijual: "bg-emerald-100 text-emerald-900",
   // waiting list
   baru: "bg-amber-100 text-amber-900",
   dihubungi: "bg-sky-100 text-sky-900",
@@ -80,6 +82,7 @@ const labels: Record<string, string> = {
   menunggu_verifikasi: "Cek bukti",
   menunggu_bayar: "Menunggu bayar",
   kedaluwarsa: "Kedaluwarsa",
+  belum_dijual: "Belum dijual",
 };
 
 export function Badge({ value }: { value: string }) {

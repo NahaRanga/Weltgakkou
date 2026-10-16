@@ -48,7 +48,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorOf.get(s.batches.program_id) }} />
       <span className="tabular-nums text-stone-500">{timeLabel(s.starts_at)}</span>
       <span className="truncate">
-        {s.kind === "ujian" ? "Ujian " : ""}
+        {s.kind === "ujian" ? "Tes " : ""}
         {s.batches.programs.name}
       </span>
     </Link>

@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "FAQ", description: "Pertanyaan yang 
 const faqs = [
   {
     q: "Kelasnya live atau rekaman?",
-    a: "Live lewat Zoom, Senin sampai Kamis. Jumat ujian mingguan. Materi pendukung bisa dibuka kapan saja di area siswa.",
+    a: "Live lewat Zoom, Senin sampai Kamis. Jumat tes kemampuan mingguan, tanpa tekanan, untuk melihat progresmu. Materi pendukung bisa dibuka kapan saja di area siswa.",
   },
   {
     q: "Saya belum bisa hiragana sama sekali. Mulai dari mana?",
@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: "Apakah ada sertifikat?",
-    a: "Ada sertifikat penyelesaian kursus bila kehadiran minimal 80% dan rata-rata ujian Jumat minimal 60. Sertifikat JLPT atau JFT resmi tetap diperoleh dari ujian resminya.",
+    a: "Ada sertifikat penyelesaian kursus setelah kursus selesai. Kalau berhalangan hadir, kamu bisa menonton rekaman kelasnya. Sertifikat JLPT atau JFT resmi tetap diperoleh dari ujian resminya.",
   },
   {
     q: "Apakah biaya ujian JLPT atau JFT sudah termasuk?",

@@ -54,6 +54,7 @@ type Batch = {
   quota: number;
   schedule_label: string;
   meeting_url: string | null;
+  mode: string;
   teacher_id: string | null;
   programs: { id: string; name: string; months: number | null };
   enrollments: Enrollment[];
@@ -64,6 +65,7 @@ type Batch = {
     kind: string;
     topic: string | null;
     meeting_url: string | null;
+    recording_url: string | null;
   }[];
 };
 
@@ -81,7 +83,7 @@ export default async function BatchDetailPage({
   const { data } = await db
     .from("batches")
     .select(
-      "id, name, status, start_date, quota, schedule_label, meeting_url, teacher_id, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url), enrollments(id, status, plan, profile_id, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
+      "id, name, status, start_date, quota, schedule_label, meeting_url, mode, teacher_id, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), enrollments(id, status, plan, profile_id, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -107,7 +109,7 @@ export default async function BatchDetailPage({
       sessionIds.length
         ? db
             .from("attendance")
-            .select("session_id, profile_id")
+            .select("session_id, profile_id, via")
             .in("session_id", sessionIds)
         : empty,
       sessionIds.length
@@ -135,7 +137,13 @@ export default async function BatchDetailPage({
   const attendance = (attendanceRes.data ?? []) as {
     session_id: string;
     profile_id: string;
+    via: string;
   }[];
+  const viaRecording = new Set(
+    attendance
+      .filter((a) => a.via === "rekaman")
+      .map((a) => `${a.session_id}:${a.profile_id}`),
+  );
   const present = new Set(
     attendance.map((a) => `${a.session_id}:${a.profile_id}`),
   );
@@ -242,6 +250,7 @@ export default async function BatchDetailPage({
         <Stat label="Materi" value={materials.length} />
       </div>
 
+      {batch.mode === "live" && (
       <Card title="Link kelas (Zoom/Meet)" className="mt-6">
         <MeetingLinkForm batchId={batch.id} meetingUrl={batch.meeting_url} />
         <p className="mt-2 text-xs text-stone-500">
@@ -251,6 +260,7 @@ export default async function BatchDetailPage({
           isi di bagian sesi di bawah.
         </p>
       </Card>
+      )}
 
       {isAdmin && (
       <Card title="Link pendaftaran" className="mt-6">
@@ -332,7 +342,7 @@ export default async function BatchDetailPage({
                         {rate === null ? (
                           "-"
                         ) : (
-                          <span className={rate < 80 ? "text-red-700" : ""}>
+                          <span>
                             {rate}%
                           </span>
                         )}
@@ -341,7 +351,7 @@ export default async function BatchDetailPage({
                         {avg === null ? (
                           "-"
                         ) : (
-                          <span className={avg < 60 ? "text-red-700" : ""}>
+                          <span>
                             {avg}
                           </span>
                         )}
@@ -397,8 +407,8 @@ export default async function BatchDetailPage({
           </div>
         )}
         <p className="mt-3 text-xs text-stone-500">
-          Syarat sertifikat: kehadiran minimal 80% dan rata-rata ujian minimal
-          60. Angka merah berarti belum memenuhi.
+          Nilai = rata-rata tes kemampuan Jumat, hanya untuk melihat progres
+          siswa. Kehadiran juga hanya info; nonton rekaman dihitung hadir.
         </p>
       </Card>
 
@@ -471,6 +481,12 @@ export default async function BatchDetailPage({
                           placeholder="Link Zoom/Meet khusus sesi ini (opsional)"
                           className={`${inputClass} text-sm`}
                         />
+                        <input
+                          name="recording_url"
+                          defaultValue={s.recording_url ?? ""}
+                          placeholder="Link rekaman kelas (isi setelah kelas)"
+                          className={`${inputClass} text-sm`}
+                        />
                         <button className={smallButton}>Simpan sesi</button>
                       </form>
                       {students.length > 0 && (
@@ -496,6 +512,11 @@ export default async function BatchDetailPage({
                                   )}
                                 />
                                 {e.profiles.full_name}
+                                {viaRecording.has(`${s.id}:${e.profile_id}`) && (
+                                  <span className="text-xs text-amber-700">
+                                    via rekaman
+                                  </span>
+                                )}
                               </label>
                             ))}
                           </div>
@@ -510,7 +531,7 @@ export default async function BatchDetailPage({
                           className="space-y-2 md:col-span-2"
                         >
                           <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                            Nilai ujian
+                            Nilai tes kemampuan
                           </p>
                           <label className="flex items-center gap-2 text-sm">
                             Nilai maksimal

@@ -110,13 +110,22 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
 
   const { data: batch } = await db
     .from("batches")
-    .select("id, name, status, quota, programs(name, monthly_price, upfront_price)")
+    .select("id, name, status, quota, mode, programs(name, monthly_price, upfront_price, recording_price)")
     .eq("id", batchId)
     .maybeSingle();
-  const program = batch?.programs as unknown as { name: string; monthly_price: number | null; upfront_price: number | null } | undefined;
+  const program = batch?.programs as unknown as
+    | { name: string; monthly_price: number | null; upfront_price: number | null; recording_price: number | null }
+    | undefined;
   if (!batch || !program || batch.status !== "buka") return { error: "Batch ini sudah tidak menerima pendaftaran.", values };
 
-  const baseAmount = input.plan === "bulanan" ? program.monthly_price : program.upfront_price;
+  // Paket rekaman selalu sekali bayar dengan harga paket rekaman.
+  const isRecording = batch.mode === "rekaman";
+  if (isRecording) input.plan = "lunas";
+  const baseAmount = isRecording
+    ? program.recording_price
+    : input.plan === "bulanan"
+      ? program.monthly_price
+      : program.upfront_price;
   if (!baseAmount) return { error: "Cara bayar ini tidak tersedia untuk program ini.", values };
 
   // Cari akun lama berdasarkan email, atau buat akun baru (password diatur setelah lunas).
@@ -159,7 +168,7 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
     if (open) redirect(`/bayar/${open.code}`);
   }
 
-  if ((await seatsTaken(db, batchId)) >= batch.quota) return { error: "Maaf, kuota batch ini sudah penuh.", values };
+  if (!isRecording && (await seatsTaken(db, batchId)) >= batch.quota) return { error: "Maaf, kuota batch ini sudah penuh.", values };
 
   let enrollmentId: string;
   if (prior) {
@@ -186,7 +195,7 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
 
   await notifyAdmin(
     `Pendaftar baru: ${input.full_name} (${program.name})`,
-    `${input.full_name} mendaftar ${program.name}, ${batch.name}.\nCara bayar: ${input.plan}, tagihan pertama ${formatRupiah(baseAmount)} + kode unik.\nWhatsApp: https://wa.me/${input.whatsapp}\nKode tagihan: ${code}`,
+    `${input.full_name} mendaftar ${program.name}, ${isRecording ? "paket rekaman" : batch.name}.\nCara bayar: ${input.plan}, tagihan pertama ${formatRupiah(baseAmount)} + kode unik.\nWhatsApp: https://wa.me/${input.whatsapp}\nKode tagihan: ${code}`,
   ).catch(() => {});
 
   redirect(`/bayar/${code}`);

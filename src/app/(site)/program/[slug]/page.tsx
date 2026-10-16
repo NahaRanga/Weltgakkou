@@ -5,7 +5,7 @@ import { withBase } from "@/lib/base-path";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { getOpenBatches } from "@/lib/batches";
+import { getOpenBatches, getRecordingPackage } from "@/lib/batches";
 import { formatDate } from "@/lib/format";
 import { WaitingListForm } from "@/components/waiting-list-form";
 import { formatRupiah, getProgram, programImage, programs } from "@/lib/programs";
@@ -76,7 +76,7 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
           <>
             <h2 className="mt-10 text-xl font-semibold text-stone-900">Jadwal mingguan</h2>
             <p className="mt-2 text-stone-700">
-              Senin sampai Kamis kelas live lewat Zoom, Jumat ujian mingguan. Link kelas, materi, dan nilai tersedia
+              Senin sampai Kamis kelas live lewat Zoom, Jumat tes kemampuan untuk melihat sampai mana progresmu. Link kelas, materi, dan nilai tersedia
               di area siswa setelah pendaftaran dikonfirmasi.
             </p>
           </>
@@ -86,6 +86,9 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
       <aside className="h-fit space-y-6 lg:sticky lg:top-6">
         <Suspense fallback={null}>
           <OpenBatches slug={program.slug} />
+        </Suspense>
+        <Suspense fallback={null}>
+          <RecordingPackageOffer slug={program.slug} />
         </Suspense>
         <div className="rounded-xl border border-stone-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-stone-900">
@@ -122,6 +125,26 @@ async function OpenBatches({ slug }: { slug: string }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+async function RecordingPackageOffer({ slug }: { slug: string }) {
+  await connection();
+  const pkg = await getRecordingPackage(slug);
+  if (!pkg) return null;
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-6">
+      <p className="text-sm font-medium text-red-700">Paket rekaman video</p>
+      <h2 className="mt-1 text-lg font-semibold text-stone-900">Belajar mandiri, kapan saja</h2>
+      <p className="mt-1 text-sm text-stone-600">
+        Video materi per bab{pkg.videos ? ` (${pkg.videos} video)` : ""}, bisa ditonton ulang selama {pkg.months} bulan. Cocok kalau jadwalmu
+        nggak bisa ikut kelas live.
+      </p>
+      <p className="mt-3 text-xl font-bold text-stone-900">{formatRupiah(pkg.price)}</p>
+      <Link href={`/daftar/${pkg.batchId}`} className="mt-3 inline-block rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-700">
+        Beli paket rekaman
+      </Link>
     </div>
   );
 }

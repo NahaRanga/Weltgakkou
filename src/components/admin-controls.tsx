@@ -5,6 +5,7 @@ import {
   acceptPayment,
   addCertification,
   addMaterial,
+  addRecording,
   addStaff,
   cancelInvoice,
   changePassword,
@@ -14,6 +15,7 @@ import {
   rejectPayment,
   sendPasswordLink,
   setBatchMeetingUrl,
+  setRecordingPackage,
   updateBatch,
   updateProfile,
   type BatchState,
@@ -161,7 +163,7 @@ export function BatchForm({ programs }: { programs: { id: string; name: string; 
           ))}
         </div>
       </fieldset>
-      <Field label="Hari ujian mingguan">
+      <Field label="Hari tes kemampuan mingguan">
         <select name="exam_day" defaultValue="5" className={inputClass}>
           <option value="0">Tidak ada</option>
           {DAYS.map((d) => (
@@ -172,7 +174,7 @@ export function BatchForm({ programs }: { programs: { id: string; name: string; 
         </select>
       </Field>
       <Field label="Keterangan jadwal (tampil ke calon siswa)">
-        <input name="schedule_label" required defaultValue="Senin-Kamis 19.30-21.00 WIB, ujian Jumat" className={inputClass} />
+        <input name="schedule_label" required defaultValue="Senin-Kamis 19.30-21.00 WIB, tes Jumat" className={inputClass} />
       </Field>
       <Field label="Link kelas Zoom/Meet (bisa diisi nanti, juga oleh sensei)">
         <input name="meeting_url" type="url" placeholder="https://zoom.us/j/..." className={inputClass} />
@@ -460,6 +462,66 @@ export function ChangePasswordForm() {
       <button className={buttonClass} disabled={pending}>
         {pending ? "Mengganti..." : "Ganti password"}
       </button>
+    </form>
+  );
+}
+
+export function RecordingForm({ programId, nextChapter }: { programId: string; nextChapter: number }) {
+  const [state, action, pending] = useActionState(addRecording.bind(null, programId), {} as FormState);
+  return (
+    <form action={action} className="grid gap-3 sm:grid-cols-[90px_1fr_1fr_auto] sm:items-end">
+      <div className="sm:col-span-4">
+        <Messages state={state} />
+      </div>
+      <Field label="Bab">
+        <input name="chapter" type="number" min={1} max={99} defaultValue={nextChapter} required className={inputClass} />
+      </Field>
+      <Field label="Judul video">
+        <input name="title" required placeholder="Contoh: Partikel は dan が" className={inputClass} />
+      </Field>
+      <Field label="Link video (YouTube unlisted / Google Drive)">
+        <input name="url" type="url" required placeholder="https://youtu.be/..." className={inputClass} />
+      </Field>
+      <button className={buttonClass} disabled={pending}>
+        {pending ? "Menyimpan..." : "Tambah"}
+      </button>
+    </form>
+  );
+}
+
+export function RecordingPackageForm({
+  programId,
+  price,
+  months,
+  open,
+}: {
+  programId: string;
+  price: number | null;
+  months: number;
+  open: boolean;
+}) {
+  const [state, action, pending] = useActionState(setRecordingPackage.bind(null, programId), {} as FormState);
+  return (
+    <form action={action} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <div className="sm:col-span-3">
+        <Messages state={state} />
+      </div>
+      <Field label="Harga paket (Rp, sekali bayar)">
+        <input name="recording_price" inputMode="numeric" defaultValue={price ?? ""} required className={inputClass} />
+      </Field>
+      <Field label="Lama akses (bulan)">
+        <input name="recording_months" type="number" min={1} max={36} defaultValue={months} required className={inputClass} />
+      </Field>
+      <div className="flex gap-2">
+        <button name="open" value="1" className={buttonClass} disabled={pending}>
+          {open ? "Simpan" : "Buka penjualan"}
+        </button>
+        {open && (
+          <button name="open" value="0" className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50" disabled={pending}>
+            Tutup
+          </button>
+        )}
+      </div>
     </form>
   );
 }

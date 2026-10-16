@@ -27,7 +27,13 @@ type InvoiceRow = {
     referral_code: string | null;
     profile_id: string;
     profiles: { full_name: string; email: string; whatsapp: string | null };
-    batches: { name: string; start_date: string; schedule_label: string; programs: { name: string } };
+    batches: {
+      name: string;
+      mode: string;
+      start_date: string;
+      schedule_label: string;
+      programs: { name: string; recording_months: number | null };
+    };
   };
 };
 
@@ -38,7 +44,7 @@ export async function acceptPayment(invoiceId: string): Promise<VerifyState> {
   const { data } = await db
     .from("invoices")
     .select(
-      "id, code, amount, unique_code, status, installment_no, enrollments(id, status, referral_code, profile_id, profiles(full_name, email, whatsapp), batches(name, start_date, schedule_label, programs(name)))",
+      "id, code, amount, unique_code, status, installment_no, enrollments(id, status, referral_code, profile_id, profiles(full_name, email, whatsapp), batches(name, mode, start_date, schedule_label, programs(name, recording_months)))",
     )
     .eq("id", invoiceId)
     .maybeSingle();
@@ -58,8 +64,11 @@ export async function acceptPayment(invoiceId: string): Promise<VerifyState> {
   const batch = enrollment.batches;
   const firstPayment = enrollment.status === "menunggu_bayar";
 
+  const recordingMonths = batch.mode === "rekaman" ? (batch.programs.recording_months ?? 6) : null;
+  const accessUntil = recordingMonths ? new Date(Date.now() + recordingMonths * 30 * 86_400_000).toISOString() : null;
+
   if (firstPayment) {
-    await db.from("enrollments").update({ status: "aktif" }).eq("id", enrollment.id);
+    await db.from("enrollments").update({ status: "aktif", access_until: accessUntil }).eq("id", enrollment.id);
     await recordReferral(enrollment.referral_code, enrollment.profile_id, enrollment.id, invoice.amount - invoice.unique_code);
   }
   // Tanpa refresh(): kartu verifikasi harus tetap tampil supaya admin bisa
@@ -67,7 +76,9 @@ export async function acceptPayment(invoiceId: string): Promise<VerifyState> {
 
   // Siswa baru menerima link untuk membuat password; siswa lama cukup diberi tahu.
   const link = firstPayment ? await createPasswordLink(student.email) : null;
-  const text = firstPayment
+  const text = firstPayment && accessUntil
+    ? `Halo ${student.full_name}, pembayaran paket rekaman ${batch.programs.name} sudah kami terima. Selamat belajar di Weltgakkou!\n\nVideo bisa ditonton kapan saja sampai ${formatDate(accessUntil)}.\n\nBuat password untuk masuk ke area belajar (link berlaku 1 jam):\n${link}\n\nSetelah itu, masuk lewat ${siteUrl()}/masuk untuk membuka video dan materi.`
+    : firstPayment
     ? `Halo ${student.full_name}, pembayaran ${batch.programs.name} (${batch.name}) sudah kami terima. Selamat bergabung di Weltgakkou!\n\nKelas mulai ${formatDate(batch.start_date)}, jadwal ${batch.schedule_label}.\n\nBuat password untuk masuk ke area belajar (link berlaku 1 jam):\n${link}\n\nSetelah itu, masuk lewat ${siteUrl()}/masuk untuk melihat jadwal, link kelas, dan materi.`
     : `Halo ${student.full_name}, pembayaran cicilan ke-${invoice.installment_no} ${batch.programs.name} sebesar ${formatRupiah(invoice.amount)} sudah kami terima. Terima kasih!`;
 
@@ -265,8 +276,12 @@ export async function updateSession(sessionId: string, formData: FormData) {
   await requireSessionStaff(sessionId);
   const topic = String(formData.get("topic") ?? "").trim().slice(0, 120);
   const meetingUrl = String(formData.get("meeting_url") ?? "").trim();
-  if (meetingUrl && !/^https:\/\//.test(meetingUrl)) return;
-  await requireDb().from("sessions").update({ topic: topic || null, meeting_url: meetingUrl || null }).eq("id", sessionId);
+  const recordingUrl = String(formData.get("recording_url") ?? "").trim();
+  if ([meetingUrl, recordingUrl].some((u) => u && !/^https:\/\/\S+$/.test(u))) return;
+  await requireDb()
+    .from("sessions")
+    .update({ topic: topic || null, meeting_url: meetingUrl || null, recording_url: recordingUrl || null })
+    .eq("id", sessionId);
   refresh();
 }
 
@@ -507,4 +522,76 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
   const { error } = await auth.auth.updateUser({ password });
   if (error) return { error: error.code === "same_password" ? "Password baru sama dengan yang lama." : "Password gagal diganti. Coba keluar lalu masuk lagi." };
   return { ok: "Password diganti. Pakai password baru saat login berikutnya." };
+}
+
+// Pustaka video per program. Admin boleh semua program; pengajar hanya program
+// yang punya batch yang ia ajar.
+async function requireProgramStaff(programId: string) {
+  const user = await requireStaff();
+  if (user.role === "admin") return user;
+  const { count } = await requireDb()
+    .from("batches")
+    .select("id", { count: "exact", head: true })
+    .eq("program_id", programId)
+    .eq("teacher_id", user.id);
+  if (!count) throw new Error("Program ini bukan kelas Anda.");
+  return user;
+}
+
+const recordingSchema = z.object({
+  chapter: z.coerce.number().int().min(1).max(99),
+  title: z.string().trim().min(2).max(120),
+  url: z.string().trim().regex(/^https:\/\/\S+$/, "Link harus diawali https://"),
+});
+
+export async function addRecording(programId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireProgramStaff(programId);
+  const parsed = recordingSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Periksa lagi: bab (angka), judul, dan link https://." };
+  const db = requireDb();
+  const { count } = await db.from("recordings").select("id", { count: "exact", head: true }).eq("program_id", programId).eq("chapter", parsed.data.chapter);
+  const { error } = await db.from("recordings").insert({ program_id: programId, ...parsed.data, position: count ?? 0, created_by: user.id });
+  if (error) return { error: error.message };
+  refresh();
+  return { ok: `Video "${parsed.data.title}" ditambahkan ke bab ${parsed.data.chapter}.` };
+}
+
+export async function deleteRecording(recordingId: string) {
+  const db = requireDb();
+  const { data } = await db.from("recordings").select("program_id").eq("id", recordingId).maybeSingle();
+  if (!data) return;
+  await requireProgramStaff(data.program_id);
+  await db.from("recordings").delete().eq("id", recordingId);
+  refresh();
+}
+
+// Paket rekaman dijual lewat batch khusus (mode rekaman) supaya pendaftaran dan
+// pembayaran memakai alur yang sama dengan kelas live.
+export async function setRecordingPackage(programId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const price = Number(String(formData.get("recording_price") ?? "").replace(/\D/g, ""));
+  const months = Number(formData.get("recording_months") ?? 0);
+  const open = formData.get("open") === "1";
+  if (!price || price < 10_000) return { error: "Isi harga paket, minimal Rp10.000." };
+  if (!Number.isInteger(months) || months < 1 || months > 36) return { error: "Lama akses 1 sampai 36 bulan." };
+  const db = requireDb();
+  await db.from("programs").update({ recording_price: price, recording_months: months }).eq("id", programId);
+
+  const { data: existing } = await db.from("batches").select("id, status").eq("program_id", programId).eq("mode", "rekaman").maybeSingle();
+  if (existing) {
+    await db.from("batches").update({ status: open ? "buka" : "selesai" }).eq("id", existing.id);
+  } else if (open) {
+    const { error } = await db.from("batches").insert({
+      program_id: programId,
+      mode: "rekaman",
+      name: "Paket rekaman",
+      start_date: new Date().toISOString().slice(0, 10),
+      schedule_label: "Belajar mandiri, kapan saja",
+      quota: 100000,
+      status: "buka",
+    });
+    if (error) return { error: error.message };
+  }
+  refresh();
+  return { ok: open ? "Paket rekaman dibuka dan bisa dibeli dari halaman program." : "Paket rekaman disimpan dan ditutup." };
 }

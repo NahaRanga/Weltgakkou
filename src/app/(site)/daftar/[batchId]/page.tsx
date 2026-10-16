@@ -27,7 +27,7 @@ async function RegisterContent({ params }: { params: PageProps<"/daftar/[batchId
 
   const { data: batch } = await db
     .from("batches")
-    .select("id, name, status, quota, start_date, schedule_label, programs(slug, name, monthly_price, upfront_price, months)")
+    .select("id, name, status, quota, mode, start_date, schedule_label, programs(slug, name, monthly_price, upfront_price, months, recording_price, recording_months)")
     .eq("id", batchId)
     .maybeSingle();
   if (!batch) notFound();
@@ -37,9 +37,12 @@ async function RegisterContent({ params }: { params: PageProps<"/daftar/[batchId
     monthly_price: number | null;
     upfront_price: number | null;
     months: number | null;
+    recording_price: number | null;
+    recording_months: number;
   };
+  const isRecording = batch.mode === "rekaman";
 
-  const full = (await seatsTaken(db, batch.id)) >= batch.quota;
+  const full = !isRecording && (await seatsTaken(db, batch.id)) >= batch.quota;
   const closed = batch.status !== "buka" || full;
 
   return (
@@ -47,9 +50,13 @@ async function RegisterContent({ params }: { params: PageProps<"/daftar/[batchId
       <Link href={`/program/${program.slug}`} className="text-sm text-stone-500 hover:text-stone-800">
         ← {program.name}
       </Link>
-      <h1 className="mt-4 text-3xl font-bold text-stone-900">Daftar {program.name}</h1>
+      <h1 className="mt-4 text-3xl font-bold text-stone-900">
+        {isRecording ? `Paket rekaman ${program.name}` : `Daftar ${program.name}`}
+      </h1>
       <p className="mt-1 text-stone-600">
-        {batch.name} · mulai {formatDate(batch.start_date)} · {batch.schedule_label}
+        {isRecording
+          ? `Video materi per bab, ditonton kapan saja selama ${program.recording_months} bulan sejak pembayaran diterima.`
+          : `${batch.name} · mulai ${formatDate(batch.start_date)} · ${batch.schedule_label}`}
       </p>
 
       <div className="mt-8">
@@ -64,9 +71,17 @@ async function RegisterContent({ params }: { params: PageProps<"/daftar/[batchId
         ) : (
           <RegisterForm
             batchId={batch.id}
-            upfrontLabel={program.upfront_price ? formatRupiah(program.upfront_price) : undefined}
+            upfrontLabel={
+              isRecording
+                ? program.recording_price
+                  ? `${formatRupiah(program.recording_price)} · akses ${program.recording_months} bulan`
+                  : undefined
+                : program.upfront_price
+                  ? formatRupiah(program.upfront_price)
+                  : undefined
+            }
             monthlyLabel={
-              program.monthly_price
+              !isRecording && program.monthly_price
                 ? `${formatRupiah(program.monthly_price)} x ${program.months ?? 1} bulan`
                 : undefined
             }

@@ -7,6 +7,7 @@ import { requireDb, requireUser, type CurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 import { withBase } from "@/lib/base-path";
+import { groupByChapter, RECORDING_COUNTS_AS_PRESENT, type Recording } from "@/lib/recordings";
 import { MonthCalendar, MonthNav, monthTitle, resolveMonth, timeLabel, type CalendarMonth } from "@/components/month-calendar";
 
 export const metadata: Metadata = { title: "Area belajar", robots: { index: false } };
@@ -27,22 +28,32 @@ export default async function LearnPage({ searchParams }: { searchParams: Promis
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <Suspense fallback={<p className="text-stone-500">Memuat kelas kamu...</p>}>
-        <LearnContent user={user} cal={resolveMonth(sp.bulan, requestTime())} meetMissing={sp.meet === "belum"} />
+        <LearnContent user={user} cal={resolveMonth(sp.bulan, requestTime())} meetMissing={sp.meet === "belum"} videoExpired={sp.video === "habis"} />
       </Suspense>
     </div>
   );
 }
 
-type Session = { id: string; number: number; starts_at: string; kind: string; topic: string | null; meeting_url: string | null };
+type Session = {
+  id: string;
+  number: number;
+  starts_at: string;
+  kind: string;
+  topic: string | null;
+  meeting_url: string | null;
+  recording_url: string | null;
+};
 
 type Enrollment = {
   id: string;
   status: string;
   plan: string;
   batch_id: string;
+  access_until: string | null;
   batches: {
     id: string;
     name: string;
+    mode: string;
     start_date: string;
     schedule_label: string;
     meeting_url: string | null;
@@ -52,13 +63,23 @@ type Enrollment = {
   invoices: { code: string; status: string; amount: number; installment_no: number; due_at: string }[];
 };
 
-async function LearnContent({ user, cal, meetMissing }: { user: CurrentUser; cal: CalendarMonth; meetMissing: boolean }) {
+async function LearnContent({
+  user,
+  cal,
+  meetMissing,
+  videoExpired,
+}: {
+  user: CurrentUser;
+  cal: CalendarMonth;
+  meetMissing: boolean;
+  videoExpired: boolean;
+}) {
   const db = requireDb();
 
   const { data, error } = await db
     .from("enrollments")
     .select(
-      "id, status, plan, batch_id, batches(id, name, start_date, schedule_label, meeting_url, programs(id, name), sessions(id, number, starts_at, kind, topic, meeting_url)), invoices(code, status, amount, installment_no, due_at)",
+      "id, status, plan, batch_id, access_until, batches(id, name, mode, start_date, schedule_label, meeting_url, programs(id, name), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url)), invoices(code, status, amount, installment_no, due_at)",
     )
     .eq("profile_id", user.id)
     .neq("status", "keluar")
@@ -106,7 +127,16 @@ async function LearnContent({ user, cal, meetMissing }: { user: CurrentUser; cal
         </div>
       )}
 
-      <ClassCalendar enrollments={enrollments.filter((e) => e.status !== "menunggu_bayar")} cal={cal} />
+      {videoExpired && (
+        <div className="mt-8">
+          <Notice tone="info">Masa akses paket rekaman kamu sudah habis. Hubungi admin untuk memperpanjang.</Notice>
+        </div>
+      )}
+
+      <ClassCalendar
+        enrollments={enrollments.filter((e) => e.status !== "menunggu_bayar" && e.batches.mode !== "rekaman")}
+        cal={cal}
+      />
 
       {enrollments.map((e) => (
         <EnrollmentCard key={e.id} enrollment={e} userId={user.id} />
@@ -137,6 +167,8 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
     );
   }
 
+  if (batch.mode === "rekaman") return <RecordingPackageCard enrollment={e} userId={userId} />;
+
   const sessionIds = sessions.map((s) => s.id);
   const [materialsRes, attendanceRes, resultsRes] = await Promise.all([
     db
@@ -145,8 +177,8 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
       .or(`program_id.eq.${batch.programs.id}${sessionIds.length ? `,session_id.in.(${sessionIds.join(",")})` : ""}`)
       .order("created_at"),
     sessionIds.length
-      ? db.from("attendance").select("session_id").eq("profile_id", userId).in("session_id", sessionIds)
-      : Promise.resolve({ data: [] as { session_id: string }[] }),
+      ? db.from("attendance").select("session_id, via").eq("profile_id", userId).in("session_id", sessionIds)
+      : Promise.resolve({ data: [] as { session_id: string; via: string }[] }),
     db.from("exam_results").select("score, exams(title, max_score, session_id)").eq("profile_id", userId),
   ]);
 
@@ -154,13 +186,22 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
   const next = sessions.find((s) => new Date(s.starts_at).getTime() + OPEN_AFTER_MS > now);
   const canJoin = next && new Date(next.starts_at).getTime() - OPEN_BEFORE_MS <= now;
   const past = sessions.filter((s) => s.kind === "kelas" && new Date(s.starts_at).getTime() < now);
-  const attended = new Set((attendanceRes.data ?? []).map((a) => a.session_id));
+  const attendance = new Map((attendanceRes.data ?? []).map((a) => [a.session_id, a.via]));
+  const attended = new Set(
+    [...attendance].filter(([, via]) => via === "live" || RECORDING_COUNTS_AS_PRESENT).map(([id]) => id),
+  );
+  // Sesi kelas yang sudah lewat, siswa absen, dan rekamannya sudah ada.
+  const missedWithRecording = past.filter((s) => s.recording_url && !attendance.has(s.id));
   const attendedPast = past.filter((s) => attended.has(s.id)).length;
 
   const results = ((resultsRes.data ?? []) as unknown as { score: number; exams: { title: string; max_score: number; session_id: string } }[]).filter(
     (r) => sessionIds.includes(r.exams.session_id),
   );
   const avg = results.length ? results.reduce((sum, r) => sum + (r.score / r.exams.max_score) * 100, 0) / results.length : null;
+  // Kesiapan dilihat dari rata-rata 3 tes terakhir, supaya progres terbaru yang terhitung.
+  const order = new Map(sessions.map((x, idx) => [x.id, idx]));
+  const recent = [...results].sort((a, b) => (order.get(b.exams.session_id) ?? 0) - (order.get(a.exams.session_id) ?? 0)).slice(0, 3);
+  const recentAvg = recent.length ? Math.round(recent.reduce((sum, r) => sum + (r.score / r.exams.max_score) * 100, 0) / recent.length) : null;
 
   return (
     <section className="mt-8 space-y-6">
@@ -173,7 +214,7 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
         {next ? (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-lg bg-stone-50 p-4">
             <div>
-              <p className="text-sm text-stone-500">{next.kind === "ujian" ? "Ujian berikutnya" : "Kelas berikutnya"}</p>
+              <p className="text-sm text-stone-500">{next.kind === "ujian" ? "Tes kemampuan berikutnya" : "Kelas berikutnya"}</p>
               <p className="font-semibold text-stone-900">
                 {formatDateTime(next.starts_at)} WIB{next.topic ? ` · ${next.topic}` : ""}
               </p>
@@ -198,7 +239,7 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-stone-500">Rata-rata ujian</dt>
+            <dt className="text-xs text-stone-500">Rata-rata tes</dt>
             <dd className="text-lg font-semibold text-stone-900">{avg === null ? "-" : Math.round(avg)}</dd>
           </div>
           <div>
@@ -208,7 +249,10 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
             </dd>
           </div>
         </dl>
-        <p className="mt-2 text-xs text-stone-500">Sertifikat kursus: kehadiran minimal 80% dan rata-rata ujian minimal 60.</p>
+        {recentAvg !== null && <Readiness avg={recentAvg} level={batch.programs.name} />}
+        <p className="mt-2 text-xs text-stone-500">
+          Tes Jumat bukan ujian kelulusan, cuma buat lihat sampai mana kemampuanmu. Absen? Tonton rekamannya, tetap dihitung hadir.
+        </p>
 
         {openInvoice && (
           <div className="mt-4">
@@ -219,6 +263,25 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
                 Bayar sekarang
               </Link>
             </Notice>
+          </div>
+        )}
+        {missedWithRecording.length > 0 && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Kamu absen di {missedWithRecording.length} sesi. Tonton rekamannya sebagai pengganti:</p>
+            <ul className="mt-2 space-y-1">
+              {missedWithRecording.map((s) => (
+                <li key={s.id}>
+                  <a href={withBase(`/belajar/rekaman/${s.id}`)} className="font-medium text-red-700 hover:underline">
+                    ▶ Kelas {s.number}
+                    {s.topic ? ` · ${s.topic}` : ""}
+                  </a>{" "}
+                  <span className="text-amber-800">({formatDateTime(s.starts_at)})</span>
+                </li>
+              ))}
+            </ul>
+            {RECORDING_COUNTS_AS_PRESENT && (
+              <p className="mt-2 text-xs text-amber-800">Setelah kamu buka rekamannya, sesi itu tercatat hadir via rekaman.</p>
+            )}
           </div>
         )}
       </div>
@@ -243,7 +306,7 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
         </div>
 
         <div className="rounded-xl border border-stone-200 bg-white p-6">
-          <h3 className="font-semibold text-stone-900">Nilai ujian</h3>
+          <h3 className="font-semibold text-stone-900">Nilai tes kemampuan</h3>
           {results.length === 0 ? (
             <p className="mt-2 text-sm text-stone-500">Belum ada nilai.</p>
           ) : (
@@ -261,18 +324,28 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
         </div>
       </div>
 
+      <VideoLibrary programId={batch.programs.id} userId={userId} collapsible />
+
       <details className="rounded-xl border border-stone-200 bg-white p-6">
         <summary className="cursor-pointer font-semibold text-stone-900">Jadwal lengkap ({sessions.length} sesi)</summary>
         <ol className="mt-3 space-y-1 text-sm">
           {sessions.map((s) => (
             <li key={s.id} className="flex justify-between border-b border-stone-100 py-1">
               <span>
-                {s.number}. {s.kind === "ujian" ? "Ujian" : "Kelas"}
+                {s.number}. {s.kind === "ujian" ? "Tes kemampuan" : "Kelas"}
                 {s.topic ? ` · ${s.topic}` : ""}
               </span>
-              <span className="text-stone-600">
+              <span className="text-right text-stone-600">
                 {formatDateTime(s.starts_at)}
-                {attended.has(s.id) ? " · hadir" : ""}
+                {attendance.get(s.id) === "rekaman" ? " · hadir via rekaman" : attendance.has(s.id) ? " · hadir" : ""}
+                {s.recording_url && new Date(s.starts_at).getTime() < now && (
+                  <>
+                    {" · "}
+                    <a href={withBase(`/belajar/rekaman/${s.id}`)} className="font-medium text-red-700 hover:underline">
+                      Tonton rekaman
+                    </a>
+                  </>
+                )}
               </span>
             </li>
           ))}
@@ -308,9 +381,17 @@ function ClassCalendar({ enrollments, cal }: { enrollments: Enrollment[]; cal: C
     const t = new Date(s.starts_at).getTime();
     return t - OPEN_BEFORE_MS <= now && now < t + OPEN_AFTER_MS;
   };
-  const label = (s: CalendarSession) => `${s.kind === "ujian" ? "Ujian" : `Kelas ${s.number}`}${s.topic ? ` · ${s.topic}` : ""}`;
+  const label = (s: CalendarSession) => `${s.kind === "ujian" ? "Tes kemampuan" : `Kelas ${s.number}`}${s.topic ? ` · ${s.topic}` : ""}`;
   const joinButton = (s: CalendarSession, small = false) =>
-    !s.hasLink ? (
+    new Date(s.starts_at).getTime() + OPEN_AFTER_MS <= now ? (
+      s.recording_url ? (
+        <a href={withBase(`/belajar/rekaman/${s.id}`)} className="text-xs font-semibold text-red-700 hover:underline">
+          ▶ Tonton rekaman
+        </a>
+      ) : (
+        <span className="text-xs text-stone-500">Selesai</span>
+      )
+    ) : !s.hasLink ? (
       <span className="text-xs text-stone-500">Link kelas belum diisi sensei</span>
     ) : isOpen(s) ? (
       <a
@@ -383,4 +464,106 @@ function ClassCalendar({ enrollments, cal }: { enrollments: Enrollment[]; cal: C
       </div>
     </section>
   );
+}
+
+// Paket rekaman: tanpa jadwal, cukup pustaka video dan masa akses.
+async function RecordingPackageCard({ enrollment: e, userId }: { enrollment: Enrollment; userId: string }) {
+  const now = requestTime();
+  const expired = e.access_until ? new Date(e.access_until).getTime() <= now : false;
+  return (
+    <section className="mt-8 space-y-6">
+      <div className="rounded-xl border border-stone-200 bg-white p-6">
+        <p className="text-sm font-medium text-red-700">Paket rekaman video</p>
+        <h2 className="text-xl font-semibold text-stone-900">{e.batches.programs.name}</h2>
+        <p className="mt-1 text-sm text-stone-600">
+          {e.access_until
+            ? expired
+              ? `Masa akses berakhir ${formatDate(e.access_until)}. Hubungi admin untuk memperpanjang.`
+              : `Belajar kapan saja sampai ${formatDate(e.access_until)}.`
+            : "Belajar kapan saja."}
+        </p>
+      </div>
+      {!expired && <VideoLibrary programId={e.batches.programs.id} userId={userId} />}
+    </section>
+  );
+}
+
+// Pustaka video program per bab, dengan tanda video yang sudah dibuka.
+async function VideoLibrary({ programId, userId, collapsible = false }: { programId: string; userId: string; collapsible?: boolean }) {
+  const db = requireDb();
+  const { data } = await db.from("recordings").select("id, chapter, title, url, position").eq("program_id", programId);
+  const videos = (data ?? []) as Recording[];
+  if (collapsible && videos.length === 0) return null;
+  const { data: views } = videos.length
+    ? await db.from("recording_views").select("recording_id").eq("profile_id", userId).in("recording_id", videos.map((v) => v.id))
+    : { data: [] as { recording_id: string }[] };
+  const watched = new Set((views ?? []).map((v) => v.recording_id));
+  const pct = videos.length ? Math.round((watched.size / videos.length) * 100) : 0;
+
+  const body = (
+    <>
+      {videos.length === 0 ? (
+        <p className="mt-2 text-sm text-stone-500">Video akan muncul di sini setelah diunggah pengajar.</p>
+      ) : (
+        <>
+          <div className="mt-3 flex items-center gap-3 text-sm text-stone-600">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-100">
+              <div className="h-full rounded-full bg-red-700" style={{ width: `${pct}%` }} />
+            </div>
+            <span className="tabular-nums">
+              {watched.size}/{videos.length} ditonton
+            </span>
+          </div>
+          <div className="mt-4 space-y-4">
+            {groupByChapter(videos).map(([chapter, items]) => (
+              <div key={chapter}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Bab {chapter}</p>
+                <ul className="mt-1 divide-y divide-stone-100">
+                  {items.map((v) => (
+                    <li key={v.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                      <span className={watched.has(v.id) ? "text-stone-500" : "text-stone-900"}>
+                        {watched.has(v.id) ? "✓ " : ""}
+                        {v.title}
+                      </span>
+                      <a
+                        href={withBase(`/belajar/video/${v.id}`)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 rounded-lg bg-red-700 px-3 py-1 text-xs font-semibold text-white hover:bg-red-800"
+                      >
+                        ▶ Tonton
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+
+  return collapsible ? (
+    <details className="rounded-xl border border-stone-200 bg-white p-6">
+      <summary className="cursor-pointer font-semibold text-stone-900">Video rekaman materi ({videos.length})</summary>
+      {body}
+    </details>
+  ) : (
+    <div className="rounded-xl border border-stone-200 bg-white p-6">
+      <h3 className="font-semibold text-stone-900">Video materi</h3>
+      {body}
+    </div>
+  );
+}
+
+// Perkiraan kesiapan ikut ujian resmi dari rata-rata tes Jumat. Hanya panduan.
+function Readiness({ avg, level }: { avg: number; level: string }) {
+  const [tone, text] =
+    avg >= 80
+      ? ["bg-emerald-50 text-emerald-900", `Kemampuanmu sudah bagus. Kamu siap mencoba ujian ${level} resmi.`]
+      : avg >= 60
+        ? ["bg-sky-50 text-sky-900", `Hampir siap untuk ujian ${level}. Ulangi bagian yang masih salah di tes Jumat.`]
+        : ["bg-amber-50 text-amber-900", "Masih perlu latihan. Tonton lagi rekaman dan materinya, pelan-pelan saja."];
+  return <p className={`mt-3 rounded-lg px-3 py-2 text-sm ${tone}`}>{text}</p>;
 }

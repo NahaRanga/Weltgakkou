@@ -39,7 +39,7 @@ export const programs: Program[] = [
     monthlyPrice: 600_000,
     upfrontPrice: 1_500_000,
     summary: "Tata bahasa dasar dan percakapan sehari-hari untuk lulus JLPT N5.",
-    topics: ["Tata bahasa dasar", "Sekitar 100 kanji", "Percakapan sehari-hari", "Ujian mingguan setiap Jumat"],
+    topics: ["Tata bahasa dasar", "Sekitar 100 kanji", "Percakapan sehari-hari", "Tes kemampuan setiap Jumat"],
     open: true,
   },
   {
@@ -51,7 +51,7 @@ export const programs: Program[] = [
     monthlyPrice: 650_000,
     upfrontPrice: 1_800_000,
     summary: "Melanjutkan N5 ke percakapan kerja dasar dan JLPT N4.",
-    topics: ["Sekitar 300 kanji", "Percakapan kerja dasar", "Latihan soal JLPT N4", "Ujian mingguan setiap Jumat"],
+    topics: ["Sekitar 300 kanji", "Percakapan kerja dasar", "Latihan soal JLPT N4", "Tes kemampuan setiap Jumat"],
     open: true,
   },
   {
@@ -63,7 +63,7 @@ export const programs: Program[] = [
     monthlyPrice: 800_000,
     upfrontPrice: 4_500_000,
     summary: "Membaca teks pendek dan memahami percakapan alami untuk JLPT N3.",
-    topics: ["Membaca teks pendek", "Mendengar percakapan alami", "Latihan soal JLPT N3", "Ujian mingguan setiap Jumat"],
+    topics: ["Membaca teks pendek", "Mendengar percakapan alami", "Latihan soal JLPT N3", "Tes kemampuan setiap Jumat"],
     open: true,
   },
   {
@@ -75,7 +75,7 @@ export const programs: Program[] = [
     monthlyPrice: null,
     upfrontPrice: 3_000_000,
     summary: "Persiapan JFT-Basic untuk jalur kerja Tokutei Ginou di Jepang.",
-    topics: ["Materi N5 dan N4", "Simulasi tes JFT-Basic", "Percakapan kerja", "Ujian mingguan setiap Jumat"],
+    topics: ["Materi N5 dan N4", "Simulasi tes JFT-Basic", "Percakapan kerja", "Tes kemampuan setiap Jumat"],
     open: true,
   },
   {

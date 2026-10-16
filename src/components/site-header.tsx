@@ -1,14 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { SignOutButton } from "@/components/auth-forms";
+import { getCurrentUser } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 
 const nav = [
   { href: "/#program", label: "Program", mobile: false },
   { href: "/faq", label: "FAQ", mobile: false },
-  { href: "/belajar", label: "Masuk", mobile: true },
 ];
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  // Supabase hanya dipanggil bila ada cookie sesi, supaya pengunjung biasa tidak menambah beban.
+  const hasSession = (await cookies()).getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
+  const user = hasSession ? await getCurrentUser() : null;
+  const items = user
+    ? [
+        ...nav,
+        { href: "/belajar", label: "Area belajar", mobile: true },
+        ...(user.role === "admin" ? [{ href: "/admin", label: "Admin", mobile: true }] : []),
+      ]
+    : [...nav, { href: "/belajar", label: "Masuk", mobile: true }];
   return (
     <header className="border-b border-stone-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
@@ -18,7 +30,7 @@ export function SiteHeader() {
           <span className="font-jp hidden text-sm font-normal text-red-700 sm:inline">世界学校</span>
         </Link>
         <nav className="flex shrink-0 items-center gap-4 text-sm">
-          {nav.map((item) => (
+          {items.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -27,9 +39,13 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <Link href="/waiting-list" className="rounded-lg bg-red-700 px-3 py-2 font-semibold text-white hover:bg-red-800">
-            Daftar
-          </Link>
+          {user ? (
+            <SignOutButton />
+          ) : (
+            <Link href="/waiting-list" className="rounded-lg bg-red-700 px-3 py-2 font-semibold text-white hover:bg-red-800">
+              Daftar
+            </Link>
+          )}
         </nav>
       </div>
     </header>

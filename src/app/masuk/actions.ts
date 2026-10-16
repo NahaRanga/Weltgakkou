@@ -19,7 +19,7 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   const auth = await getSupabaseAuth();
   if (!auth) return { error: "Login belum aktif. Hubungi admin." };
 
-  const { error } = await auth.auth.signInWithPassword({
+  const { data, error } = await auth.auth.signInWithPassword({
     email: String(formData.get("email") ?? "").trim().toLowerCase(),
     password: String(formData.get("password") ?? ""),
   });
@@ -29,7 +29,13 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
     console.error("Login gagal", error.status, error.code, error.message);
     return { error: `Login sedang gangguan (${error.code ?? error.status ?? "tidak diketahui"}). Hubungi admin.` };
   }
-  return { redirectTo: safeNext(formData.get("next")) };
+  const next = safeNext(formData.get("next"));
+  // Admin yang login tanpa tujuan khusus langsung dibawa ke halaman admin.
+  if (next === "/belajar" && data.user) {
+    const { data: profile } = (await getSupabaseAdmin()?.from("profiles").select("role").eq("id", data.user.id).maybeSingle()) ?? { data: null };
+    if (profile?.role === "admin") return { redirectTo: "/admin" };
+  }
+  return { redirectTo: next };
 }
 
 export async function signOut() {

@@ -22,7 +22,7 @@ export default function AboutPage() {
           ingin jadi sekolah bahasa online yang membuka jalan anak muda Indonesia ke dunia, mulai dari Jepang dan Jerman.
         </>
       }
-      image={{ src: "/images/hero.jpg", alt: "Ilustrasi anak muda Indonesia belajar bahasa Jepang bersama" }}
+      image={{ src: "/images/tentang-kontak.jpg", alt: "Ilustrasi tim Weltgakkou melambaikan tangan" }}
     >
       <Section title="Cara kami mengajar">
         <div className="grid gap-4 sm:grid-cols-2">

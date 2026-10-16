@@ -7,7 +7,9 @@ export const metadata: Metadata = { title: "Kontak", description: "Hubungi Weltg
 
 export default function ContactPage() {
   return (
-    <InfoPage path="/kontak" kicker="お問い合わせ" title="Kontak" intro="Ada pertanyaan soal kelas, jadwal, atau pembayaran? Tanya saja, kami bantu.">
+    <InfoPage path="/kontak" kicker="お問い合わせ" title="Kontak" intro="Ada pertanyaan soal kelas, jadwal, atau pembayaran? Tanya saja, kami bantu."
+      image={{ src: "/images/tentang-kontak.jpg", alt: "Ilustrasi tim Weltgakkou siap membantu lewat chat dan email" }}
+    >
       <Section title="Hubungi kami">
         <div className="grid gap-4 sm:grid-cols-2">
           <a href={waLink("Halo Weltgakkou, saya mau tanya kelas.")} className="flex items-center gap-4 rounded-2xl border border-stone-200 bg-white p-5 hover:border-emerald-600">

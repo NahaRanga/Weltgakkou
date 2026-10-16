@@ -7,6 +7,7 @@ import { withBase } from "@/lib/base-path";
 
 const nav = [
   { href: "/#program", label: "Program", mobile: false },
+  { href: "/info", label: "Info", mobile: true },
   { href: "/faq", label: "FAQ", mobile: false },
 ];
 

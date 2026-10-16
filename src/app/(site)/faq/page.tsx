@@ -27,6 +27,22 @@ const faqs = [
     q: "Apakah biaya ujian JLPT atau JFT sudah termasuk?",
     a: "Belum. Biaya ujian resmi dibayar peserta langsung ke penyelenggara ujian.",
   },
+  {
+    q: "Berapa lama dari nol sampai bisa berangkat ke Jepang?",
+    a: "Biasanya 9 sampai 15 bulan: sekitar 4 sampai 7 bulan belajar bahasa, lalu ujian, wawancara, dan proses visa. Lihat halaman Jalur ke Jepang untuk timeline lengkapnya.",
+  },
+  {
+    q: "Apa bedanya magang dan Tokutei Ginou?",
+    a: "Magang adalah program pelatihan kerja lewat LPK pengirim, umumnya 3 tahun. Tokutei Ginou (SSW) adalah visa kerja berketerampilan dengan gaji setara pekerja Jepang, syaratnya JFT-Basic A2 atau JLPT N4 dan lulus ujian keterampilan bidang.",
+  },
+  {
+    q: "Apakah Weltgakkou menyalurkan kerja ke Jepang?",
+    a: "Tidak. Weltgakkou fokus di persiapan bahasa: JLPT, JFT-Basic, dan wawancara. Untuk penempatan kerja, pilih LPK atau agen yang punya izin resmi.",
+  },
+  {
+    q: "Bisa ikut kursus sambil kerja atau kuliah?",
+    a: "Bisa. Kelasnya online, dan kalau berhalangan kamu bisa menonton rekaman kelasnya. Ada juga paket rekaman untuk yang jadwalnya tidak tetap.",
+  },
 ];
 
 export default function FaqPage() {

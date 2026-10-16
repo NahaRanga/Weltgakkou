@@ -26,6 +26,14 @@ const reasons = [
   },
 ];
 
+const journey = [
+  { title: "Belajar bahasa", time: "4–7 bulan" },
+  { title: "Ujian JFT atau JLPT", time: "1–2 bulan" },
+  { title: "Ujian keterampilan", time: "1–2 bulan" },
+  { title: "Wawancara kerja", time: "beberapa minggu" },
+  { title: "Visa dan berangkat", time: "2–4 bulan" },
+];
+
 export default function Home() {
   return (
     <>
@@ -109,6 +117,25 @@ export default function Home() {
           {german.map((p) => (
             <ProgramCard key={p.slug} program={p} />
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 pt-16">
+        <h2 className="text-2xl font-bold text-stone-900">Dari nol sampai berangkat ke Jepang</h2>
+        <p className="mt-1 text-stone-600">Rata-rata sekitar satu tahun. Tahap bahasa adalah yang paling bisa kamu percepat.</p>
+        <ol className="mt-6 grid gap-3 sm:grid-cols-5">
+          {journey.map((j, i) => (
+            <li key={j.title} className="rounded-2xl border border-stone-200 bg-white p-4">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-red-700 text-sm font-bold text-white">{i + 1}</span>
+              <p className="mt-2 font-semibold text-stone-900">{j.title}</p>
+              <p className="text-sm text-red-700">{j.time}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-red-700">
+          <Link href="/jalur-ke-jepang" className="hover:underline">Lihat timeline lengkap →</Link>
+          <Link href="/kurikulum" className="hover:underline">Kurikulum dan lama kursus →</Link>
+          <Link href="/bidang-kerja" className="hover:underline">Bidang kerja Tokutei Ginou →</Link>
         </div>
       </section>
 

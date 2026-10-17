@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { register, type RegisterState } from "@/app/(site)/daftar/[batchId]/actions";
+import { startTransition, useActionState, useState } from "react";
+import { confirmEmailCode, register, requestEmailCode, type RegisterState } from "@/app/(site)/daftar/[batchId]/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 
 // Pilihan mengikuti Google Form pendaftaran Weltgakkou.
@@ -11,10 +11,12 @@ const goalOptions = ["Kerja ke Jepang", "JLPT", "JFT", "Beasiswa", "Hobi"];
 
 export function RegisterForm({
   batchId,
+  verifyEmail = false,
   monthlyLabel,
   upfrontLabel,
 }: {
   batchId: string;
+  verifyEmail?: boolean;
   monthlyLabel?: string;
   upfrontLabel?: string;
 }) {
@@ -27,7 +29,17 @@ export function RegisterForm({
   const [goal, setGoal] = useState(v.learning_goal ?? "");
 
   return (
-    <form action={action} className="space-y-4" noValidate>
+    // Dikirim lewat onSubmit, bukan action=, supaya isian (pilihan, centang, email terverifikasi)
+    // tidak di-reset React ketika server mengembalikan pesan error.
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => action(data));
+      }}
+      className="space-y-4"
+      noValidate
+    >
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <Field label="Nama lengkap" error={err.full_name}>
         <input name="full_name" defaultValue={v.full_name} required autoComplete="name" className={inputClass} />
@@ -35,9 +47,13 @@ export function RegisterForm({
       <Field label="Nomor WhatsApp" error={err.whatsapp}>
         <input name="whatsapp" defaultValue={v.whatsapp} required inputMode="tel" autoComplete="tel" placeholder="081234567890" className={inputClass} />
       </Field>
-      <Field label="Email (untuk login ke area belajar)" error={err.email}>
-        <input name="email" defaultValue={v.email} type="email" required autoComplete="email" className={inputClass} />
-      </Field>
+      {verifyEmail ? (
+        <EmailWithCode defaultValue={v.email} error={err.email} />
+      ) : (
+        <Field label="Email (untuk login ke area belajar)" error={err.email}>
+          <input name="email" defaultValue={v.email} type="email" required autoComplete="email" className={inputClass} />
+        </Field>
+      )}
       <Field label="Nama panggilan (opsional)">
         <input name="nickname" defaultValue={v.nickname} autoComplete="nickname" className={inputClass} />
       </Field>
@@ -156,5 +172,76 @@ export function RegisterForm({
       </button>
       <p className="text-xs text-stone-500">Tagihan berlaku 24 jam. Kursi di batch disimpan selama tagihan belum kedaluwarsa.</p>
     </form>
+  );
+}
+
+// Email wajib diverifikasi: kirim kode 6 digit ke email, lalu cocokkan sebelum daftar.
+function EmailWithCode({ defaultValue, error }: { defaultValue?: string; error?: string }) {
+  const [email, setEmail] = useState(defaultValue ?? "");
+  const [sentTo, setSentTo] = useState("");
+  const [verified, setVerified] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ tone: "error" | "ok" | "info"; text: string } | null>(null);
+  const isVerified = verified !== "" && verified === email.trim().toLowerCase();
+
+  async function send() {
+    setBusy(true);
+    setMessage(null);
+    const res = await requestEmailCode(email);
+    setBusy(false);
+    if (res.error) return setMessage({ tone: "error", text: res.error });
+    setSentTo(email.trim().toLowerCase());
+    setMessage({ tone: "info", text: `Kode 6 angka sudah dikirim ke ${email.trim()} dari admin@weltgakko.com. Cek juga folder Spam/Promosi.` });
+  }
+
+  async function confirm() {
+    setBusy(true);
+    const res = await confirmEmailCode(email, code);
+    setBusy(false);
+    if (res.error) return setMessage({ tone: "error", text: res.error });
+    setVerified(email.trim().toLowerCase());
+    setMessage({ tone: "ok", text: "Email terverifikasi." });
+  }
+
+  return (
+    <div className="space-y-2">
+      <Field label="Email (untuk login ke area belajar)" error={isVerified ? undefined : error}>
+        <div className="flex gap-2">
+          <input
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            required
+            autoComplete="email"
+            readOnly={isVerified}
+            className={`${inputClass} ${isVerified ? "bg-emerald-50" : ""}`}
+          />
+          {!isVerified && (
+            <button type="button" onClick={send} disabled={busy || !email.includes("@")} className="shrink-0 rounded-lg border border-stone-300 px-3 text-sm font-semibold text-stone-800 hover:border-stone-500 disabled:opacity-50">
+              {sentTo === email.trim().toLowerCase() ? "Kirim ulang" : "Kirim kode"}
+            </button>
+          )}
+        </div>
+      </Field>
+      {sentTo !== "" && !isVerified && sentTo === email.trim().toLowerCase() && (
+        <div className="flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="Kode 6 angka"
+            aria-label="Kode verifikasi"
+            className={`${inputClass} tracking-widest`}
+          />
+          <button type="button" onClick={confirm} disabled={busy || code.length !== 6} className="shrink-0 rounded-lg bg-stone-900 px-4 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-50">
+            Verifikasi
+          </button>
+        </div>
+      )}
+      {message && <Notice tone={message.tone}>{isVerified ? "✓ " : ""}{message.text}</Notice>}
+    </div>
   );
 }

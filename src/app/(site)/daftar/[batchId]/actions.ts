@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createInvoice, seatsTaken } from "@/lib/billing";
 import { notifyAdmin } from "@/lib/email";
+import { checkCode, sendCode, verificationEnabled, verifiedUserId } from "@/lib/email-verification";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { formatRupiah } from "@/lib/programs";
 
@@ -69,6 +70,22 @@ const schema = z.object({
   agree: z.literal("setuju", "Centang pernyataan untuk melanjutkan"),
 });
 
+const emailSchema = z.email().transform((v) => v.trim().toLowerCase());
+
+// Langkah verifikasi email di formulir pendaftaran: kirim kode, lalu cocokkan kode.
+export async function requestEmailCode(email: string) {
+  const parsed = emailSchema.safeParse(email.trim());
+  if (!parsed.success) return { error: "Tulis email yang valid dulu." };
+  return sendCode(parsed.data);
+}
+
+export async function confirmEmailCode(email: string, code: string) {
+  const parsed = emailSchema.safeParse(email.trim());
+  if (!parsed.success) return { error: "Tulis email yang valid dulu." };
+  if (!/^\d{6}$/.test(code.trim())) return { error: "Kode terdiri dari 6 angka." };
+  return checkCode(parsed.data, code.trim());
+}
+
 export async function register(batchId: string, _prev: RegisterState, formData: FormData): Promise<RegisterState> {
   const values: Record<string, string> = Object.fromEntries(fields.map((k) => [k, String(formData.get(k) ?? "")]));
   // Pilihan "Lainnya" diisi lewat kolom teks tersendiri.
@@ -128,6 +145,11 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
       : program.upfront_price;
   if (!baseAmount) return { error: "Cara bayar ini tidak tersedia untuk program ini.", values };
 
+  // Dengan verifikasi aktif, akun dibuat Supabase saat kode dikirim; di sini cukup cek kodenya sudah benar.
+  const verifiedId = verificationEnabled() ? await verifiedUserId(input.email) : null;
+  if (verificationEnabled() && !verifiedId)
+    return { error: "Verifikasi email dulu: klik Kirim kode, lalu masukkan kode dari email.", fieldErrors: { email: "Email belum diverifikasi" }, values };
+
   // Cari akun lama berdasarkan email, atau buat akun baru (password diatur setelah lunas).
   let profileId: string;
   const { data: existing } = await db.from("profiles").select("id").eq("email", input.email).maybeSingle();
@@ -135,16 +157,21 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
     profileId = existing.id;
     await db.from("profiles").update({ whatsapp: input.whatsapp, ...details }).eq("id", profileId);
   } else {
-    const { data: created, error } = await db.auth.admin.createUser({
-      email: input.email,
-      email_confirm: true,
-      user_metadata: { full_name: input.full_name },
-    });
-    if (error || !created.user) {
-      console.error("Gagal membuat akun", error);
-      return { error: "Email ini sudah terdaftar dengan cara lain. Hubungi admin lewat WhatsApp.", values };
+    if (verifiedId) {
+      profileId = verifiedId;
+      await db.auth.admin.updateUserById(verifiedId, { user_metadata: { full_name: input.full_name } });
+    } else {
+      const { data: created, error } = await db.auth.admin.createUser({
+        email: input.email,
+        email_confirm: true,
+        user_metadata: { full_name: input.full_name },
+      });
+      if (error || !created.user) {
+        console.error("Gagal membuat akun", error);
+        return { error: "Email ini sudah terdaftar dengan cara lain. Hubungi admin lewat WhatsApp.", values };
+      }
+      profileId = created.user.id;
     }
-    profileId = created.user.id;
     const { error: profileError } = await db.from("profiles").insert({
       id: profileId,
       email: input.email,

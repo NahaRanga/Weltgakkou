@@ -1,5 +1,6 @@
 "use server";
 
+import { sendPasswordEmail, verificationEnabled } from "@/lib/email-verification";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getSupabaseAuth } from "@/lib/supabase-server";
 import { sendEmail } from "@/lib/email";
@@ -62,6 +63,11 @@ export async function requestPasswordReset(_prev: AuthState, formData: FormData)
   const { data: profile } = db ? await db.from("profiles").select("id").eq("email", email).maybeSingle() : { data: null };
   if (!profile) return ok;
 
+  // Pakai email Supabase (SMTP admin@weltgakko.com) bila aktif, selain itu lewat Resend.
+  if (verificationEnabled()) {
+    await sendPasswordEmail(email);
+    return ok;
+  }
   const link = await createPasswordLink(email);
   if (link) {
     await sendEmail(

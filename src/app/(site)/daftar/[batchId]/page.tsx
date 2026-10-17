@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { RegisterForm } from "@/components/register-form";
+import { verificationEnabled } from "@/lib/email-verification";
 import { seatsTaken } from "@/lib/billing";
 import { formatDate } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
@@ -71,6 +72,7 @@ async function RegisterContent({ params }: { params: PageProps<"/daftar/[batchId
         ) : (
           <RegisterForm
             batchId={batch.id}
+            verifyEmail={verificationEnabled()}
             upfrontLabel={
               isRecording
                 ? program.recording_price

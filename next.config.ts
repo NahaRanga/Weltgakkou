@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
     // Foto bukti transfer dikirim lewat Server Action (batas file 5 MB).
     serverActions: { bodySizeLimit: "6mb" },
   },
+  // Setelah pindah ke weltgakko.com: alamat lama dan www dialihkan permanen ke domain utama.
+  async redirects() {
+    if (process.env.NEXT_PUBLIC_BASE_PATH) return [];
+    const oldHost = [{ type: "host" as const, value: "panjimuhammad.com" }];
+    return [
+      { source: "/weltgakko", has: oldHost, destination: "https://weltgakko.com/", permanent: true, basePath: false as const },
+      { source: "/weltgakko/:path*", has: oldHost, destination: "https://weltgakko.com/:path*", permanent: true, basePath: false as const },
+      { source: "/:path*", has: [{ type: "host" as const, value: "www.weltgakko.com" }], destination: "https://weltgakko.com/:path*", permanent: true, basePath: false as const },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {

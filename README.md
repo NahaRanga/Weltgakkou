@@ -55,8 +55,9 @@ Semua data dibaca dan ditulis lewat server setelah sesi login dicek. RLS aktif d
 Website berjalan di Cloudflare Workers lewat adapter [OpenNext](https://opennext.js.org/cloudflare) (paket gratis cukup).
 Cache Components Next.js sengaja dimatikan karena belum didukung adapter ini.
 
-Saat ini website dipasang di **panjimuhammad.com/weltgakko** (Worker `weltgakkou`). Alamat, base path, dan nomor
-WhatsApp ada di `wrangler.jsonc` dan `.env.production`; ubah di sana bila pindah domain.
+Saat ini website dipasang di **weltgakko.com** (Worker `weltgakkou`, custom domain; DNS weltgakko.com di Cloudflare,
+email tetap di Hostinger). Alamat lama panjimuhammad.com/weltgakko dan www.weltgakko.com dialihkan permanen ke
+weltgakko.com. Alamat, base path, dan nomor WhatsApp ada di `wrangler.jsonc` dan `.env.production`.
 
 1. Cloudflare dashboard > Workers & Pages > Worker `weltgakkou` > Settings > Build > **Connect** repository
    `NahaRanga/Weltgakkou`, branch `main`.

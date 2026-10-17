@@ -1,11 +1,16 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
-  // Dipasang di panjimuhammad.com/weltgakko (build memakai NEXT_PUBLIC_BASE_PATH dari .env.production).
+  // Dipasang di weltgakko.com (root, tanpa base path). Route panjimuhammad.com/weltgakko* dibiarkan supaya
+  // alamat lama dialihkan ke weltgakko.com (lihat redirects() di next.config.ts).
   "workers_dev": false,
-  "routes": [{ "pattern": "panjimuhammad.com/weltgakko*", "zone_name": "panjimuhammad.com" }],
+  "routes": [
+    { "pattern": "weltgakko.com", "custom_domain": true },
+    { "pattern": "www.weltgakko.com", "custom_domain": true },
+    { "pattern": "panjimuhammad.com/weltgakko*", "zone_name": "panjimuhammad.com" }
+  ],
   // Variabel biasa. Kunci Supabase dan rekening disimpan sebagai Secret di Cloudflare.
-  "vars": { "SITE_URL": "https://panjimuhammad.com/weltgakko", "REFERRAL_PERCENT": "10" },
+  "vars": { "SITE_URL": "https://weltgakko.com", "REFERRAL_PERCENT": "10" },
   "name": "weltgakkou",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],

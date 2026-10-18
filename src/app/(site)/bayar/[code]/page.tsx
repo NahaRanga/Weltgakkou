@@ -126,6 +126,13 @@ async function PayContent({ params }: { params: PageProps<"/bayar/[code]">["para
         >
           Ada kendala? Hubungi admin lewat WhatsApp
         </a>
+        <p className="text-center text-xs text-stone-500">
+          Mau batal setelah bayar? Lihat{" "}
+          <Link href="/refund" className="underline hover:text-stone-800">
+            kebijakan refund
+          </Link>
+          .
+        </p>
       </div>
     </>
   );

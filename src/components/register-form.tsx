@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useState } from "react";
+import Link from "next/link";
 import { confirmEmailCode, register, requestEmailCode, type RegisterState } from "@/app/(site)/daftar/[batchId]/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 
@@ -163,7 +164,13 @@ export function RegisterForm({
 
       <label className="flex items-start gap-3 text-sm text-stone-700">
         <input type="checkbox" name="agree" value="setuju" defaultChecked={v.agree === "setuju"} className="mt-1" />
-        <span>Saya menyatakan data yang saya berikan benar dan bersedia mengikuti seluruh peraturan kelas.</span>
+        <span>
+          Saya menyatakan data yang saya berikan benar, bersedia mengikuti seluruh peraturan kelas, dan setuju dengan{" "}
+          <Link href="/refund" target="_blank" className="font-semibold text-red-700 underline">
+            kebijakan refund
+          </Link>
+          .
+        </span>
       </label>
       {err.agree && <span className="block text-sm text-red-700">{err.agree}</span>}
 

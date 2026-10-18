@@ -6,6 +6,7 @@ import { trialHref } from "@/lib/info-pages";
 import { withBase } from "@/lib/base-path";
 import { ProgramCard } from "@/components/program-card";
 import { programs } from "@/lib/programs";
+import { organizationJsonLd } from "@/lib/seo";
 
 const japanese = programs.filter((p) => p.language === "jp");
 const german = programs.filter((p) => p.language === "de");
@@ -40,6 +41,7 @@ const journey = [
 export default function Home() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()).replace(/</g, "\\u003c") }} />
       {/* Ilustrasi lebar: sisi kiri gambar kosong, jadi di layar lebar teks ditaruh di atasnya. */}
       <section className="relative overflow-hidden bg-[#fff8ed]">
         <Image

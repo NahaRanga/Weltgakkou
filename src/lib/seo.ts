@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { site } from "@/lib/site";
+import { activeSocial, site } from "@/lib/site";
 
 // Alamat utama situs untuk link preview (OG). Sama dengan sitemap: tidak bergantung SITE_URL runtime.
 export const SITE_BASE = "https://weltgakko.com";
@@ -41,4 +41,32 @@ export function pageMetadata({
 }): Metadata {
   const og = image && { url: image.src, width: image.width ?? 1200, height: image.height ?? 896, alt: image.alt };
   return { title, description, ...openGraphFor({ title: `${title} | ${site.name}`, description, path, image: og }) };
+}
+
+// Data terstruktur untuk Google: nama brand, logo, dan akun sosmed resmi (sameAs),
+// supaya Google bisa menyambungkan situs dengan IG/TikTok/Facebook di hasil pencarian.
+export function organizationJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "EducationalOrganization",
+        "@id": `${SITE_BASE}/#organization`,
+        name: site.name,
+        url: SITE_BASE,
+        logo: `${SITE_BASE}/logo-full.png`,
+        email: site.email,
+        description: defaultDescription,
+        sameAs: activeSocial().map((s) => s.url),
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_BASE}/#website`,
+        name: site.name,
+        url: SITE_BASE,
+        inLanguage: "id-ID",
+        publisher: { "@id": `${SITE_BASE}/#organization` },
+      },
+    ],
+  };
 }

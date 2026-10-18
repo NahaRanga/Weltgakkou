@@ -1,5 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
+import { BatchOpenCard, TrialBanner } from "@/components/batch-open-banner";
+import { trialHref } from "@/lib/info-pages";
 import { withBase } from "@/lib/base-path";
 import { ProgramCard } from "@/components/program-card";
 import { programs } from "@/lib/programs";
@@ -59,10 +62,10 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/waiting-list"
+                href={trialHref}
                 className="rounded-lg bg-red-700 px-5 py-3 font-semibold text-white hover:bg-red-800"
               >
-                Masuk waiting list
+                Coba kelas gratis
               </Link>
               <Link
                 href="#program"
@@ -82,6 +85,10 @@ export default function Home() {
           />
         </div>
       </section>
+
+      <Suspense fallback={null}>
+        <TrialBanner />
+      </Suspense>
 
       <section className="mx-auto grid max-w-5xl items-center gap-10 px-4 py-16 lg:grid-cols-[0.9fr_1fr]">
         <Image
@@ -149,28 +156,9 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16">
-        <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-stone-900 px-6 py-10 text-white sm:px-10 md:grid-cols-[1fr_320px]">
-          <div>
-            <h2 className="text-2xl font-bold">Batch pertama segera dibuka</h2>
-            <p className="mt-2 max-w-xl text-stone-300">
-              Kuota tiap kelas terbatas. Orang di waiting list dikabari lebih
-              dulu saat jadwal dan harga promo keluar.
-            </p>
-            <Link
-              href="/waiting-list"
-              className="mt-6 inline-block rounded-lg bg-white px-5 py-3 font-semibold text-stone-900 hover:bg-stone-100"
-            >
-              Masuk waiting list
-            </Link>
-          </div>
-          <Image
-            src={withBase("/images/waiting-list.jpg")}
-            alt="Ilustrasi notifikasi HP dan tiket kelas"
-            width={1600}
-            height={1200}
-            className="hidden w-full rounded-2xl md:block"
-          />
-        </div>
+        <Suspense fallback={null}>
+          <BatchOpenCard />
+        </Suspense>
       </section>
     </>
   );

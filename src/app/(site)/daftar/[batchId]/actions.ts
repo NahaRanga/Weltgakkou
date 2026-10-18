@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { findOrCreateProfile } from "@/lib/accounts";
 import { createInvoice, seatsTaken } from "@/lib/billing";
+import { registrationDeadline } from "@/lib/batches";
 import { notifyAdmin } from "@/lib/email";
 import { checkCode, sendCode, verificationEnabled, verifiedUserId } from "@/lib/email-verification";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -127,13 +129,17 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
 
   const { data: batch } = await db
     .from("batches")
-    .select("id, name, status, quota, mode, programs(name, monthly_price, upfront_price, recording_price)")
+    .select("*, programs(name, monthly_price, upfront_price, recording_price)")
     .eq("id", batchId)
     .maybeSingle();
   const program = batch?.programs as unknown as
     | { name: string; monthly_price: number | null; upfront_price: number | null; recording_price: number | null }
     | undefined;
   if (!batch || !program || batch.status !== "buka") return { error: "Batch ini sudah tidak menerima pendaftaran.", values };
+  // Kelas trial didaftar lewat /trial; batch live tutup otomatis setelah tenggat (default H-1 23.59 WIB).
+  if (batch.is_trial) return { error: "Kelas trial didaftar lewat halaman Kelas trial.", values };
+  if (batch.mode === "live" && registrationDeadline(batch).getTime() < Date.now())
+    return { error: "Pendaftaran batch ini sudah ditutup. Masuk waiting list untuk batch berikutnya.", values };
 
   // Paket rekaman selalu sekali bayar dengan harga paket rekaman.
   const isRecording = batch.mode === "rekaman";
@@ -151,37 +157,9 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
     return { error: "Verifikasi email dulu: klik Kirim kode, lalu masukkan kode dari email.", fieldErrors: { email: "Email belum diverifikasi" }, values };
 
   // Cari akun lama berdasarkan email, atau buat akun baru (password diatur setelah lunas).
-  let profileId: string;
-  const { data: existing } = await db.from("profiles").select("id").eq("email", input.email).maybeSingle();
-  if (existing) {
-    profileId = existing.id;
-    await db.from("profiles").update({ whatsapp: input.whatsapp, ...details }).eq("id", profileId);
-  } else {
-    if (verifiedId) {
-      profileId = verifiedId;
-      await db.auth.admin.updateUserById(verifiedId, { user_metadata: { full_name: input.full_name } });
-    } else {
-      const { data: created, error } = await db.auth.admin.createUser({
-        email: input.email,
-        email_confirm: true,
-        user_metadata: { full_name: input.full_name },
-      });
-      if (error || !created.user) {
-        console.error("Gagal membuat akun", error);
-        return { error: "Email ini sudah terdaftar dengan cara lain. Hubungi admin lewat WhatsApp.", values };
-      }
-      profileId = created.user.id;
-    }
-    const { error: profileError } = await db.from("profiles").insert({
-      id: profileId,
-      email: input.email,
-      full_name: input.full_name,
-      whatsapp: input.whatsapp,
-      ...details,
-      referral_code: referralCodeFor(input.full_name, profileId),
-    });
-    if (profileError) throw profileError;
-  }
+  const account = await findOrCreateProfile(db, { email: input.email, full_name: input.full_name, whatsapp: input.whatsapp, details }, verifiedId);
+  if ("error" in account) return { error: account.error, values };
+  const { profileId } = account;
 
   // Pendaftar yang sama di batch yang sama: tampilkan lagi tagihannya.
   const { data: prior } = await db
@@ -228,7 +206,3 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
   redirect(`/bayar/${code}`);
 }
 
-function referralCodeFor(name: string, id: string) {
-  const first = name.split(/\s+/)[0].toUpperCase().replace(/[^A-Z]/g, "").slice(0, 6) || "WG";
-  return `${first}${id.slice(0, 4).toUpperCase()}`;
-}

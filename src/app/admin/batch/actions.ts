@@ -6,6 +6,12 @@ import { requireBatchStaff, requireSessionStaff } from "@/app/admin/guards";
 import type { BatchState, FormState } from "@/app/admin/types";
 import { requireAdmin, requireDb, requireStaff } from "@/lib/auth";
 
+// Isian datetime-local (jam WIB) → ISO; kosong = tenggat default (H-1 23.59 WIB).
+const deadlineField = z
+  .union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)])
+  .optional()
+  .transform((v) => (v ? new Date(`${v}:00+07:00`).toISOString() : null));
+
 const batchSchema = z.object({
   program_id: z.uuid(),
   name: z.string().trim().min(2).max(80),
@@ -17,6 +23,8 @@ const batchSchema = z.object({
   quota: z.coerce.number().int().min(1).max(50),
   meeting_url: z.union([z.literal(""), z.url()]),
   schedule_label: z.string().trim().min(2).max(120),
+  is_trial: z.literal("1").optional(),
+  registration_deadline: deadlineField,
 });
 
 // Membuat batch beserta seluruh sesinya: hari kelas (default Senin-Kamis) dan
@@ -26,6 +34,7 @@ export async function createBatch(_prev: BatchState, formData: FormData): Promis
   const parsed = batchSchema.safeParse({
     ...Object.fromEntries(formData),
     class_days: formData.getAll("class_days"),
+    is_trial: formData.get("is_trial") ?? undefined,
   });
   if (!parsed.success) return { error: "Periksa lagi isian batch: " + parsed.error.issues.map((i) => i.path.join(".")).join(", ") };
   const b = parsed.data;
@@ -40,10 +49,23 @@ export async function createBatch(_prev: BatchState, formData: FormData): Promis
       schedule_label: b.schedule_label,
       quota: b.quota,
       meeting_url: b.meeting_url || null,
+      // Kolom dari migrasi 0005 hanya dikirim bila dipakai, supaya buat batch biasa tetap jalan sebelum migrasi.
+      ...(b.is_trial ? { is_trial: true } : {}),
+      ...(b.registration_deadline ? { registration_deadline: b.registration_deadline } : {}),
     })
     .select("id")
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: error.message.includes("is_trial") || error.message.includes("registration_deadline") ? "Jalankan dulu migrasi 0005_trial_tenggat.sql di SQL Editor Supabase." : error.message };
+
+  // Kelas trial: satu pertemuan saja di tanggal dan jam mulai.
+  if (b.is_trial) {
+    const { error: sessionError } = await db
+      .from("sessions")
+      .insert({ batch_id: batch.id, number: 1, starts_at: new Date(`${b.start_date}T${b.start_time}:00+07:00`).toISOString(), kind: "kelas", topic: "Kelas trial gratis" });
+    if (sessionError) return { error: sessionError.message };
+    refresh();
+    return { ok: "Kelas trial dibuat dengan 1 sesi. Isi link Zoom di detail batch." };
+  }
 
   const sessions: { batch_id: string; number: number; starts_at: string; kind: "kelas" | "ujian"; topic: string | null }[] = [];
   const start = new Date(`${b.start_date}T${b.start_time}:00+07:00`);
@@ -92,6 +114,7 @@ const batchUpdateSchema = z.object({
   schedule_label: z.string().trim().min(2).max(120),
   quota: z.coerce.number().int().min(1).max(50),
   teacher_id: z.union([z.literal(""), z.uuid()]),
+  registration_deadline: deadlineField,
 });
 
 export async function updateBatch(batchId: string, _prev: FormState, formData: FormData): Promise<FormState> {
@@ -101,7 +124,14 @@ export async function updateBatch(batchId: string, _prev: FormState, formData: F
   const b = parsed.data;
   const { error } = await requireDb()
     .from("batches")
-    .update({ name: b.name, schedule_label: b.schedule_label, quota: b.quota, teacher_id: b.teacher_id || null })
+    .update({
+      name: b.name,
+      schedule_label: b.schedule_label,
+      quota: b.quota,
+      teacher_id: b.teacher_id || null,
+      // Field tenggat hanya ada di form bila kolomnya sudah ada (migrasi 0005).
+      ...(formData.has("registration_deadline") ? { registration_deadline: b.registration_deadline } : {}),
+    })
     .eq("id", batchId);
   if (error) return { error: error.message };
   refresh();

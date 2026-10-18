@@ -56,6 +56,8 @@ type Batch = {
   meeting_url: string | null;
   mode: string;
   teacher_id: string | null;
+  is_trial?: boolean;
+  registration_deadline?: string | null;
   programs: { id: string; name: string; months: number | null };
   enrollments: Enrollment[];
   sessions: {
@@ -83,7 +85,8 @@ export default async function BatchDetailPage({
   const { data } = await db
     .from("batches")
     .select(
-      "id, name, status, start_date, quota, schedule_label, meeting_url, mode, teacher_id, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), enrollments(id, status, plan, profile_id, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
+      // "*" supaya kolom baru (is_trial, registration_deadline) ikut bila migrasinya sudah jalan.
+      "*, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), enrollments(id, status, plan, profile_id, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
     )
     .eq("id", id)
     .maybeSingle();

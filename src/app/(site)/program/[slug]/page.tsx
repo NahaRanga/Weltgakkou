@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getOpenBatches, getRecordingPackage } from "@/lib/batches";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDay, formatTime } from "@/lib/format";
 import { WaitingListForm } from "@/components/waiting-list-form";
 import { formatRupiah, getProgram, programImage, programs } from "@/lib/programs";
 import { pageMetadata } from "@/lib/seo";
@@ -124,6 +124,11 @@ async function OpenBatches({ slug }: { slug: string }) {
               Mulai {formatDate(b.start_date)} · {b.schedule_label}
             </p>
             <p className="text-sm text-stone-600">{b.seatsLeft > 0 ? `Sisa ${b.seatsLeft} kursi` : "Kuota penuh"}</p>
+            {b.seatsLeft > 0 && (
+              <p className="mt-1 text-sm font-semibold text-red-700">
+                Pendaftaran sampai {formatDay(b.deadline)}, {formatTime(b.deadline)} WIB
+              </p>
+            )}
             {b.seatsLeft > 0 && (
               <Link href={`/daftar/${b.id}`} className="mt-2 inline-block rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
                 Daftar batch ini

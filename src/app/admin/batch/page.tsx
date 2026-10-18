@@ -13,6 +13,7 @@ type BatchRow = {
   start_date: string;
   quota: number;
   schedule_label: string;
+  is_trial?: boolean;
   programs: { name: string };
   teacher: { full_name: string } | null;
   enrollments: { status: string }[];
@@ -27,7 +28,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
 
   let query = db
     .from("batches")
-    .select("id, name, status, start_date, quota, schedule_label, programs(name), teacher:profiles!batches_teacher_id_fkey(full_name), enrollments(status)")
+    .select("*, programs(name), teacher:profiles!batches_teacher_id_fkey(full_name), enrollments(status)")
     .eq("mode", "live")
     .order("start_date", { ascending: view === "" });
   if (view === "") query = query.neq("status", "selesai");
@@ -85,6 +86,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
                         <Link href={`/admin/batch/${b.id}`} className="font-medium text-stone-900 hover:underline">
                           {b.programs.name} · {b.name}
                         </Link>
+                        {b.is_trial && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Trial gratis</span>}
                         <span className="block text-xs text-stone-500">{b.schedule_label}</span>
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>{formatDate(b.start_date)}</td>

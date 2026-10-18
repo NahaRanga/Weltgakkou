@@ -1,7 +1,10 @@
-# Weltgakkou
+# Weltgakko
 
-Website kursus bahasa Jepang (dan nanti Jerman) online Weltgakkou. Rancangan lengkap ada di dokumen
+Website kursus bahasa Jepang (dan nanti Jerman) online Weltgakko. Rancangan lengkap ada di dokumen
 [Rancang Bangun Website Weltgakkou](https://claude.ai/code/artifact/665c3612-172f-4841-aca6-0c20a5ba4467).
+
+Nama brand yang dipakai di semua teks: **Weltgakko** (tanpa U). Ejaan lama `weltgakkou` sengaja dibiarkan pada
+identitas teknis: nama repo, Worker Cloudflare, `package.json`, `supabase/config.toml`, dan file migrasi lama.
 
 Stack: Next.js 16 (App Router), Tailwind CSS 4, Supabase (Postgres, Auth, Storage), Resend untuk email.
 

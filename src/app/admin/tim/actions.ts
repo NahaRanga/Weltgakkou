@@ -37,8 +37,8 @@ export async function addStaff(_prev: FormState, formData: FormData): Promise<Fo
   }
 
   const link = await createPasswordLink(s.email);
-  const text = `Halo ${s.full_name}, akun Weltgakkou kamu sudah dibuat (${s.role}).\n\nAtur password lewat link ini (berlaku 1 jam):\n${link}\n\nSetelah itu masuk di ${siteUrl()}/masuk dengan email ${s.email}.`;
-  const emailed = link ? await sendEmail(s.email, "Akun Weltgakkou", text) : false;
+  const text = `Halo ${s.full_name}, akun Weltgakko kamu sudah dibuat (${s.role}).\n\nAtur password lewat link ini (berlaku 1 jam):\n${link}\n\nSetelah itu masuk di ${siteUrl()}/masuk dengan email ${s.email}.`;
+  const emailed = link ? await sendEmail(s.email, "Akun Weltgakko", text) : false;
   refresh();
   if (emailed) return { ok: `Akun ${s.full_name} siap. Link atur password dikirim ke ${s.email}.` };
   return { ok: `Akun ${s.full_name} siap. Kirim pesan ini lewat WhatsApp:`, whatsappText: text, whatsapp: whatsapp ?? undefined };

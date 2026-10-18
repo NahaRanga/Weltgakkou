@@ -61,7 +61,7 @@ export default async function AdminOverview() {
 
   return (
     <>
-      <PageTitle title="Dashboard" subtitle={`Halo ${user.fullName.split(" ")[0]}, ini keadaan Weltgakkou hari ini.`} />
+      <PageTitle title="Dashboard" subtitle={`Halo ${user.fullName.split(" ")[0]}, ini keadaan Weltgakko hari ini.`} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <Stat label="Bukti bayar dicek" value={proofsRes.count ?? 0} href="/admin/pembayaran" tone="alert" />
@@ -160,7 +160,7 @@ export default async function AdminOverview() {
                     <span className="font-medium text-stone-900">{d.enrollments.profiles.full_name}</span>{" "}
                     <WaLink
                       number={d.enrollments.profiles.whatsapp}
-                      text={`Halo ${d.enrollments.profiles.full_name}, mengingatkan tagihan Weltgakkou ${d.code} sebesar ${formatRupiah(d.amount)} jatuh tempo ${formatDateTime(d.due_at)}. Terima kasih!`}
+                      text={`Halo ${d.enrollments.profiles.full_name}, mengingatkan tagihan Weltgakko ${d.code} sebesar ${formatRupiah(d.amount)} jatuh tempo ${formatDateTime(d.due_at)}. Terima kasih!`}
                     />
                     <span className="block text-xs text-stone-500">
                       {d.code} · {d.installment_no > 1 ? `cicilan ke-${d.installment_no} · ` : ""}jatuh tempo {formatDateTime(d.due_at)}

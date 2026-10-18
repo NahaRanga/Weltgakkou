@@ -3,7 +3,7 @@ import { AdminSidebar, type NavItem } from "@/components/admin/sidebar";
 import { requireDb, requireStaff } from "@/lib/auth";
 import { expireOverdueInvoices } from "@/lib/billing";
 
-export const metadata: Metadata = { title: { default: "Admin", template: "%s · Admin Weltgakkou" }, robots: { index: false } };
+export const metadata: Metadata = { title: { default: "Admin", template: "%s · Admin Weltgakko" }, robots: { index: false } };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();

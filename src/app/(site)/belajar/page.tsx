@@ -92,7 +92,7 @@ async function LearnContent({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-stone-900">Halo, {user.fullName.split(" ")[0]}</h1>
-          <p className="text-stone-600">Area belajar Weltgakkou</p>
+          <p className="text-stone-600">Area belajar Weltgakko</p>
         </div>
         <div className="flex items-center gap-3 text-sm">
           {user.role === "admin" && (

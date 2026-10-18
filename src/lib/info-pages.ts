@@ -5,6 +5,6 @@ export const infoPages = [
   { href: "/cara-belajar", title: "Cara belajar", blurb: "Alur mingguan kelas live, tes Jumat, rekaman, dan pilihan paket." },
   { href: "/bidang-kerja", title: "Bidang kerja Tokutei Ginou", blurb: "Sektor kerja SSW beserta istilah Jepangnya dan kosakata yang perlu disiapkan." },
   { href: "/persyaratan", title: "Persyaratan umum", blurb: "Syarat dan dokumen yang biasanya diminta untuk kerja atau studi di Jepang." },
-  { href: "/tentang", title: "Tentang Weltgakkou", blurb: "Siapa kami dan bagaimana kami mengajar." },
-  { href: "/kontak", title: "Kontak", blurb: "WhatsApp dan sosial media Weltgakkou." },
+  { href: "/tentang", title: "Tentang Weltgakko", blurb: "Siapa kami dan bagaimana kami mengajar." },
+  { href: "/kontak", title: "Kontak", blurb: "WhatsApp dan sosial media Weltgakko." },
 ] as const;

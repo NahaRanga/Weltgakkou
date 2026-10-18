@@ -11,5 +11,5 @@ export async function GET() {
     ["Nama", "WhatsApp", "Email", "Program", "Sumber", "Kode referral", "Status", "Catatan", "Tanggal masuk"],
     (data ?? []).map((l) => [l.full_name, l.whatsapp, l.email, l.program_slug, l.source, l.referral_code, l.status, l.note, l.created_at]),
   );
-  return csvResponse("waiting-list-weltgakkou.csv", body);
+  return csvResponse("waiting-list-weltgakko.csv", body);
 }

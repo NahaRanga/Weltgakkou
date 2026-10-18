@@ -81,7 +81,7 @@ export async function joinWaitingList(
   const program = getProgram(lead.program_slug);
   return {
     status: "ok",
-    message: `Terima kasih, ${lead.full_name}! Kamu masuk waiting list ${program?.name}. Tim Weltgakkou akan menghubungi lewat WhatsApp.`,
+    message: `Terima kasih, ${lead.full_name}! Kamu masuk waiting list ${program?.name}. Tim Weltgakko akan menghubungi lewat WhatsApp.`,
   };
 }
 

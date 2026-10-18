@@ -38,7 +38,7 @@ const paths = [
 ];
 
 const steps = [
-  { title: "Belajar bahasa dari nol", time: "4 sampai 7 bulan", body: "Kiso (hiragana dan katakana) 1 bulan, lalu N5 dan N4 atau program JFT-Basic. Di sinilah Weltgakkou membantu." },
+  { title: "Belajar bahasa dari nol", time: "4 sampai 7 bulan", body: "Kiso (hiragana dan katakana) 1 bulan, lalu N5 dan N4 atau program JFT-Basic. Di sinilah Weltgakko membantu." },
   { title: "Ujian bahasa", time: "1 sampai 2 bulan", body: "JFT-Basic diadakan berkali-kali tiap bulan dengan komputer dan hasilnya keluar sekitar seminggu. JLPT hanya Juli dan Desember, hasilnya sekitar 2 bulan kemudian." },
   { title: "Ujian keterampilan bidang", time: "1 sampai 2 bulan", body: "Khusus SSW: ujian sesuai sektor, misalnya perawat lansia, restoran, atau pertanian. Perawat lansia juga ada tes bahasa khusus kaigo." },
   { title: "Pilih lembaga resmi dan siapkan dokumen", time: "2 sampai 4 minggu", body: "Daftar ke LPK atau agen penempatan yang punya izin resmi. Siapkan paspor, ijazah, dan dokumen lain." },
@@ -108,7 +108,7 @@ export default function PathPage() {
       </Section>
 
       <Note>
-        <p className="font-semibold">Weltgakkou adalah kursus bahasa, bukan penyalur kerja.</p>
+        <p className="font-semibold">Weltgakko adalah kursus bahasa, bukan penyalur kerja.</p>
         <p className="mt-1">
           Kami membantu kamu siap secara bahasa: ujian JLPT atau JFT-Basic dan wawancara. Untuk penempatan kerja, pilih LPK atau agen yang punya izin resmi dan cek
           izinnya di situs Kementerian Ketenagakerjaan atau Kementerian P2MI (dulu BP2MI). Hati-hati dengan tawaran yang meminta biaya besar di depan tanpa

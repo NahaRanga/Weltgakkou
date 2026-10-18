@@ -8,7 +8,7 @@ export default function SignInPage({ searchParams }: PageProps<"/masuk">) {
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
       <h1 className="text-2xl font-bold text-stone-900">Masuk ke area belajar</h1>
-      <p className="mb-6 mt-1 text-sm text-stone-600">Untuk siswa, pengajar, dan admin Weltgakkou.</p>
+      <p className="mb-6 mt-1 text-sm text-stone-600">Untuk siswa, pengajar, dan admin Weltgakko.</p>
       <Suspense fallback={<p className="text-stone-500">Memuat...</p>}>
         <SignInWithNext searchParams={searchParams} />
       </Suspense>

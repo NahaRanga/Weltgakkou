@@ -1,4 +1,4 @@
-// Harga dan durasi mengikuti "Rencana Bisnis Weltgakkou" (Oktober 2026).
+// Harga dan durasi mengikuti "Rencana Bisnis Weltgakko" (Oktober 2026).
 // Sumber kebenaran harga ada di tabel `programs` Supabase; file ini dipakai
 // halaman publik Fase 1 dan harus diselaraskan bila harga berubah.
 

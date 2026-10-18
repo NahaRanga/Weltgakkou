@@ -4,7 +4,7 @@ import { InfoPage, Note, Section } from "@/components/info-page";
 
 export const metadata: Metadata = {
   title: "Kurikulum dan lama kursus",
-  description: "Materi per bulan di setiap program bahasa Jepang Weltgakkou dan berapa lama sampai N5, N4, N3, atau JFT-Basic.",
+  description: "Materi per bulan di setiap program bahasa Jepang Weltgakko dan berapa lama sampai N5, N4, N3, atau JFT-Basic.",
 };
 
 const ladder = [

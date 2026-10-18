@@ -1,7 +1,7 @@
 import { withBase } from "@/lib/base-path";
 
 export const site = {
-  name: "Weltgakkou",
+  name: "Weltgakko",
   tagline: "Kursus bahasa Jepang online, dari Kiso sampai JLPT N3 dan JFT-Basic",
   // Nomor WhatsApp admin, format 62xxxxxxxxxx. Diisi lewat env saat deploy.
   whatsapp: process.env.NEXT_PUBLIC_WA_NUMBER ?? "",

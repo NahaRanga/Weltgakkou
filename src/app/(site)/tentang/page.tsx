@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { InfoPage, Section } from "@/components/info-page";
 
-export const metadata: Metadata = { title: "Tentang Weltgakkou", description: "Weltgakkou adalah kursus bahasa Jepang dan Jerman online untuk anak muda Indonesia." };
+export const metadata: Metadata = { title: "Tentang Weltgakko", description: "Weltgakko adalah kursus bahasa Jepang dan Jerman online untuk anak muda Indonesia." };
 
 const values = [
   { title: "Kelas kecil", body: "Maksimal 10 orang per kelas supaya semua dapat giliran bicara dan dikoreksi langsung." },
@@ -15,14 +15,14 @@ export default function AboutPage() {
     <InfoPage
       path="/tentang"
       kicker="世界学校"
-      title="Tentang Weltgakkou"
+      title="Tentang Weltgakko"
       intro={
         <>
-          Nama Weltgakkou gabungan dari <em>Welt</em> (dunia, bahasa Jerman) dan <span className="font-jp">学校</span> <em>gakkō</em> (sekolah, bahasa Jepang). Kami
+          Nama Weltgakko gabungan dari <em>Welt</em> (dunia, bahasa Jerman) dan <span className="font-jp">学校</span> <em>gakkō</em> (sekolah, bahasa Jepang). Kami
           ingin jadi sekolah bahasa online yang membuka jalan anak muda Indonesia ke dunia, mulai dari Jepang dan Jerman.
         </>
       }
-      image={{ src: "/images/tentang-kontak.jpg", alt: "Ilustrasi tim Weltgakkou melambaikan tangan" }}
+      image={{ src: "/images/tentang-kontak.jpg", alt: "Ilustrasi tim Weltgakko melambaikan tangan" }}
     >
       <Section title="Cara kami mengajar">
         <div className="grid gap-4 sm:grid-cols-2">

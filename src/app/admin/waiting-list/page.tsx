@@ -97,7 +97,7 @@ export default async function WaitingListPage({ searchParams }: { searchParams: 
                       <span className="font-medium text-stone-900">{l.full_name}</span>{" "}
                       <WaLink
                         number={l.whatsapp}
-                        text={`Halo ${l.full_name}, terima kasih sudah daftar waiting list ${programName.get(l.program_slug ?? "") ?? "kelas"} Weltgakkou.`}
+                        text={`Halo ${l.full_name}, terima kasih sudah daftar waiting list ${programName.get(l.program_slug ?? "") ?? "kelas"} Weltgakko.`}
                       />
                       <span className="block text-xs text-stone-500">
                         {l.email ?? ""}

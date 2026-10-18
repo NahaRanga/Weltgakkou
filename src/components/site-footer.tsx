@@ -10,7 +10,7 @@ export function SiteFooter() {
     <footer className="mt-16 border-t border-stone-200 bg-white">
       <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 text-sm text-stone-600 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <Image src={withBase("/logo-full.png")} alt="Weltgakkou Academie" width={120} height={106} className="h-auto w-28" />
+          <Image src={withBase("/logo-full.png")} alt="Weltgakko Academie" width={120} height={106} className="h-auto w-28" />
           <p className="mt-1">Kursus bahasa Jepang dan Jerman online untuk kerja, studi, dan JLPT.</p>
         </div>
         <div className="space-y-1">
@@ -27,7 +27,7 @@ export function SiteFooter() {
         <div className="space-y-1">
           <Link href="/tentang" className="block hover:text-stone-900">Tentang kami</Link>
           <Link href="/kontak" className="block hover:text-stone-900">Kontak</Link>
-          <a href={waLink("Halo Weltgakkou, saya mau tanya kelas.")} className="block hover:text-stone-900">
+          <a href={waLink("Halo Weltgakko, saya mau tanya kelas.")} className="block hover:text-stone-900">
             Tanya lewat WhatsApp
           </a>
           <SocialLinks className="pt-2" />

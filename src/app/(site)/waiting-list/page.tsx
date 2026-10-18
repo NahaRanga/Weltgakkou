@@ -6,7 +6,7 @@ import { programs } from "@/lib/programs";
 
 export const metadata: Metadata = {
   title: "Waiting list",
-  description: "Daftar waiting list kelas bahasa Jepang dan Jerman Weltgakkou.",
+  description: "Daftar waiting list kelas bahasa Jepang dan Jerman Weltgakko.",
 };
 
 export default function WaitingListPage() {

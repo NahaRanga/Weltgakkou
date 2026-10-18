@@ -5,7 +5,7 @@ import { withBase } from "@/lib/base-path";
 
 export const metadata: Metadata = {
   title: "Cara belajar",
-  description: "Alur belajar mingguan di Weltgakkou: kelas live lewat Zoom, tes kemampuan Jumat, rekaman, dan pilihan paket.",
+  description: "Alur belajar mingguan di Weltgakko: kelas live lewat Zoom, tes kemampuan Jumat, rekaman, dan pilihan paket.",
 };
 
 const week = [
@@ -30,7 +30,7 @@ export default function HowPage() {
     <InfoPage
       path="/cara-belajar"
       kicker="勉強の流れ"
-      title="Cara belajar di Weltgakkou"
+      title="Cara belajar di Weltgakko"
       intro="Semuanya online. Bisa sambil sekolah, kuliah, atau kerja, karena kelas yang terlewat bisa ditonton ulang."
       image={{ src: "/images/kelas-online.jpg", alt: "Ilustrasi kelas online lewat video call bersama sensei" }}
     >

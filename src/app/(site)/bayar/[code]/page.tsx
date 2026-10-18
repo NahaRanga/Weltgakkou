@@ -109,7 +109,7 @@ async function PayContent({ params }: { params: PageProps<"/bayar/[code]">["para
               <div className="rounded-xl border border-stone-200 bg-white p-5">
                 <p className="font-semibold text-stone-900">QRIS</p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qris} alt="Kode QRIS Weltgakkou" className="mx-auto mt-3 w-64" />
+                <img src={qris} alt="Kode QRIS Weltgakko" className="mx-auto mt-3 w-64" />
                 <p className="mt-2 text-center text-sm text-stone-600">Masukkan nominal persis seperti di atas.</p>
               </div>
             )}
@@ -121,7 +121,7 @@ async function PayContent({ params }: { params: PageProps<"/bayar/[code]">["para
         )}
 
         <a
-          href={waLink(`Halo Weltgakkou, saya mau tanya tagihan ${invoice.code}.`)}
+          href={waLink(`Halo Weltgakko, saya mau tanya tagihan ${invoice.code}.`)}
           className="block text-center text-sm text-stone-600 hover:text-stone-900"
         >
           Ada kendala? Hubungi admin lewat WhatsApp

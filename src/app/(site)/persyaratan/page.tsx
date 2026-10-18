@@ -49,7 +49,7 @@ export default function RequirementsPage() {
       </Section>
 
       <Note>
-        <p className="font-semibold">Untuk ikut kursus di Weltgakkou tidak ada seleksi.</p>
+        <p className="font-semibold">Untuk ikut kursus di Weltgakko tidak ada seleksi.</p>
         <p className="mt-1">Siapa pun boleh belajar, berapa pun usianya. Persyaratan di atas hanya gambaran umum untuk tahap setelah kursus, yaitu saat mendaftar kerja atau sekolah di Jepang.</p>
       </Note>
     </InfoPage>

@@ -73,8 +73,8 @@ export async function requestPasswordReset(_prev: AuthState, formData: FormData)
   if (link) {
     await sendEmail(
       email,
-      "Atur password akun Weltgakkou",
-      `Klik link berikut untuk mengatur password akun Weltgakkou kamu:\n\n${link}\n\nLink berlaku 1 jam. Abaikan email ini bila kamu tidak memintanya.`,
+      "Atur password akun Weltgakko",
+      `Klik link berikut untuk mengatur password akun Weltgakko kamu:\n\n${link}\n\nLink berlaku 1 jam. Abaikan email ini bila kamu tidak memintanya.`,
     );
   }
   return ok;

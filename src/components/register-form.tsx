@@ -4,7 +4,7 @@ import { startTransition, useActionState, useState } from "react";
 import { confirmEmailCode, register, requestEmailCode, type RegisterState } from "@/app/(site)/daftar/[batchId]/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 
-// Pilihan mengikuti Google Form pendaftaran Weltgakkou.
+// Pilihan mengikuti Google Form pendaftaran Weltgakko.
 const educationOptions = ["SMA/SMK", "D3", "S1"];
 const priorLevelOptions = ["Hiragana & Katakana", "N5", "N4", "N3"];
 const goalOptions = ["Kerja ke Jepang", "JLPT", "JFT", "Beasiswa", "Hobi"];

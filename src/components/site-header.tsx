@@ -29,7 +29,7 @@ export async function SiteHeader() {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-bold text-stone-900">
           <Image src={withBase("/logo-mark.png")} alt="" width={48} height={32} priority className="h-8 w-auto" />
-          <span className="text-xl">Weltgakkou</span>
+          <span className="text-xl">Weltgakko</span>
           <span className="font-jp hidden text-sm font-normal text-red-700 sm:inline">世界学校</span>
         </Link>
         <nav className="flex shrink-0 items-center gap-4 text-sm">

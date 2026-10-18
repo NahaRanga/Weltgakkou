@@ -19,7 +19,7 @@ export async function sendPasswordLink(profileId: string): Promise<FormState> {
   if (!data?.email) return { error: "Profil ini belum punya email." };
   const link = await createPasswordLink(data.email);
   if (!link) return { error: "Link tidak bisa dibuat." };
-  const text = `Halo ${data.full_name}, ini link untuk mengatur password akun Weltgakkou kamu (berlaku 1 jam):\n${link}\n\nSetelah itu masuk di ${siteUrl()}/masuk.`;
-  const emailed = await sendEmail(data.email, "Atur password akun Weltgakkou", text);
+  const text = `Halo ${data.full_name}, ini link untuk mengatur password akun Weltgakko kamu (berlaku 1 jam):\n${link}\n\nSetelah itu masuk di ${siteUrl()}/masuk.`;
+  const emailed = await sendEmail(data.email, "Atur password akun Weltgakko", text);
   return emailed ? { ok: `Link dikirim ke ${data.email}.` } : { ok: "Kirim lewat WhatsApp:", whatsappText: text, whatsapp: data.whatsapp ?? undefined };
 }

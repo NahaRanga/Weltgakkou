@@ -63,7 +63,7 @@ export function WaitingListForm({
         </select>
       </Field>
 
-      <Field label="Tahu Weltgakkou dari mana?">
+      <Field label="Tahu Weltgakko dari mana?">
         <select name="source" defaultValue={v.source ?? ""} className={inputClass}>
           <option value="">Pilih</option>
           <option value="tiktok">TikTok</option>

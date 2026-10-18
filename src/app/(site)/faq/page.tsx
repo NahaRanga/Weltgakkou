@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "FAQ", description: "Pertanyaan yang sering diajukan tentang kelas Weltgakkou." };
+export const metadata: Metadata = { title: "FAQ", description: "Pertanyaan yang sering diajukan tentang kelas Weltgakko." };
 
 const faqs = [
   {
@@ -36,8 +36,8 @@ const faqs = [
     a: "Magang adalah program pelatihan kerja lewat LPK pengirim, umumnya 3 tahun. Tokutei Ginou (SSW) adalah visa kerja berketerampilan dengan gaji setara pekerja Jepang, syaratnya JFT-Basic A2 atau JLPT N4 dan lulus ujian keterampilan bidang.",
   },
   {
-    q: "Apakah Weltgakkou menyalurkan kerja ke Jepang?",
-    a: "Tidak. Weltgakkou fokus di persiapan bahasa: JLPT, JFT-Basic, dan wawancara. Untuk penempatan kerja, pilih LPK atau agen yang punya izin resmi.",
+    q: "Apakah Weltgakko menyalurkan kerja ke Jepang?",
+    a: "Tidak. Weltgakko fokus di persiapan bahasa: JLPT, JFT-Basic, dan wawancara. Untuk penempatan kerja, pilih LPK atau agen yang punya izin resmi.",
   },
   {
     q: "Bisa ikut kursus sambil kerja atau kuliah?",

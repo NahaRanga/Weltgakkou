@@ -74,14 +74,14 @@ export async function acceptPayment(invoiceId: string): Promise<VerifyState> {
   // Siswa baru menerima link untuk membuat password; siswa lama cukup diberi tahu.
   const link = firstPayment ? await createPasswordLink(student.email) : null;
   const text = firstPayment && accessUntil
-    ? `Halo ${student.full_name}, pembayaran paket rekaman ${batch.programs.name} sudah kami terima. Selamat belajar di Weltgakkou!\n\nVideo bisa ditonton kapan saja sampai ${formatDate(accessUntil)}.\n\nBuat password untuk masuk ke area belajar (link berlaku 1 jam):\n${link}\n\nSetelah itu, masuk lewat ${siteUrl()}/masuk untuk membuka video dan materi.`
+    ? `Halo ${student.full_name}, pembayaran paket rekaman ${batch.programs.name} sudah kami terima. Selamat belajar di Weltgakko!\n\nVideo bisa ditonton kapan saja sampai ${formatDate(accessUntil)}.\n\nBuat password untuk masuk ke area belajar (link berlaku 1 jam):\n${link}\n\nSetelah itu, masuk lewat ${siteUrl()}/masuk untuk membuka video dan materi.`
     : firstPayment
-    ? `Halo ${student.full_name}, pembayaran ${batch.programs.name} (${batch.name}) sudah kami terima. Selamat bergabung di Weltgakkou!\n\nKelas mulai ${formatDate(batch.start_date)}, jadwal ${batch.schedule_label}.\n\nBuat password untuk masuk ke area belajar (link berlaku 1 jam):\n${link}\n\nSetelah itu, masuk lewat ${siteUrl()}/masuk untuk melihat jadwal, link kelas, dan materi.`
+    ? `Halo ${student.full_name}, pembayaran ${batch.programs.name} (${batch.name}) sudah kami terima. Selamat bergabung di Weltgakko!\n\nKelas mulai ${formatDate(batch.start_date)}, jadwal ${batch.schedule_label}.\n\nBuat password untuk masuk ke area belajar (link berlaku 1 jam):\n${link}\n\nSetelah itu, masuk lewat ${siteUrl()}/masuk untuk melihat jadwal, link kelas, dan materi.`
     : `Halo ${student.full_name}, pembayaran cicilan ke-${invoice.installment_no} ${batch.programs.name} sebesar ${formatRupiah(invoice.amount)} sudah kami terima. Terima kasih!`;
 
   const emailed = await sendEmail(
     student.email,
-    firstPayment ? "Selamat bergabung di Weltgakkou" : "Pembayaran Weltgakkou diterima",
+    firstPayment ? "Selamat bergabung di Weltgakko" : "Pembayaran Weltgakko diterima",
     text,
   );
 

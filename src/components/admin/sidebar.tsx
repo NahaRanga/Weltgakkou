@@ -69,7 +69,7 @@ export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullNa
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 lg:hidden">
         <Link href="/admin" className="flex items-center gap-2 font-bold text-stone-900">
           <Image src={withBase("/logo-mark.png")} alt="" width={36} height={24} className="h-6 w-auto" />
-          Weltgakkou
+          Weltgakko
         </Link>
         <button onClick={() => setOpen(true)} className="rounded-lg p-2 text-stone-700 hover:bg-stone-100" aria-label="Buka menu">
           <Icon name="menu" />
@@ -84,8 +84,8 @@ export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullNa
       >
         <div className={`flex items-center border-b border-stone-100 py-4 ${mini ? "justify-center px-2" : "justify-between px-4"}`}>
           <Link href="/admin" className="flex items-center gap-2 font-bold text-stone-900">
-            <Image src={withBase("/logo-mark.png")} alt="Weltgakkou" width={42} height={28} className="h-7 w-auto" />
-            {!mini && <span>Weltgakkou</span>}
+            <Image src={withBase("/logo-mark.png")} alt="Weltgakko" width={42} height={28} className="h-7 w-auto" />
+            {!mini && <span>Weltgakko</span>}
           </Link>
           {!mini && (
             <button onClick={toggle} className="hidden rounded-lg p-1.5 text-stone-500 hover:bg-stone-100 lg:block" aria-label="Ciutkan menu" title="Ciutkan menu">

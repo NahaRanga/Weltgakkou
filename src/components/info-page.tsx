@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { withBase } from "@/lib/base-path";
-import { infoPages } from "@/lib/info-pages";
+import { infoPages, trialHref } from "@/lib/info-pages";
 
 // Kerangka halaman info: judul, pengantar, isi, lalu tautan ke halaman info lain dan ajakan daftar.
 export function InfoPage({
@@ -30,7 +30,9 @@ export function InfoPage({
       className={`w-full rounded-3xl ${image.wide ? "mt-8" : ""}`}
     />
   );
-  const others = infoPages.filter((p) => p.href !== path);
+  const index = infoPages.findIndex((p) => p.href === path);
+  const next = index >= 0 && index < infoPages.length - 1 ? infoPages[index + 1] : null;
+  const others = infoPages.filter((p) => p.href !== path && p.href !== next?.href);
   return (
     <>
       <section className="bg-gradient-to-b from-red-50 via-white to-white">
@@ -51,12 +53,32 @@ export function InfoPage({
       <div className="mx-auto max-w-5xl space-y-12 px-4 py-8">{children}</div>
 
       <section className="mx-auto max-w-5xl px-4 py-12">
+        {next && (
+          <Link
+            href={next.href}
+            className="group mb-8 flex items-center gap-4 overflow-hidden rounded-2xl border-2 border-red-700 bg-white p-3 pr-5 transition hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
+          >
+            <Image src={withBase(next.image)} alt="" width={1200} height={896} className="h-20 w-28 shrink-0 rounded-xl object-cover sm:h-24 sm:w-36" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-red-700">
+                Selanjutnya · {index + 2} dari {infoPages.length}
+              </span>
+              <span className="block text-lg font-bold text-stone-900">{next.title}</span>
+              <span className="hidden text-sm text-stone-600 sm:block">{next.blurb}</span>
+            </span>
+            <span aria-hidden className="text-2xl text-red-700 transition group-hover:translate-x-1">→</span>
+          </Link>
+        )}
+
         <div className="rounded-3xl bg-stone-900 px-6 py-8 text-white sm:px-10">
           <h2 className="text-xl font-bold">Mulai dari bahasanya dulu</h2>
-          <p className="mt-2 max-w-xl text-stone-300">Apa pun jalurmu ke Jepang, bahasa adalah langkah pertama. Masuk waiting list untuk dikabari batch berikutnya.</p>
+          <p className="mt-2 max-w-xl text-stone-300">Apa pun jalurmu ke Jepang, bahasa adalah langkah pertama. Coba kelasnya dulu gratis, atau langsung daftar batch berikutnya.</p>
           <div className="mt-5 flex flex-wrap gap-3">
+            <Link href={trialHref} className="rounded-lg bg-red-600 px-5 py-2.5 font-semibold text-white hover:bg-red-500">
+              Coba kelas gratis
+            </Link>
             <Link href="/waiting-list" className="rounded-lg bg-white px-5 py-2.5 font-semibold text-stone-900 hover:bg-stone-100">
-              Masuk waiting list
+              Daftar
             </Link>
             <Link href="/#program" className="rounded-lg border border-stone-600 px-5 py-2.5 font-semibold text-white hover:border-stone-400">
               Lihat program
@@ -67,8 +89,8 @@ export function InfoPage({
         <h2 className="mt-12 text-lg font-semibold text-stone-900">Info lainnya</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {others.map((p) => (
-            <Link key={p.href} href={p.href} className="rounded-xl border border-stone-200 bg-white p-4 hover:border-red-700">
-              <p className="font-semibold text-stone-900">{p.title}</p>
+            <Link key={p.href} href={p.href} className="group rounded-xl border border-stone-200 bg-white p-4 transition hover:border-red-700 hover:shadow-md">
+              <p className="font-semibold text-stone-900 group-hover:text-red-700">{p.title} →</p>
               <p className="mt-1 text-sm text-stone-600">{p.blurb}</p>
             </Link>
           ))}

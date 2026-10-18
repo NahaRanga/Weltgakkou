@@ -10,6 +10,7 @@ const main = [
   { href: "/", label: "Beranda" },
   { href: "/#program", label: "Program" },
   ...infoPages.slice(0, 3).map((p) => ({ href: p.href, label: p.menu })),
+  { href: "/latihan", label: "Latihan" },
 ];
 
 // Isi dropdown "Info": sisa halaman info + FAQ, ditutup dengan link ke halaman ringkasan /info.
@@ -57,7 +58,7 @@ export function SiteNav({ account }: { account: Account }) {
   const isActive = (href: string) => (href === "/" ? pathname === "/" : !href.includes("#") && pathname.startsWith(href));
   const infoActive = pathname === "/info" || more.some((m) => isActive(m.href));
   const linkClass = (active: boolean) =>
-    `rounded-lg px-2.5 py-2 font-medium transition hover:bg-red-50 hover:text-red-700 ${
+    `whitespace-nowrap rounded-lg px-2.5 py-2 font-medium transition hover:bg-red-50 hover:text-red-700 ${
       active ? "text-red-700 underline decoration-2 underline-offset-8" : "text-stone-700"
     }`;
 

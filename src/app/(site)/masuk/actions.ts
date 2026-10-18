@@ -13,7 +13,8 @@ export type AuthState = { error?: string; ok?: string; redirectTo?: string };
 
 function safeNext(raw: FormDataEntryValue | null) {
   const next = String(raw ?? "");
-  return next.startsWith("/") && !next.startsWith("//") ? next : "/belajar";
+  // Hanya path di situs ini. "//x" dan "/\\x" dibaca browser sebagai domain lain.
+  return /^\/(?![/\\])/.test(next) ? next : "/belajar";
 }
 
 export async function signIn(_prev: AuthState, formData: FormData): Promise<AuthState> {

@@ -30,6 +30,12 @@ export function UploadProofForm({ code }: { code: string }) {
         name="proof"
         accept="image/jpeg,image/png,image/webp,application/pdf"
         required
+        onChange={(e) => {
+          // Cek ukuran di browser dulu; file di atas batas body Server Action gagal tanpa pesan jelas.
+          const f = e.currentTarget.files?.[0];
+          e.currentTarget.setCustomValidity(f && f.size > 5 * 1024 * 1024 ? "Ukuran file maksimal 5 MB." : "");
+          e.currentTarget.reportValidity();
+        }}
         className="block w-full text-sm text-stone-700 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-200 file:px-3 file:py-2 file:font-medium"
       />
       <button className={`${buttonClass} w-full`} disabled={pending}>

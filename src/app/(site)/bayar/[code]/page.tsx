@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { JourneySteps, VERIFY_PROMISE } from "@/components/belajar";
 import { UploadProofForm } from "@/components/upload-proof-form";
 import { Notice } from "@/components/ui/form";
 import { expireOverdueInvoices } from "@/lib/billing";
@@ -52,6 +53,15 @@ async function PayContent({ params }: { params: PageProps<"/bayar/[code]">["para
       </h1>
       {invoice.installment_no > 1 && <p className="text-stone-600">Cicilan bulan ke-{invoice.installment_no}</p>}
 
+      {invoice.installment_no === 1 && (
+        <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+          <JourneySteps
+            current={invoice.status === "lunas" ? 4 : invoice.status === "menunggu_verifikasi" ? 2 : 1}
+            problem={invoice.status === "ditolak" || invoice.status === "kedaluwarsa"}
+          />
+        </div>
+      )}
+
       <div className="mt-6 rounded-xl border border-stone-200 bg-white p-6">
         <p className="text-sm text-stone-600">Transfer tepat sebesar</p>
         <p className="mt-1 text-3xl font-bold tracking-tight text-stone-900">
@@ -76,7 +86,14 @@ async function PayContent({ params }: { params: PageProps<"/bayar/[code]">["para
           </Notice>
         )}
         {invoice.status === "menunggu_verifikasi" && (
-          <Notice tone="info">Bukti pembayaran sudah diterima dan sedang dicek admin.</Notice>
+          <Notice tone="info">
+            Bukti pembayaran sudah diterima dan sedang dicek admin ({VERIFY_PROMISE}). Setelah dikonfirmasi, kamu dapat email untuk atur
+            password dan kelas muncul di{" "}
+            <Link href="/belajar" className="font-semibold underline">
+              area belajar
+            </Link>
+            .
+          </Notice>
         )}
         {invoice.status === "kedaluwarsa" && (
           <Notice tone="error">
@@ -103,6 +120,10 @@ async function PayContent({ params }: { params: PageProps<"/bayar/[code]">["para
                   {bank.name} <span className="font-mono font-semibold">{bank.number}</span>
                 </p>
                 <p className="text-stone-700">a.n. {bank.holder}</p>
+                <p className="mt-2 text-xs text-stone-500">
+                  Weltgakko saat ini berjalan sebagai usaha perorangan, jadi rekening masih atas nama pemilik usaha. Pastikan nama penerima
+                  sama seperti di atas.
+                </p>
               </div>
             )}
             {qris && (
@@ -116,6 +137,11 @@ async function PayContent({ params }: { params: PageProps<"/bayar/[code]">["para
             <div className="rounded-xl border border-stone-200 bg-white p-5">
               <p className="mb-3 font-semibold text-stone-900">Sudah bayar? Unggah buktinya</p>
               <UploadProofForm code={invoice.code} />
+              <ol className="mt-4 space-y-1 border-t border-stone-100 pt-3 text-xs text-stone-600">
+                <li>1. Admin mengecek bukti transfer {VERIFY_PROMISE}.</li>
+                <li>2. Setelah dikonfirmasi, kamu dapat email untuk atur password.</li>
+                <li>3. Masuk ke area belajar: jadwal, link Zoom, dan materi ada di sana.</li>
+              </ol>
             </div>
           </>
         )}

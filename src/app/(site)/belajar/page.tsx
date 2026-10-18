@@ -3,10 +3,21 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { SignOutButton } from "@/components/auth-forms";
 import { Notice } from "@/components/ui/form";
+import {
+  EmptyLearnState,
+  FirstClassGuide,
+  HelpButton,
+  InvoiceHistory,
+  PendingEnrollment,
+  TrustPoints,
+  teacherLabel,
+  type StudentInvoice,
+} from "@/components/belajar";
 import { requireDb, requireUser, type CurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 import { withBase } from "@/lib/base-path";
+import { waLink } from "@/lib/site";
 import { groupByChapter, RECORDING_COUNTS_AS_PRESENT, type Recording } from "@/lib/recordings";
 import { MonthCalendar, MonthNav, monthTitle, resolveMonth, timeLabel, type CalendarMonth } from "@/components/month-calendar";
 
@@ -26,7 +37,7 @@ export default async function LearnPage({ searchParams }: { searchParams: Promis
   const user = await requireUser("/belajar");
   const sp = await searchParams;
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-4xl px-4 pb-24 pt-10">
       <Suspense fallback={<p className="text-stone-500">Memuat kelas kamu...</p>}>
         <LearnContent user={user} cal={resolveMonth(sp.bulan, requestTime())} meetMissing={sp.meet === "belum"} videoExpired={sp.video === "habis"} />
       </Suspense>
@@ -57,10 +68,11 @@ type Enrollment = {
     start_date: string;
     schedule_label: string;
     meeting_url: string | null;
-    programs: { id: string; name: string };
+    programs: { id: string; name: string; slug: string };
+    teacher: { full_name: string } | null;
     sessions: Session[];
   };
-  invoices: { code: string; status: string; amount: number; installment_no: number; due_at: string }[];
+  invoices: StudentInvoice[];
 };
 
 async function LearnContent({
@@ -79,19 +91,29 @@ async function LearnContent({
   const { data, error } = await db
     .from("enrollments")
     .select(
-      "id, status, plan, batch_id, access_until, batches(id, name, mode, start_date, schedule_label, meeting_url, programs(id, name), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url)), invoices(code, status, amount, installment_no, due_at)",
+      "id, status, plan, batch_id, access_until, batches(id, name, mode, start_date, schedule_label, meeting_url, programs(id, name, slug), teacher:profiles!batches_teacher_id_fkey(full_name), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url)), invoices(code, status, amount, installment_no, due_at, reject_reason, paid_at, payment_proofs(uploaded_at))",
     )
     .eq("profile_id", user.id)
     .neq("status", "keluar")
     .order("created_at", { ascending: false });
   if (error) console.error("Gagal memuat kelas", error.code, error.message);
   const enrollments = (data ?? []) as unknown as Enrollment[];
+  const firstName = user.fullName.split(" ")[0];
+  const helpHref = waLink(
+    `Halo admin Weltgakko, saya ${user.fullName}${
+      enrollments.length ? ` (${enrollments.map((e) => `${e.batches.programs.name} ${e.batches.name}`).join(", ")})` : ""
+    }. Saya mau tanya: `,
+  );
+  const invoiceRows = enrollments
+    .flatMap((e) => (e.invoices ?? []).map((i) => ({ ...i, label: `${e.batches.programs.name} · ${e.batches.name}` })))
+    .sort((a, b) => b.due_at.localeCompare(a.due_at));
+  const hasPending = enrollments.some((e) => e.status === "menunggu_bayar");
 
   return (
     <>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-stone-900">Halo, {user.fullName.split(" ")[0]}</h1>
+          <h1 className="text-3xl font-bold text-stone-900">Halo, {firstName}</h1>
           <p className="text-stone-600">Area belajar Weltgakko</p>
         </div>
         <div className="flex items-center gap-3 text-sm">
@@ -110,16 +132,9 @@ async function LearnContent({
         </div>
       )}
 
-      {!error && enrollments.length === 0 && (
-        <div className="mt-8">
-          <Notice tone="info">
-            Kamu belum terdaftar di kelas mana pun.{" "}
-            <Link href="/#program" className="font-semibold underline">
-              Lihat program
-            </Link>
-          </Notice>
-        </div>
-      )}
+      {/* Slot banner "Batch dibuka" (P12) dan kartu kelas trial (P7) untuk akun tanpa kelas berbayar. */}
+
+      {!error && enrollments.length === 0 && <EmptyLearnState waHref={helpHref} />}
 
       {meetMissing && (
         <div className="mt-8">
@@ -141,6 +156,12 @@ async function LearnContent({
       {enrollments.map((e) => (
         <EnrollmentCard key={e.id} enrollment={e} userId={user.id} />
       ))}
+
+      {!error && (enrollments.length === 0 || hasPending) && <TrustPoints />}
+
+      <InvoiceHistory rows={invoiceRows} />
+
+      <HelpButton href={helpHref} />
     </>
   );
 }
@@ -152,18 +173,19 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
   const openInvoice = (e.invoices ?? []).find((i) => i.status === "belum" || i.status === "ditolak");
 
   if (e.status === "menunggu_bayar") {
+    // Tagihan pertama yang masih relevan: yang sedang berjalan dulu, baru yang kedaluwarsa.
+    const first = [...(e.invoices ?? [])]
+      .filter((i) => i.installment_no === 1)
+      .sort((a, b) => Number(a.status === "kedaluwarsa") - Number(b.status === "kedaluwarsa") || b.due_at.localeCompare(a.due_at))[0];
     return (
-      <section className="mt-8 rounded-xl border border-stone-200 bg-white p-6">
-        <h2 className="text-xl font-semibold text-stone-900">
-          {batch.programs.name} · {batch.name}
-        </h2>
-        <p className="mt-2 text-stone-700">Kelas aktif setelah pembayaran pertama dikonfirmasi.</p>
-        {openInvoice && (
-          <Link href={`/bayar/${openInvoice.code}`} className="mt-3 inline-block font-semibold text-red-700 underline">
-            Lihat tagihan {formatRupiah(openInvoice.amount)}
-          </Link>
-        )}
-      </section>
+      <PendingEnrollment
+        programName={batch.programs.name}
+        batchName={batch.name}
+        startDate={batch.start_date}
+        scheduleLabel={batch.schedule_label}
+        invoice={first ?? null}
+        programSlug={batch.programs.slug}
+      />
     );
   }
 
@@ -193,6 +215,11 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
   // Sesi kelas yang sudah lewat, siswa absen, dan rekamannya sudah ada.
   const missedWithRecording = past.filter((s) => s.recording_url && !attendance.has(s.id));
   const attendedPast = past.filter((s) => attended.has(s.id)).length;
+  const viaRecording = past.filter((s) => attendance.get(s.id) === "rekaman").length;
+  const classes = sessions.filter((s) => s.kind === "kelas");
+  const teacher = teacherLabel(batch.teacher?.full_name);
+  // Panduan dibuka otomatis sampai kelas pertama lewat.
+  const beforeFirstClass = past.length === 0;
 
   const results = ((resultsRes.data ?? []) as unknown as { score: number; exams: { title: string; max_score: number; session_id: string } }[]).filter(
     (r) => sessionIds.includes(r.exams.session_id),
@@ -210,6 +237,11 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
         <h2 className="text-xl font-semibold text-stone-900">
           {batch.programs.name} · {batch.name}
         </h2>
+        <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-stone-600">
+          <span>Mulai {formatDate(batch.start_date)}</span>
+          {teacher && <span>· Pengajar: {teacher}</span>}
+          <span>· Kelas live lewat Zoom</span>
+        </p>
 
         {next ? (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-lg bg-stone-50 p-4">
@@ -231,22 +263,25 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
           <p className="mt-4 text-stone-600">Semua sesi batch ini sudah selesai.</p>
         )}
 
-        <dl className="mt-4 grid grid-cols-3 gap-4 text-center">
-          <div>
+        <dl className="mt-4 grid grid-cols-3 gap-2 text-center sm:gap-4">
+          <div className="rounded-lg bg-stone-50 px-2 py-3">
+            <dt className="text-xs text-stone-500">Pertemuan</dt>
+            <dd className="text-lg font-semibold text-stone-900">
+              {past.length}
+              <span className="text-sm font-normal text-stone-500"> dari {classes.length}</span>
+            </dd>
+          </div>
+          <div className="rounded-lg bg-stone-50 px-2 py-3">
             <dt className="text-xs text-stone-500">Kehadiran</dt>
             <dd className="text-lg font-semibold text-stone-900">
               {past.length ? `${Math.round((attendedPast / past.length) * 100)}%` : "-"}
             </dd>
+            {viaRecording > 0 && <dd className="text-xs text-stone-500">{viaRecording} via rekaman</dd>}
           </div>
-          <div>
+          <div className="rounded-lg bg-stone-50 px-2 py-3">
             <dt className="text-xs text-stone-500">Rata-rata tes</dt>
             <dd className="text-lg font-semibold text-stone-900">{avg === null ? "-" : Math.round(avg)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-stone-500">Sesi</dt>
-            <dd className="text-lg font-semibold text-stone-900">
-              {sessions.filter((s) => new Date(s.starts_at).getTime() < now).length}/{sessions.length}
-            </dd>
+            {results.length > 0 && <dd className="text-xs text-stone-500">{results.length} tes Jumat</dd>}
           </div>
         </dl>
         {recentAvg !== null && <Readiness avg={recentAvg} level={batch.programs.name} />}
@@ -285,6 +320,8 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
           </div>
         )}
       </div>
+
+      <FirstClassGuide open={beforeFirstClass} />
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-xl border border-stone-200 bg-white p-6">

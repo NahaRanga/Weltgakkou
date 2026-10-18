@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "FAQ", description: "Pertanyaan yang sering diajukan tentang kelas Weltgakko." };
+export const metadata: Metadata = pageMetadata({
+  title: "FAQ",
+  description: "Pertanyaan yang sering diajukan tentang kelas Weltgakko.",
+  path: "/faq",
+});
 
 const faqs = [
   {

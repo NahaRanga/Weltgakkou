@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { InfoPage, Note, Section } from "@/components/info-page";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Jalur ke Jepang",
   description: "Perbedaan magang, Tokutei Ginou (SSW), dan studi di Jepang, plus timeline dari belajar bahasa sampai berangkat.",
-};
+  path: "/jalur-ke-jepang",
+  image: { src: "/images/jalur-ke-jepang.jpg", alt: "Ilustrasi perjalanan dari belajar bahasa sampai terbang ke Jepang", height: 670 },
+});
 
 const paths = [
   {

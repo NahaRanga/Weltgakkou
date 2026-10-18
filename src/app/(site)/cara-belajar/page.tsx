@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { InfoPage, Section } from "@/components/info-page";
 import { withBase } from "@/lib/base-path";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Cara belajar",
   description: "Alur belajar mingguan di Weltgakko: kelas live lewat Zoom, tes kemampuan Jumat, rekaman, dan pilihan paket.",
-};
+  path: "/cara-belajar",
+  image: { src: "/images/kelas-online.jpg", alt: "Ilustrasi kelas online lewat video call bersama sensei" },
+});
 
 const week = [
   { day: "Senin sampai Kamis", title: "Kelas live lewat Zoom", body: "Belajar bareng sensei dalam kelas kecil, maksimal 10 orang, jadi semua sempat latihan bicara." },

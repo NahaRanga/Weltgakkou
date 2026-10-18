@@ -3,11 +3,14 @@ import Image from "next/image";
 import { withBase } from "@/lib/base-path";
 import { WaitingListForm } from "@/components/waiting-list-form";
 import { programs } from "@/lib/programs";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Waiting list",
   description: "Daftar waiting list kelas bahasa Jepang dan Jerman Weltgakko.",
-};
+  path: "/waiting-list",
+  image: { src: "/images/waiting-list.jpg", alt: "Ilustrasi daftar waiting list kelas Weltgakko" },
+});
 
 export default function WaitingListPage() {
   const formPrograms = programs.map(({ slug, name, open }) => ({ slug, name, open }));

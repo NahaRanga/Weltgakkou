@@ -3,6 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseEnv } from "@/lib/supabase-env";
 
 // Memperbarui token sesi Supabase sebelum halaman yang butuh login dirender.
+// Pengunjung tanpa sesi di /admin dan /belajar langsung dialihkan ke /masuk.
+// Cek role (admin/pengajar/siswa) tetap di layout dan route handler masing-masing.
+const PROTECTED = /^\/(admin|belajar)(\/|$)/;
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const env = supabaseEnv("SUPABASE_ANON_KEY");
@@ -18,11 +22,24 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
+  let signedIn = true;
   try {
-    await supabase.auth.getUser();
+    const { data } = await supabase.auth.getUser();
+    signedIn = Boolean(data.user);
   } catch (error) {
-    // Supabase tidak terjangkau atau kunci salah: tetap tampilkan halaman tanpa sesi.
+    // Supabase tidak terjangkau atau kunci salah: biarkan halaman yang menangani.
     console.error("Gagal memperbarui sesi Supabase", error);
+  }
+
+  const { pathname, search } = request.nextUrl;
+  if (!signedIn && PROTECTED.test(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/masuk";
+    url.search = `?next=${encodeURIComponent(pathname + search)}`;
+    const redirect = NextResponse.redirect(url);
+    // Bawa cookie sesi yang dihapus/diperbarui Supabase.
+    for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+    return redirect;
   }
   return response;
 }

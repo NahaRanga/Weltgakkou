@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { InfoPage, Note, Section } from "@/components/info-page";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Persyaratan umum",
   description: "Syarat dan dokumen yang biasanya diminta perusahaan, LPK, atau sekolah untuk kerja dan studi di Jepang.",
-};
+  path: "/persyaratan",
+  image: { src: "/images/persyaratan.jpg", alt: "Ilustrasi menyiapkan paspor, ijazah, dan dokumen" },
+});
 
 const common = [
   { title: "Usia", body: "Umumnya 18 sampai sekitar 30 tahun untuk kerja. Ada perusahaan yang menerima sampai usia lebih tinggi." },

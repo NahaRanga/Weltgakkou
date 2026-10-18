@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { InfoPage, Note, Section } from "@/components/info-page";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Bidang kerja Tokutei Ginou",
   description: "Daftar sektor kerja Tokutei Ginou (SSW) di Jepang beserta istilah Jepang dan contoh kosakata yang perlu disiapkan.",
-};
+  path: "/bidang-kerja",
+  image: { src: "/images/bidang-kerja.jpg", alt: "Ilustrasi pekerja muda Indonesia di berbagai bidang kerja Tokutei Ginou" },
+});
 
 const sectors = [
   { id: "Perawat lansia", jp: "介護", romaji: "kaigo", words: ["食事 shokuji: makan", "入浴 nyūyoku: mandi", "車いす kurumaisu: kursi roda"], note: "Perlu juga tes bahasa Jepang khusus kaigo." },

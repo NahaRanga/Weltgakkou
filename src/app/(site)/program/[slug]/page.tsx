@@ -9,6 +9,7 @@ import { getOpenBatches, getRecordingPackage } from "@/lib/batches";
 import { formatDate } from "@/lib/format";
 import { WaitingListForm } from "@/components/waiting-list-form";
 import { formatRupiah, getProgram, programImage, programs } from "@/lib/programs";
+import { pageMetadata } from "@/lib/seo";
 
 export function generateStaticParams() {
   return programs.map((p) => ({ slug: p.slug }));
@@ -16,7 +17,13 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/program/[slug]">): Promise<Metadata> {
   const program = getProgram((await params).slug);
-  return program ? { title: program.name, description: program.summary } : {};
+  if (!program) return {};
+  return pageMetadata({
+    title: program.name,
+    description: program.summary,
+    path: `/program/${program.slug}`,
+    image: programImage(program) ?? undefined,
+  });
 }
 
 export default async function ProgramPage({ params }: PageProps<"/program/[slug]">) {

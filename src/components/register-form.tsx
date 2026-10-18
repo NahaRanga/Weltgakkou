@@ -1,7 +1,8 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useRef, useState } from "react";
 import Link from "next/link";
+import { trackEvent } from "@/components/analytics";
 import { confirmEmailCode, register, requestEmailCode, type RegisterState } from "@/app/(site)/daftar/[batchId]/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 
@@ -28,6 +29,7 @@ export function RegisterForm({
   const [studied, setStudied] = useState(v.studied_before ?? "");
   const [education, setEducation] = useState(v.education ?? "");
   const [goal, setGoal] = useState(v.learning_goal ?? "");
+  const checkoutTracked = useRef(false);
 
   return (
     // Dikirim lewat onSubmit, bukan action=, supaya isian (pilihan, centang, email terverifikasi)
@@ -36,6 +38,10 @@ export function RegisterForm({
       onSubmit={(e) => {
         e.preventDefault();
         const data = new FormData(e.currentTarget);
+        // Konversi iklan: mulai checkout, sekali per form walau dikirim ulang setelah error.
+        // Tagihan dibuat di server lalu dialihkan ke /bayar, yang tidak memuat pixel.
+        if (!checkoutTracked.current) trackEvent("InitiateCheckout");
+        checkoutTracked.current = true;
         startTransition(() => action(data));
       }}
       className="space-y-4"

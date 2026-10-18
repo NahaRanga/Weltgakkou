@@ -2,8 +2,14 @@ import type { Metadata } from "next";
 import { InfoPage, Section } from "@/components/info-page";
 import { SocialIcon, SocialLinks } from "@/components/social-links";
 import { activeSocial, site, waLink } from "@/lib/site";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Kontak", description: "Hubungi Weltgakko lewat WhatsApp atau sosial media." };
+export const metadata: Metadata = pageMetadata({
+  title: "Kontak",
+  description: "Hubungi Weltgakko lewat WhatsApp atau sosial media.",
+  path: "/kontak",
+  image: { src: "/images/tentang-kontak.jpg", alt: "Ilustrasi tim Weltgakko siap membantu lewat chat" },
+});
 
 export default function ContactPage() {
   return (

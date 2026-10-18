@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { InfoPage, Section } from "@/components/info-page";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Tentang Weltgakko", description: "Weltgakko adalah kursus bahasa Jepang dan Jerman online untuk anak muda Indonesia." };
+export const metadata: Metadata = pageMetadata({
+  title: "Tentang Weltgakko",
+  description: "Weltgakko adalah kursus bahasa Jepang dan Jerman online untuk anak muda Indonesia.",
+  path: "/tentang",
+  image: { src: "/images/tentang-kontak.jpg", alt: "Ilustrasi tim Weltgakko melambaikan tangan" },
+});
 
 const values = [
   { title: "Kelas kecil", body: "Maksimal 10 orang per kelas supaya semua dapat giliran bicara dan dikoreksi langsung." },

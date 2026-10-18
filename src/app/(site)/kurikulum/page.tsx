@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { InfoPage, Note, Section } from "@/components/info-page";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Kurikulum dan lama kursus",
   description: "Materi per bulan di setiap program bahasa Jepang Weltgakko dan berapa lama sampai N5, N4, N3, atau JFT-Basic.",
-};
+  path: "/kurikulum",
+  image: { src: "/images/kurikulum.jpg", alt: "Ilustrasi anak muda menaiki tangga level bahasa Jepang" },
+});
 
 const ladder = [
   { level: "Kiso", months: 1, total: 1, slug: "kiso" },

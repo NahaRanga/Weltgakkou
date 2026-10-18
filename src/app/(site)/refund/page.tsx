@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { InfoPage, Note, Section } from "@/components/info-page";
+import { pageMetadata } from "@/lib/seo";
 import { waLink } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Kebijakan refund",
   description: "Aturan pengembalian uang dan pindah batch di Weltgakko: kapan uang kembali, berapa persen, dan cara memintanya.",
-};
+  path: "/refund",
+});
 
 // Aturan disepakati winata 2026-10-18 (rencana-ui-trust.md, P6). Ubah di sini bila kebijakan berubah.
 const rules = [

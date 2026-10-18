@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { trackEvent } from "@/components/analytics";
 import { joinWaitingList, type WaitingListState } from "@/app/(site)/waiting-list/actions";
 import type { Program } from "@/lib/programs";
 
@@ -17,6 +18,11 @@ export function WaitingListForm({
   defaultProgram?: string;
 }) {
   const [state, action, pending] = useActionState(joinWaitingList, initial);
+
+  // Konversi iklan: calon siswa berhasil masuk waiting list.
+  useEffect(() => {
+    if (state.status === "ok") trackEvent("Lead");
+  }, [state.status]);
 
   if (state.status === "ok") {
     return (

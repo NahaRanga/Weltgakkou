@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans, Noto_Sans_JP } from "next/font/google";
+import { Analytics } from "@/components/analytics";
+import { defaultDescription, defaultTitle, openGraphFor, SITE_BASE } from "@/lib/seo";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -11,15 +13,20 @@ const notoJp = Noto_Sans_JP({ variable: "--font-noto-jp", subsets: ["latin"], we
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { default: `${site.name}: ${site.tagline}`, template: `%s | ${site.name}` },
-  description:
-    "Kelas live bahasa Jepang online bersama pengajar berpengalaman LPK. Kiso, JLPT N5, N4, N3, dan JFT-Basic dengan tes kemampuan setiap Jumat.",
+  // Dasar URL absolut untuk gambar preview link (og:image wajib absolut).
+  metadataBase: new URL(SITE_BASE),
+  title: { default: defaultTitle, template: `%s | ${site.name}` },
+  description: defaultDescription,
+  ...openGraphFor({ title: defaultTitle, description: defaultDescription, path: "/" }),
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="id" className={`${notoSans.variable} ${notoJp.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

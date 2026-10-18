@@ -114,8 +114,8 @@ export function PendingEnrollment({
           <>
             <p className="font-semibold text-stone-900">Bukti transfer sudah kami terima</p>
             <p className="mt-1">
-              {uploaded ? `Diunggah ${formatDateTime(uploaded)} WIB. ` : ""}Admin mengecek {VERIFY_PROMISE}. Setelah dikonfirmasi, kamu dapat
-              email untuk atur password dan kelas muncul di halaman ini.
+              {uploaded ? `Diunggah ${formatDateTime(uploaded)} WIB. ` : ""}Admin mengecek {VERIFY_PROMISE}. Setelah dikonfirmasi, admin
+              mengabari lewat WhatsApp dan kelas muncul di halaman ini.
             </p>
           </>
         ) : status === "ditolak" ? (

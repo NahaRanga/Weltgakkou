@@ -31,13 +31,44 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
     console.error("Login gagal", error.status, error.code, error.message);
     return { error: `Login sedang gangguan (${error.code ?? error.status ?? "tidak diketahui"}). Hubungi admin.` };
   }
-  const next = safeNext(formData.get("next"));
-  // Admin dan pengajar yang login tanpa tujuan khusus langsung dibawa ke dashboard.
-  if (next === "/belajar" && data.user) {
-    const { data: profile } = (await getSupabaseAdmin()?.from("profiles").select("role").eq("id", data.user.id).maybeSingle()) ?? { data: null };
-    if (profile?.role === "admin" || profile?.role === "pengajar") return { redirectTo: "/admin" };
+  return { redirectTo: await destination(formData.get("next"), data.user.id) };
+}
+
+// Masuk tanpa password: kode 6 digit dikirim ke email akun yang sudah ada. Dipakai siswa
+// yang baru daftar (password baru dibuat setelah lunas) atau link atur password-nya kedaluwarsa.
+export type CodeState = AuthState & { step?: "code"; email?: string };
+
+export async function signInWithCode(_prev: CodeState, formData: FormData): Promise<CodeState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Email tidak valid." };
+  const auth = await getSupabaseAuth();
+  if (!auth) return { error: "Login belum aktif. Hubungi admin." };
+  const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+
+  if (!code) {
+    // Hanya akun yang sudah terdaftar; email lain tidak dibuatkan akun lewat halaman ini.
+    const { error } = await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    if (error?.status === 429) return { step: "code", email, error: "Kode baru saja dikirim. Tunggu sebentar sebelum minta kode lagi." };
+    if (error && error.code !== "otp_disabled" && error.code !== "user_not_found") {
+      console.error("Gagal kirim kode login", error.status, error.code, error.message);
+      return { error: `Kode gagal dikirim (${error.code ?? error.status ?? "tidak diketahui"}). Hubungi admin.` };
+    }
+    // Email yang belum terdaftar tetap dibawa ke langkah kode supaya daftar akun tidak bisa ditebak.
+    return { step: "code", email };
   }
-  return { redirectTo: next };
+
+  if (code.length !== 6) return { step: "code", email, error: "Kode terdiri dari 6 angka." };
+  const { data, error } = await auth.auth.verifyOtp({ email, token: code, type: "email" });
+  if (error || !data.user) return { step: "code", email, error: "Kode salah atau sudah kedaluwarsa. Minta kode baru bila perlu." };
+  return { redirectTo: await destination(formData.get("next"), data.user.id) };
+}
+
+// Admin dan pengajar yang login tanpa tujuan khusus langsung dibawa ke dashboard.
+async function destination(rawNext: FormDataEntryValue | null, userId: string) {
+  const next = safeNext(rawNext);
+  if (next !== "/belajar") return next;
+  const { data: profile } = (await getSupabaseAdmin()?.from("profiles").select("role").eq("id", userId).maybeSingle()) ?? { data: null };
+  return profile?.role === "admin" || profile?.role === "pengajar" ? "/admin" : next;
 }
 
 export async function signOut() {

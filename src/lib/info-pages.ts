@@ -10,5 +10,5 @@ export const infoPages = [
   { href: "/kontak", title: "Kontak", menu: "Kontak", image: "/images/tentang-kontak.jpg", blurb: "WhatsApp dan sosial media Weltgakko." },
 ] as const;
 
-// Link "Coba kelas gratis". Sementara ke waiting list sampai halaman /trial (P7) ada.
-export const trialHref = "/waiting-list";
+// Link "Coba kelas gratis": halaman pendaftaran kelas trial gratis.
+export const trialHref = "/trial";

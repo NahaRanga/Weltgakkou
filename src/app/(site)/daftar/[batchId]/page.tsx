@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { RegisterForm } from "@/components/register-form";
 import { verificationEnabled } from "@/lib/email-verification";
 import { seatsTaken } from "@/lib/billing";
-import { formatDate } from "@/lib/format";
+import { registrationDeadline } from "@/lib/batches";
+import { formatDate, formatDay, formatTime, requestTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -28,10 +29,11 @@ async function RegisterContent({ params }: { params: PageProps<"/daftar/[batchId
 
   const { data: batch } = await db
     .from("batches")
-    .select("id, name, status, quota, mode, start_date, schedule_label, programs(slug, name, monthly_price, upfront_price, months, recording_price, recording_months)")
+    .select("*, programs(slug, name, monthly_price, upfront_price, months, recording_price, recording_months)")
     .eq("id", batchId)
     .maybeSingle();
   if (!batch) notFound();
+  if (batch.is_trial) redirect("/trial");
   const program = batch.programs as unknown as {
     slug: string;
     name: string;
@@ -44,7 +46,10 @@ async function RegisterContent({ params }: { params: PageProps<"/daftar/[batchId
   const isRecording = batch.mode === "rekaman";
 
   const full = !isRecording && (await seatsTaken(db, batch.id)) >= batch.quota;
-  const closed = batch.status !== "buka" || full;
+  // Tenggat pendaftaran (default H-1 23.59 WIB): lewat itu form ditutup tanpa admin ubah status.
+  const deadline = isRecording ? null : registrationDeadline(batch);
+  const pastDeadline = deadline !== null && deadline.getTime() < requestTime();
+  const closed = batch.status !== "buka" || full || pastDeadline;
 
   return (
     <>
@@ -59,11 +64,16 @@ async function RegisterContent({ params }: { params: PageProps<"/daftar/[batchId
           ? `Video materi per bab, ditonton kapan saja selama ${program.recording_months} bulan sejak pembayaran diterima.`
           : `${batch.name} · mulai ${formatDate(batch.start_date)} · ${batch.schedule_label}`}
       </p>
+      {deadline && !closed && (
+        <p className="mt-2 text-sm font-semibold text-red-700">
+          Pendaftaran ditutup {formatDay(deadline.toISOString())}, {formatTime(deadline.toISOString())} WIB
+        </p>
+      )}
 
       <div className="mt-8">
         {closed ? (
           <p className="rounded-lg bg-stone-100 p-4 text-stone-800">
-            {full ? "Kuota batch ini sudah penuh." : "Pendaftaran batch ini sudah ditutup."}{" "}
+            {full ? "Kuota batch ini sudah penuh." : pastDeadline ? "Yah, pendaftaran batch ini sudah ditutup." : "Pendaftaran batch ini sudah ditutup."}{" "}
             <Link href="/waiting-list" className="font-semibold underline">
               Masuk waiting list
             </Link>{" "}

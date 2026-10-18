@@ -166,6 +166,16 @@ export function BatchForm({ programs }: { programs: { id: string; name: string; 
       <Field label="Link kelas Zoom/Meet (bisa diisi nanti, juga oleh sensei)">
         <input name="meeting_url" type="url" placeholder="https://zoom.us/j/..." className={inputClass} />
       </Field>
+      <Field label="Tutup pendaftaran (WIB, opsional)">
+        <input name="registration_deadline" type="datetime-local" className={inputClass} />
+        <span className="mt-1 block text-xs text-stone-500">Kosong = otomatis H-1 jam 23.59 WIB (kelas trial: sampai kelas mulai).</span>
+      </Field>
+      <label className="flex items-start gap-2 self-end rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-stone-800">
+        <input type="checkbox" name="is_trial" value="1" className="mt-0.5" />
+        <span>
+          <span className="font-semibold">Kelas trial gratis</span>: satu pertemuan di tanggal dan jam mulai, tanpa tagihan, didaftar lewat /trial. Isi kuota sesuai paket Zoom.
+        </span>
+      </label>
       <div className="sm:col-span-2">
         <button className={buttonClass} disabled={pending}>
           {pending ? "Membuat..." : "Buat batch dan jadwal"}
@@ -225,7 +235,17 @@ export function BatchEditForm({
   batch,
   teachers,
 }: {
-  batch: { id: string; name: string; schedule_label: string; quota: number; meeting_url: string | null; teacher_id: string | null };
+  batch: {
+    id: string;
+    name: string;
+    schedule_label: string;
+    quota: number;
+    meeting_url: string | null;
+    teacher_id: string | null;
+    start_date: string;
+    // undefined = kolom belum ada (migrasi 0005 belum dijalankan), field tenggat disembunyikan.
+    registration_deadline?: string | null;
+  };
   teachers: { id: string; full_name: string }[];
 }) {
   const [state, action, pending] = useActionState(updateBatch.bind(null, batch.id), {} as FormState);
@@ -253,6 +273,12 @@ export function BatchEditForm({
           ))}
         </select>
       </Field>
+      {batch.registration_deadline !== undefined && (
+        <Field label="Tutup pendaftaran (WIB)">
+          <input name="registration_deadline" type="datetime-local" defaultValue={toWibInput(batch.registration_deadline)} className={inputClass} />
+          <span className="mt-1 block text-xs text-stone-500">Kosong = otomatis H-1 jam 23.59 WIB dari tanggal mulai.</span>
+        </Field>
+      )}
       <div className="sm:col-span-2">
         <button className={buttonClass} disabled={pending}>
           {pending ? "Menyimpan..." : "Simpan batch"}
@@ -260,6 +286,12 @@ export function BatchEditForm({
       </div>
     </form>
   );
+}
+
+// ISO → nilai input datetime-local dalam jam WIB.
+function toWibInput(iso: string | null) {
+  if (!iso) return "";
+  return new Date(new Date(iso).getTime() + 7 * 3600_000).toISOString().slice(0, 16);
 }
 
 export function MeetingLinkForm({ batchId, meetingUrl }: { batchId: string; meetingUrl: string | null }) {

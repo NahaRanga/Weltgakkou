@@ -7,7 +7,7 @@ const BASE = "https://weltgakko.com";
 
 // Hanya halaman publik; area siswa, admin, bayar, daftar, dan login tidak dimasukkan.
 export default function sitemap(): MetadataRoute.Sitemap {
-  const pages = ["/", "/waiting-list", "/info", "/faq", "/refund", ...infoPages.map((p) => p.href)];
+  const pages = ["/", "/trial", "/waiting-list", "/info", "/faq", "/refund", ...infoPages.map((p) => p.href)];
   return [
     ...pages.map((path) => ({
       url: `${BASE}${path === "/" ? "" : path}`,

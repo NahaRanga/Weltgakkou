@@ -189,7 +189,7 @@ export function RegisterForm({
 }
 
 // Email wajib diverifikasi: kirim kode 6 digit ke email, lalu cocokkan sebelum daftar.
-function EmailWithCode({ defaultValue, error }: { defaultValue?: string; error?: string }) {
+export function EmailWithCode({ defaultValue, error }: { defaultValue?: string; error?: string }) {
   const [email, setEmail] = useState(defaultValue ?? "");
   const [sentTo, setSentTo] = useState("");
   const [verified, setVerified] = useState("");

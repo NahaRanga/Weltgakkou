@@ -89,6 +89,10 @@ export function SignUpForm({ programs, google }: { programs: ProgramOption[]; go
           <Link href="/refund" className="underline hover:text-stone-800">
             kebijakan refund
           </Link>{" "}
+          dan{" "}
+          <Link href="/privasi" className="underline hover:text-stone-800">
+            kebijakan privasi
+          </Link>{" "}
           Weltgakko.
         </p>
       </form>

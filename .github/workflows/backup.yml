@@ -1,0 +1,107 @@
+# Backup mingguan database Supabase + file bukti transfer.
+# Repo ini publik dan datanya berisi NIK/alamat siswa, jadi hasil backup
+# SELALU dienkripsi (gpg AES256) sebelum diunggah sebagai artifact, dan log
+# tidak boleh mencetak isi data. Petunjuk restore: docs/backup.md.
+name: Backup Supabase
+
+on:
+  schedule:
+    # Minggu 01.00 WIB (Sabtu 18.00 UTC)
+    - cron: "0 18 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      BUCKET: payment-proofs
+    steps:
+      - name: Cek secret
+        run: |
+          missing=0
+          for name in SUPABASE_DB_URL SUPABASE_SERVICE_ROLE_KEY BACKUP_PASSPHRASE; do
+            if [ -z "${!name}" ]; then echo "::error::Secret $name belum diisi"; missing=1; fi
+          done
+          if [ ${#BACKUP_PASSPHRASE} -lt 16 ]; then echo "::error::BACKUP_PASSPHRASE minimal 16 karakter"; missing=1; fi
+          exit $missing
+
+      - name: Pasang pg_dump 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-17 >/dev/null
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Dump database
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/backup"
+          mkdir -p "$out/db"
+          # Skema public: tabel aplikasi (skema + data).
+          pg_dump "$SUPABASE_DB_URL" --schema=public --no-owner --no-privileges -f "$out/db/public.sql"
+          # Akun login (data saja), dipulihkan sebelum public karena profiles merujuk auth.users.
+          pg_dump "$SUPABASE_DB_URL" --data-only --table=auth.users --table=auth.identities -f "$out/db/auth-data.sql"
+          # Hitungan baris untuk cek restore (hanya angka yang dicetak ke log).
+          psql "$SUPABASE_DB_URL" -X -q -A -F ' ' -t -c "
+            select 'profiles', count(*) from public.profiles
+            union all select 'enrollments', count(*) from public.enrollments
+            union all select 'invoices', count(*) from public.invoices
+            union all select 'payment_proofs', count(*) from public.payment_proofs
+            union all select 'auth.users', count(*) from auth.users" | tee "$out/db/row-counts.txt"
+
+      - name: Unduh file bukti transfer
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/backup/storage/$BUCKET"
+          mkdir -p "$out"
+          # Alamat project diambil dari username pooler (postgres.<ref>).
+          ref=$(psql "$SUPABASE_DB_URL" -X -A -t -c "select split_part(current_user, '.', 2)")
+          if [ -z "$ref" ]; then echo "::error::Pakai connection string Session pooler (username postgres.<ref>)"; exit 1; fi
+          base="https://$ref.supabase.co/storage/v1/object/$BUCKET"
+          psql "$SUPABASE_DB_URL" -X -A -t -c "select name from storage.objects where bucket_id = '$BUCKET' order by name" > "$RUNNER_TEMP/objects.txt"
+          count=0
+          while IFS= read -r name; do
+            [ -z "$name" ] && continue
+            mkdir -p "$out/$(dirname "$name")"
+            curl -sSf --retry 3 -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+              -o "$out/$name" "$base/$name"
+            count=$((count + 1))
+          done < "$RUNNER_TEMP/objects.txt"
+          rm -f "$RUNNER_TEMP/objects.txt"
+          echo "$count file diunduh dari bucket $BUCKET"
+
+      - name: Kompres dan enkripsi
+        id: pack
+        run: |
+          set -euo pipefail
+          name="weltgakko-backup-$(date -u +%Y%m%d-%H%M)"
+          tar -C "$RUNNER_TEMP/backup" -czf - . \
+            | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 \
+                --symmetric --cipher-algo AES256 -o "$RUNNER_TEMP/$name.tar.gz.gpg" 3<<<"$BACKUP_PASSPHRASE"
+          # Hapus salinan polos sebelum apa pun diunggah.
+          rm -rf "$RUNNER_TEMP/backup"
+          mkdir -p "$RUNNER_TEMP/upload"
+          mv "$RUNNER_TEMP/$name.tar.gz.gpg" "$RUNNER_TEMP/upload/"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          ls -lh "$RUNNER_TEMP/upload"
+
+      - name: Simpan sebagai artifact (30 hari)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.name }}
+          path: ${{ runner.temp }}/upload/*.gpg
+          retention-days: 30
+          if-no-files-found: error
+          compression-level: 0

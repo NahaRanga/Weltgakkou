@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { requestPasswordReset, setPassword, signIn, signInWithCode, signOut, type AuthState, type CodeState } from "@/app/(site)/masuk/actions";
 import { withBase } from "@/lib/base-path";
+import { GoogleButton } from "@/components/signup-form";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 
 // Muat ulang penuh ke halaman tujuan supaya cookie sesi yang baru dipasang ikut terkirim.
@@ -14,7 +15,7 @@ function useHardRedirect(to?: string) {
 }
 
 // Dua cara masuk: kode 6 digit dari email (default, siswa baru belum punya password) atau password.
-export function SignInForm({ next }: { next?: string }) {
+export function SignInForm({ next, google }: { next?: string; google?: boolean }) {
   const [mode, setMode] = useState<"kode" | "password">("kode");
   const tab = (value: typeof mode, label: string) => (
     <button
@@ -27,6 +28,7 @@ export function SignInForm({ next }: { next?: string }) {
   );
   return (
     <div className="space-y-5">
+      {google && <GoogleButton next={next ?? "/belajar"} />}
       <div className="flex gap-1 rounded-lg bg-stone-100 p-1">
         {tab("kode", "Kode dari email")}
         {tab("password", "Password")}
@@ -85,9 +87,9 @@ function CodeSignInForm({ next }: { next?: string }) {
         </button>
       )}
       <p className="text-center text-xs text-stone-500">
-        Belum daftar?{" "}
-        <Link href="/#program" className="font-medium text-red-700 hover:underline">
-          Pilih program
+        Belum punya akun?{" "}
+        <Link href="/daftar" className="font-medium text-red-700 hover:underline">
+          Daftar gratis
         </Link>
       </p>
     </form>

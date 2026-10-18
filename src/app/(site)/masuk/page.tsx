@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SignInForm } from "@/components/auth-forms";
+import { Notice } from "@/components/ui/form";
+import { googleLoginEnabled } from "@/lib/google-login";
 
 export const metadata: Metadata = { title: "Masuk" };
 
@@ -17,6 +19,15 @@ export default function SignInPage({ searchParams }: PageProps<"/masuk">) {
 }
 
 async function SignInWithNext({ searchParams }: { searchParams: PageProps<"/masuk">["searchParams"] }) {
-  const next = (await searchParams).next;
-  return <SignInForm next={typeof next === "string" ? next : undefined} />;
+  const { next, google } = await searchParams;
+  return (
+    <>
+      {google === "gagal" && (
+        <div className="mb-4">
+          <Notice tone="error">Masuk dengan Google gagal. Coba lagi atau pakai kode dari email.</Notice>
+        </div>
+      )}
+      <SignInForm next={typeof next === "string" ? next : undefined} google={googleLoginEnabled()} />
+    </>
+  );
 }

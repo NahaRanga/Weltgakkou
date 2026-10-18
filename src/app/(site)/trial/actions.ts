@@ -85,8 +85,8 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
   if (error) throw error;
   await db.from("leads").update({ status: "daftar" }).eq("whatsapp", input.whatsapp).in("status", ["baru", "dihubungi"]);
 
-  // Akun baru belum punya password: kirim link atur password supaya bisa login ke /belajar.
-  const mailed = account.created ? await sendPasswordEmail(input.email) : false;
+  // Login cukup pakai kode email; link atur password tetap dikirim untuk yang ingin pakai password.
+  if (account.created) await sendPasswordEmail(input.email);
   const when = firstSession ? formatDateTime(firstSession) : batch.start_date;
 
   await notifyAdmin(
@@ -95,8 +95,6 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
   ).catch(() => {});
 
   return {
-    ok: mailed
-      ? `Kursi kamu sudah aman untuk ${when} WIB. Cek email ${input.email} untuk membuat password, lalu login ke area belajar. Tombol Masuk kelas (Zoom) muncul di sana 15 menit sebelum kelas.`
-      : `Kursi kamu sudah aman untuk ${when} WIB. Login ke area belajar pakai email ${input.email}; tombol Masuk kelas (Zoom) muncul di sana 15 menit sebelum kelas.`,
+    ok: `Kursi kamu sudah aman untuk ${when} WIB. Masuk ke area belajar di halaman Masuk dengan email ${input.email}, pilih "Kode dari email" (tanpa password). Tombol Masuk kelas (Zoom) muncul di sana 15 menit sebelum kelas.`,
   };
 }

@@ -139,8 +139,8 @@ async function PayContent({ params }: { params: PageProps<"/bayar/[code]">["para
               <UploadProofForm code={invoice.code} />
               <ol className="mt-4 space-y-1 border-t border-stone-100 pt-3 text-xs text-stone-600">
                 <li>1. Admin mengecek bukti transfer {VERIFY_PROMISE}.</li>
-                <li>2. Setelah dikonfirmasi, kamu dapat email untuk atur password.</li>
-                <li>3. Masuk ke area belajar: jadwal, link Zoom, dan materi ada di sana.</li>
+                <li>2. Setelah dikonfirmasi, admin mengabari lewat WhatsApp.</li>
+                <li>3. Masuk ke area belajar di halaman Masuk pakai kode dari email (tanpa password): jadwal, link Zoom, dan materi ada di sana.</li>
               </ol>
             </div>
           </>

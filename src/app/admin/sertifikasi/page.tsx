@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { deleteCertification, setCertificationBonus } from "@/app/admin/actions";
+import { deleteCertification, setCertificationBonus } from "@/app/admin/sertifikasi/actions";
 import { CertificationForm } from "@/components/admin-controls";
 import { BarList } from "@/components/admin/charts";
 import { Card, Empty, PageTitle, smallButton, Stat, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";

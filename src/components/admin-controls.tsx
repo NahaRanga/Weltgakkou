@@ -1,27 +1,14 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import {
-  acceptPayment,
-  addCertification,
-  addMaterial,
-  addRecording,
-  addStaff,
-  cancelInvoice,
-  changePassword,
-  createBatch,
-  createNextInstallment,
-  markInvoicePaid,
-  rejectPayment,
-  sendPasswordLink,
-  setBatchMeetingUrl,
-  setRecordingPackage,
-  updateBatch,
-  updateProfile,
-  type BatchState,
-  type FormState,
-  type VerifyState,
-} from "@/app/admin/actions";
+import { addMaterial, createBatch, setBatchMeetingUrl, updateBatch } from "@/app/admin/batch/actions";
+import { acceptPayment, cancelInvoice, createNextInstallment, markInvoicePaid, rejectPayment } from "@/app/admin/pembayaran/actions";
+import { changePassword, updateProfile } from "@/app/admin/profil/actions";
+import { addRecording, setRecordingPackage } from "@/app/admin/rekaman/actions";
+import { addCertification } from "@/app/admin/sertifikasi/actions";
+import { sendPasswordLink } from "@/app/admin/siswa/actions";
+import { addStaff } from "@/app/admin/tim/actions";
+import type { BatchState, FormState, VerifyState } from "@/app/admin/types";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 import { withBase } from "@/lib/base-path";
 

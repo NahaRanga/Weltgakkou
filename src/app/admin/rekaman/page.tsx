@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { RecordingForm, RecordingPackageForm } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle } from "@/components/admin/ui";
-import { deleteRecording } from "@/app/admin/actions";
+import { deleteRecording } from "@/app/admin/rekaman/actions";
 import { requireDb, requireStaff } from "@/lib/auth";
 import { formatRupiah } from "@/lib/programs";
 import { groupByChapter, type Recording } from "@/lib/recordings";

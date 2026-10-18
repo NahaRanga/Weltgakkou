@@ -5,9 +5,9 @@ import {
   saveAttendance,
   saveExamScores,
   setBatchStatus,
-  setEnrollmentStatus,
   updateSession,
-} from "@/app/admin/actions";
+} from "@/app/admin/batch/actions";
+import { setEnrollmentStatus } from "@/app/admin/siswa/actions";
 import {
   BatchEditForm,
   MeetingLinkForm,

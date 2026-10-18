@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { setReferralPaid } from "@/app/admin/actions";
+import { setReferralPaid } from "@/app/admin/referral/actions";
 import { BarList } from "@/components/admin/charts";
 import { Card, Empty, PageTitle, smallButton, Stat, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { requireAdmin, requireDb } from "@/lib/auth";

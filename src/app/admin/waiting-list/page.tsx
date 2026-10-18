@@ -1,4 +1,4 @@
-import { setLeadNote, setLeadStatus } from "@/app/admin/actions";
+import { setLeadNote, setLeadStatus } from "@/app/admin/waiting-list/actions";
 import { Card, Empty, FilterTabs, PageTitle, smallButton, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { inputClass } from "@/components/ui/form";
 import { requireAdmin, requireDb } from "@/lib/auth";

@@ -1,4 +1,4 @@
-import { setRole } from "@/app/admin/actions";
+import { setRole } from "@/app/admin/tim/actions";
 import { PasswordLinkButton, StaffForm } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { requireAdmin, requireDb } from "@/lib/auth";

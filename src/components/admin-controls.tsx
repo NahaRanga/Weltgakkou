@@ -138,7 +138,7 @@ export function BatchForm({ programs }: { programs: { id: string; name: string; 
         <input name="weeks" type="number" min={1} max={52} defaultValue={12} required className={inputClass} />
       </Field>
       <Field label="Kuota">
-        <input name="quota" type="number" min={1} max={50} defaultValue={10} required className={inputClass} />
+        <input name="quota" type="number" min={1} max={50} defaultValue={15} required className={inputClass} />
       </Field>
       <fieldset>
         <legend className="mb-1 text-sm font-medium text-stone-700">Hari kelas</legend>

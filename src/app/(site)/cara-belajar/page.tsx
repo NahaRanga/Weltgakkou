@@ -12,7 +12,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const week = [
-  { day: "Senin sampai Kamis", title: "Kelas live lewat Zoom", body: "Belajar bareng sensei dalam kelas kecil, maksimal 10 orang, jadi semua sempat latihan bicara." },
+  { day: "Senin sampai Kamis", title: "Kelas live lewat Zoom", body: "Belajar bareng sensei dalam kelas kecil, maksimal 15 orang, jadi semua sempat latihan bicara." },
   { day: "Jumat", title: "Tes kemampuan", body: "Tes santai tanpa tekanan. Bukan penentu lulus, cuma untuk melihat sampai mana kemampuanmu dan bagian mana yang perlu diulang." },
   { day: "Kapan saja", title: "Materi dan rekaman", body: "Ketinggalan kelas? Tonton rekamannya di area belajar, dan kamu tetap dihitung hadir." },
 ];

@@ -10,7 +10,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const values = [
-  { title: "Kelas kecil", body: "Maksimal 10 orang per kelas supaya semua dapat giliran bicara dan dikoreksi langsung." },
+  { title: "Kelas kecil", body: "Maksimal 15 orang per kelas supaya semua dapat giliran bicara dan dikoreksi langsung." },
   { title: "Belajar tanpa tekanan", body: "Tes mingguan dipakai untuk melihat progres, bukan untuk menghukum. Ketinggalan kelas bisa diganti rekaman." },
   { title: "Fokus ke tujuan", body: "Materi diarahkan ke kebutuhan nyata: lulus JLPT atau JFT, siap wawancara, dan bisa bicara di tempat kerja." },
   { title: "Terjangkau", body: "Bisa bayar per bulan, dan ada paket rekaman yang lebih hemat." },

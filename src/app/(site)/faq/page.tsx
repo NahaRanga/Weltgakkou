@@ -18,7 +18,7 @@ const faqs = [
   },
   {
     q: "Berapa orang dalam satu kelas?",
-    a: "Maksimal 10 orang supaya setiap peserta sempat latihan bicara.",
+    a: "Maksimal 15 orang supaya setiap peserta sempat latihan bicara.",
   },
   {
     q: "Bagaimana cara bayar?",

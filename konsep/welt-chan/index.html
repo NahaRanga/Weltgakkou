@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welt-chan 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&family=Nunito:wght@600;800&display=swap">
+  <style>
+    :root {
+      --bg: #FAFAF9;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --red: #E63946;
+      --blue: #4A90E2;
+      --yellow: #F5C04A;
+      --card: rgba(255, 255, 255, 0.85);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: Nunito, system-ui, sans-serif; overflow: hidden; }
+    canvas { display: block; touch-action: none; }
+    .info { position: fixed; top: 16px; left: 16px; right: 16px; pointer-events: none; }
+    .info h1 { margin: 0; font-size: 22px; font-weight: 800; }
+    .info h1 span { color: var(--red); }
+    .info p { margin: 4px 0 0; font-size: 13px; color: var(--muted); max-width: 420px; }
+    .controls { position: fixed; bottom: 16px; left: 16px; right: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .controls button {
+      font: inherit; font-weight: 800; font-size: 14px; border: 0; border-radius: 999px; padding: 10px 16px;
+      background: var(--card); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,0.08); cursor: pointer;
+    }
+    .controls button:hover { background: #fff; }
+    .controls button.on { background: var(--blue); color: #fff; }
+    .loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">Memuat Welt-chan…</div>
+  <div class="info">
+    <h1>Welt-chan <span>ウェルトちゃん</span></h1>
+    <p>Konsep 3D maskot Weltgakko (usulan, belum final). Geser untuk memutar, scroll atau cubit untuk zoom.</p>
+  </div>
+  <div class="controls">
+    <button data-act="wave">👋 Lambai</button>
+    <button data-act="jump">✊ Ikuzo!</button>
+    <button data-act="bow">🙇 Ojigi</button>
+    <button data-act="spin" id="spinBtn">🔄 Putar</button>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    const COLORS = {
+      bg: 0xFAFAF9,
+      ocean: '#4A90E2',
+      land: '#9BE3C4',
+      red: 0xE63946,
+      darkRed: 0xB8232F,
+      yellow: 0xF5C04A,
+      cream: 0xFFF6E8,
+      white: 0xFFFFFF,
+    };
+
+    // Renderer, scene, camera
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(COLORS.bg);
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(-1.6, 1.0, 7.2);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.35, 0);
+    controls.enableDamping = true;
+    controls.minDistance = 3.5;
+    controls.maxDistance = 12;
+    controls.maxPolarAngle = Math.PI * 0.55;
+    controls.enablePan = false;
+
+    // Lights
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xf3e6d6, 0.9));
+    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    key.position.set(-4, 7, 5);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.radius = 6;
+    key.shadow.camera.left = -3; key.shadow.camera.right = 3;
+    key.shadow.camera.top = 3; key.shadow.camera.bottom = -3;
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0xdbe9ff, 0.8);
+    rim.position.set(4, 3, -5);
+    scene.add(rim);
+
+    // Ground: only catches the soft shadow
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: 0.12 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -1.5;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Helpers
+    const vinyl = (color, extra = {}) => new THREE.MeshPhysicalMaterial({
+      color, roughness: 0.5, clearcoat: 0.35, clearcoatRoughness: 0.4, ...extra,
+    });
+    function mesh(geo, mat, parent) {
+      const m = new THREE.Mesh(geo, mat);
+      m.castShadow = true;
+      m.receiveShadow = true;
+      if (parent) parent.add(m);
+      return m;
+    }
+    // Place an object on the body sphere surface, facing outward
+    const Z = new THREE.Vector3(0, 0, 1);
+    function onSurface(obj, dir, radius) {
+      const n = dir.clone().normalize();
+      obj.position.copy(n.multiplyScalar(radius));
+      obj.quaternion.setFromUnitVectors(Z, dir.clone().normalize());
+      return obj;
+    }
+
+    // Globe texture (equirectangular, drawn on a canvas)
+    const CONTINENTS = [
+      // North America
+      [[-168,66],[-140,70],[-95,72],[-80,62],[-60,55],[-66,45],[-80,26],[-97,18],[-105,22],[-117,32],[-124,42],[-125,50],[-140,60],[-158,58]],
+      // Greenland
+      [[-50,60],[-20,70],[-25,82],[-60,80],[-70,75]],
+      // Central and South America
+      [[-97,18],[-83,9],[-78,8],[-80,0],[-81,-6],[-71,-18],[-74,-40],[-68,-55],[-58,-38],[-48,-28],[-40,-22],[-35,-6],[-50,0],[-60,10],[-75,11],[-83,15]],
+      // Europe and Asia
+      [[-10,36],[-9,43],[-2,44],[-5,48],[5,53],[10,58],[5,62],[20,70],[40,68],[60,70],[80,73],[110,77],[140,72],[180,68],[180,65],[160,60],[143,52],[140,46],[130,42],[122,40],[122,31],[118,24],[109,21],[106,10],[100,13],[103,1],[98,8],[92,22],[80,15],[77,8],[72,20],[66,25],[57,25],[56,27],[50,30],[48,29],[58,22],[52,16],[43,13],[35,28],[35,33],[27,37],[22,40],[18,40],[12,44],[8,44],[3,43],[-2,37]],
+      // Africa
+      [[-17,15],[-17,21],[-10,30],[-6,36],[10,37],[20,32],[32,31],[35,28],[43,12],[51,11],[40,-3],[40,-15],[33,-25],[20,-35],[17,-29],[12,-17],[13,-5],[9,4],[-8,5],[-15,10]],
+      // Australia
+      [[114,-22],[122,-18],[130,-12],[137,-12],[142,-11],[146,-19],[153,-25],[150,-37],[141,-38],[131,-31],[115,-34]],
+      // Japan
+      [[130,31],[131,34],[135,34],[140,36],[141,41],[140,42],[141,45],[145,44],[142,42],[141,38],[140,35],[136,33]],
+      // Indonesia: Sumatra and Java, Kalimantan, Sulawesi, Papua
+      [[95,5],[100,1],[106,-6],[115,-8.5],[120,-9],[125,-8],[114,-6.5],[105,-3],[98,3]],
+      [[109,2],[118,7],[119,-4],[110,-3]],
+      [[120,1],[125,1],[121,-5]],
+      [[131,-1],[141,-3],[150,-10],[141,-9]],
+      // UK, Madagascar, New Zealand
+      [[-5,50],[2,52],[-2,58],[-6,58]],
+      [[44,-25],[50,-15],[49,-12],[44,-17]],
+      [[167,-46],[174,-41],[178,-38],[173,-35],[172,-41]],
+    ];
+    function globeTexture() {
+      const W = 2048, H = 1024;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const g = c.getContext('2d');
+      g.fillStyle = COLORS.ocean;
+      g.fillRect(0, 0, W, H);
+      g.fillStyle = COLORS.land;
+      g.strokeStyle = COLORS.land;
+      g.lineJoin = 'round';
+      g.lineWidth = 14;
+      const px = ([lon, lat]) => [(lon + 180) / 360 * W, (90 - lat) / 180 * H];
+      for (const poly of CONTINENTS) {
+        g.beginPath();
+        poly.forEach((p, i) => { const [x, y] = px(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+        g.closePath();
+        g.fill();
+        g.stroke();
+      }
+      // Antarctica
+      g.fillRect(0, H * (160 / 180), W, H);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = THREE.RepeatWrapping;
+      // Turn the globe so Asia, Japan and Indonesia face the front
+      tex.offset.x = 0.58;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return tex;
+    }
+
+    function headbandTexture() {
+      const W = 2048, H = 256;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const g = c.getContext('2d');
+      g.fillStyle = '#E63946';
+      g.fillRect(0, 0, W, H);
+      g.fillStyle = '#ffffff';
+      g.font = '700 150px "Zen Maru Gothic", "Noto Sans JP", sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText('がんばる', W / 2, H / 2 + 8);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return tex;
+    }
+
+    function blushTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 128;
+      const g = c.getContext('2d');
+      const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, 'rgba(255,120,150,0.85)');
+      grad.addColorStop(1, 'rgba(255,120,150,0)');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 128, 128);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    // Build Welt-chan
+    await document.fonts.load('700 150px "Zen Maru Gothic"', 'がんばる').catch(() => {});
+
+    const welt = new THREE.Group();     // whole character (moves for jump and bow)
+    scene.add(welt);
+    const body = new THREE.Group();     // globe sphere and things attached to it
+    body.position.y = 0.35;
+    welt.add(body);
+
+    // Globe body
+    mesh(new THREE.SphereGeometry(1, 96, 64), vinyl(0xffffff, { map: globeTexture(), roughness: 0.45 }), body);
+
+    // Eyes
+    const eyeMat = new THREE.MeshPhysicalMaterial({ color: 0x111418, roughness: 0.08, clearcoat: 1 });
+    const shineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const eyes = [];
+    for (const side of [-1, 1]) {
+      const eye = onSurface(new THREE.Group(), new THREE.Vector3(0.3 * side, 0.12, 0.95), 0.975);
+      const ball = mesh(new THREE.SphereGeometry(0.13, 32, 24), eyeMat, eye);
+      ball.scale.set(1, 1.18, 0.5);
+      const big = mesh(new THREE.SphereGeometry(0.038, 16, 12), shineMat, eye);
+      big.position.set(-0.035, 0.055, 0.06);
+      const small = mesh(new THREE.SphereGeometry(0.018, 12, 8), shineMat, eye);
+      small.position.set(0.04, -0.035, 0.062);
+      body.add(eye);
+      eyes.push(eye);
+    }
+
+    // Blush
+    const blushMat = new THREE.MeshBasicMaterial({ map: blushTexture(), transparent: true, depthWrite: false });
+    for (const side of [-1, 1]) {
+      const b = onSurface(new THREE.Mesh(new THREE.CircleGeometry(0.12, 32), blushMat), new THREE.Vector3(0.52 * side, -0.07, 0.85), 1.012);
+      b.scale.set(1.3, 0.8, 1);
+      body.add(b);
+    }
+
+    // Smiling open mouth
+    const mouth = onSurface(new THREE.Group(), new THREE.Vector3(0, -0.1, 1), 1.006);
+    const mouthShape = new THREE.Mesh(new THREE.CircleGeometry(0.085, 32, Math.PI, Math.PI), new THREE.MeshBasicMaterial({ color: 0x7a1e2a }));
+    mouth.add(mouthShape);
+    const tongue = new THREE.Mesh(new THREE.CircleGeometry(0.045, 24, Math.PI, Math.PI), new THREE.MeshBasicMaterial({ color: 0xff7a8a }));
+    tongue.position.set(0, -0.035, 0.002);
+    mouth.add(tongue);
+    body.add(mouth);
+
+    // Hachimaki headband with がんばる
+    const band = new THREE.Group();
+    band.position.y = 0.55;
+    band.rotation.z = -0.08;
+    body.add(band);
+    const bandMat = vinyl(0xffffff, { map: headbandTexture(), side: THREE.DoubleSide, roughness: 0.65, clearcoat: 0.1 });
+    mesh(new THREE.CylinderGeometry(0.78, 0.92, 0.24, 96, 1, true, -Math.PI, Math.PI * 2), bandMat, band);
+    const knotMat = vinyl(COLORS.red, { roughness: 0.65, clearcoat: 0.1 });
+    const knot = mesh(new THREE.SphereGeometry(0.1, 24, 16), knotMat, band);
+    knot.position.set(0.84, 0, -0.12);
+    knot.scale.set(0.8, 1, 1);
+    const tails = [];
+    for (const [i, angle] of [[0, 0.35], [1, -0.25]].map((a, idx) => [idx, a[1]])) {
+      const pivot = new THREE.Group();
+      pivot.position.copy(knot.position);
+      pivot.rotation.set(0, -0.9, angle);
+      const tail = mesh(new RoundedBoxGeometry(0.55, 0.1, 0.025, 2, 0.012), knotMat, pivot);
+      tail.position.x = 0.27;
+      band.add(pivot);
+      tails.push({ pivot, base: angle, phase: i * 1.3 });
+    }
+
+    // Randoseru backpack
+    const bagMat = vinyl(COLORS.red, { roughness: 0.4, clearcoat: 0.6 });
+    const bagDark = vinyl(COLORS.darkRed, { roughness: 0.4, clearcoat: 0.6 });
+    const bag = new THREE.Group();
+    bag.position.set(0, -0.02, -0.9);
+    body.add(bag);
+    mesh(new RoundedBoxGeometry(1.0, 1.05, 0.5, 4, 0.12), bagMat, bag);
+    const flap = mesh(new RoundedBoxGeometry(1.04, 0.8, 0.12, 4, 0.05), bagDark, bag);
+    flap.position.set(0, 0.16, -0.23);
+    const clasp = mesh(new RoundedBoxGeometry(0.16, 0.1, 0.05, 2, 0.02), vinyl(0xE8C25A, { metalness: 0.6, roughness: 0.3 }), bag);
+    clasp.position.set(0, -0.2, -0.3);
+    // Straps over the shoulders (from the bottom of the bag up to the top of the globe)
+    for (const side of [-1, 1]) {
+      const strap = mesh(new THREE.TorusGeometry(0.83, 0.045, 12, 64, 1.7), bagDark);
+      strap.rotation.set(0, Math.PI / 2, 0);
+      strap.position.x = 0.55 * side;
+      body.add(strap);
+    }
+
+    // Arms, hands, pencil
+    const creamMat = vinyl(COLORS.cream, { roughness: 0.55 });
+    function makeArm(side) {
+      const shoulder = new THREE.Group();
+      shoulder.position.set(0.9 * side, -0.12, 0.1);
+      body.add(shoulder);
+      const arm = mesh(new THREE.CapsuleGeometry(0.1, 0.32, 8, 16), creamMat, shoulder);
+      arm.position.y = -0.24;
+      const hand = mesh(new THREE.SphereGeometry(0.13, 24, 16), creamMat, shoulder);
+      hand.position.y = -0.46;
+      return { shoulder, hand };
+    }
+    const rightArm = makeArm(-1);   // character's right (viewer's left): holds the pencil
+    const leftArm = makeArm(1);     // character's left: waves
+
+    const pencil = new THREE.Group();
+    pencil.position.set(0, -0.62, 0.08);
+    rightArm.shoulder.add(pencil);
+    mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.62, 6), vinyl(COLORS.yellow, { roughness: 0.45 }), pencil);
+    const wood = mesh(new THREE.ConeGeometry(0.05, 0.13, 6), vinyl(0xF2D3A2, { roughness: 0.8 }), pencil);
+    wood.position.y = 0.375;
+    const lead = mesh(new THREE.ConeGeometry(0.018, 0.05, 12), vinyl(0x3a3a3a, { roughness: 0.6 }), pencil);
+    lead.position.y = 0.425;
+    const ferrule = mesh(new THREE.CylinderGeometry(0.053, 0.053, 0.06, 16), vinyl(0xC9CED6, { metalness: 0.8, roughness: 0.25 }), pencil);
+    ferrule.position.y = -0.34;
+    const eraser = mesh(new RoundedBoxGeometry(0.1, 0.09, 0.1, 2, 0.03), vinyl(0xF7A1B5, { roughness: 0.8 }), pencil);
+    eraser.position.y = -0.41;
+    pencil.rotation.set(0, 0, Math.PI + 0.25);
+
+    // Legs and uwabaki shoes
+    const shoeWhite = vinyl(COLORS.white, { roughness: 0.6 });
+    const shoeRed = vinyl(COLORS.red, { roughness: 0.6 });
+    for (const side of [-1, 1]) {
+      const leg = mesh(new THREE.CapsuleGeometry(0.11, 0.22, 8, 16), creamMat, welt);
+      leg.position.set(0.32 * side, -0.83, 0);
+      const shoe = new THREE.Group();
+      shoe.position.set(0.33 * side, -1.32, 0.06);
+      welt.add(shoe);
+      const s = mesh(new THREE.SphereGeometry(0.2, 32, 24), shoeWhite, shoe);
+      s.scale.set(0.85, 0.6, 1.25);
+      const toe = mesh(new THREE.SphereGeometry(0.13, 24, 16), shoeRed, shoe);
+      toe.position.set(0, -0.015, 0.15);
+      toe.scale.set(1.05, 0.75, 0.9);
+    }
+
+    document.getElementById('loading').remove();
+
+    // Animation
+    let action = 'wave';
+    let actionStart = 0;
+    let spin = false;
+    const clock = new THREE.Clock();
+    const buttons = document.querySelectorAll('.controls button');
+    buttons.forEach(btn => btn.addEventListener('click', () => {
+      const act = btn.dataset.act;
+      if (act === 'spin') {
+        spin = !spin;
+        controls.autoRotate = spin;
+        btn.classList.toggle('on', spin);
+        return;
+      }
+      action = act;
+      actionStart = clock.getElapsedTime();
+    }));
+    controls.autoRotateSpeed = 2.5;
+
+    const ease = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+
+    function animate() {
+      const t = clock.getElapsedTime();
+      const dt = t - actionStart;
+
+      // Default pose
+      let bob = Math.sin(t * 2.2) * 0.035;
+      let bow = 0;
+      let leftZ = 2.5 + Math.sin(t * 7) * 0.35;   // waving arm raised
+      let rightZ = -2.2;                          // pencil arm raised
+      let squash = 1;
+
+      if (action === 'jump') {
+        const d = 0.9;
+        if (dt < d) {
+          const p = dt / d;
+          bob = Math.sin(p * Math.PI) * 0.7;
+          squash = 1 + Math.sin(p * Math.PI * 2) * 0.04;
+          leftZ = 2.9; rightZ = -2.9;
+        } else action = 'wave';
+      } else if (action === 'bow') {
+        const d = 2.2;
+        if (dt < d) {
+          const p = dt / d;
+          bow = p < 0.35 ? ease(p / 0.35) : p < 0.65 ? 1 : 1 - ease((p - 0.65) / 0.35);
+          leftZ = 0.25; rightZ = -0.25;
+        } else action = 'wave';
+      }
+
+      welt.position.y = bob;
+      welt.rotation.x = bow * 0.55;
+      body.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
+      leftArm.shoulder.rotation.z = leftZ;
+      rightArm.shoulder.rotation.z = rightZ;
+
+      // Headband ribbons sway
+      for (const tl of tails) tl.pivot.rotation.z = tl.base + Math.sin(t * 4 + tl.phase) * 0.12;
+
+      // Blink every few seconds
+      const blink = (t % 3.6) < 0.12 ? 0.12 : 1;
+      for (const e of eyes) e.scale.y = blink;
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

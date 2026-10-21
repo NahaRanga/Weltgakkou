@@ -1,11 +1,8 @@
-# Welt-chan 3D (konsep)
+# Welt-chan (konsep)
 
-Model 3D maskot Welt-chan pakai Three.js, satu file `index.html` tanpa build. Masih usulan, belum final.
-Gaya anime dengan cel-shading dan garis tinta, proporsi badan anime (sekitar 6,5 kepala). Motif bumi ada di aksesoris: ikat rambut bola dunia, bumi mini yang mengorbit, bros di pita, gantungan randoseru. Tetap ada ikat kepala 「がんばる」, seragam sailor, randoseru merah, pensil kuning.
+Konsep maskot Weltgakko, masih usulan.
 
-Lihat langsung di browser:
-https://raw.githack.com/NahaRanga/Weltgakkou/claude/project-thread-ocvd3l/konsep/welt-chan/index.html
-
-Atau buka `index.html` lokal (butuh internet untuk memuat Three.js dari CDN).
+- `index.html`: ilustrasi anime 2.5D (SVG + JavaScript, tanpa build). Bisa menoleh mengikuti kursor/jari, napas, kedip, rambut dan rok berayun, plus tombol Lambai, Ikuzo!, Ojigi. Bumi mini mengorbit di atas kepala seperti peri; motif bumi juga di ikat rambut dan bros.
+- `3d.html`: versi 3D Three.js sebelumnya (proporsi anime, cel-shading), disimpan sebagai perbandingan.
 
 Folder `konsep/` di luar `src/` dan `public/`, jadi tidak ikut ter-deploy ke weltgakko.com.

@@ -1,7 +1,7 @@
 # Welt-chan 3D (konsep)
 
 Model 3D maskot Welt-chan pakai Three.js, satu file `index.html` tanpa build. Masih usulan, belum final.
-Desain mengikuti guideline maskot (bola dunia, ikat kepala merah 「がんばる」, randoseru merah, pensil kuning).
+Gaya anime chibi dengan cel-shading dan garis tinta: kepala bola dunia, mata anime besar, ahoge daun mint, ikat kepala merah 「がんばる」, seragam sailor + pita merah, randoseru merah, pensil kuning.
 
 Lihat langsung di browser:
 https://raw.githack.com/NahaRanga/Weltgakkou/claude/project-thread-ocvd3l/konsep/welt-chan/index.html

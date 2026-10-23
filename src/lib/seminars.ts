@@ -15,7 +15,7 @@ export type Seminar = {
 export type OpenSeminar = Seminar & { registered: number; full: boolean };
 
 // Seminar yang masih bisa didaftari: belum mulai dan dibuka admin.
-// Kalau tabel belum ada (migrasi 0007 belum jalan) hasilnya kosong, bukan error.
+// Kalau tabel belum ada (migrasi 0008 belum jalan) hasilnya kosong, bukan error.
 export async function upcomingSeminars(db: SupabaseClient | null = getSupabaseAdmin()): Promise<OpenSeminar[]> {
   if (!db) return [];
   const { data, error } = await db

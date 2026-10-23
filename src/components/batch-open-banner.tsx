@@ -149,7 +149,7 @@ export async function TrialBanner() {
   );
 }
 
-// Kotak seminar gratis di beranda. Hilang sendiri bila tidak ada jadwal (atau migrasi 0007 belum jalan).
+// Kotak seminar gratis di beranda. Hilang sendiri bila tidak ada jadwal (atau migrasi 0008 belum jalan).
 export async function SeminarBanner() {
   await connection();
   const [seminar] = await upcomingSeminars();

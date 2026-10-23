@@ -5,6 +5,7 @@ import { BannerStripShell } from "@/components/banner-strip-shell";
 import { withBase } from "@/lib/base-path";
 import { openBatches, upcomingTrials, type OpenBatch } from "@/lib/batches";
 import { formatDay, formatTime, requestTime } from "@/lib/format";
+import { seminarWhen, upcomingSeminars } from "@/lib/seminars";
 
 const DAY = 86400_000;
 
@@ -142,6 +143,28 @@ export async function TrialBanner() {
         </div>
         <Link href="/trial" className="shrink-0 rounded-xl bg-red-700 px-6 py-4 text-center text-lg font-bold text-white shadow-sm hover:bg-red-800">
           Daftar gratis
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+// Kotak seminar gratis di beranda. Hilang sendiri bila tidak ada jadwal (atau migrasi 0007 belum jalan).
+export async function SeminarBanner() {
+  await connection();
+  const [seminar] = await upcomingSeminars();
+  if (!seminar) return null;
+  return (
+    <section className="mx-auto max-w-5xl px-4 pt-6">
+      <div className="flex flex-col gap-5 rounded-3xl border-2 border-red-200 bg-red-50 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div>
+          <span className="inline-block rounded-full bg-red-700 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">Seminar gratis</span>
+          <h2 className="mt-3 text-2xl font-bold text-stone-900">{seminar.title}</h2>
+          <p className="mt-1 text-lg font-semibold text-red-700">{seminarWhen(seminar)}</p>
+          <p className="mt-1 text-stone-700">Jalur kerja dan kuliah ke Jepang, syarat bahasa, budaya, plus mini pelajaran. Online lewat Zoom.</p>
+        </div>
+        <Link href="/seminar" className="shrink-0 rounded-xl bg-red-700 px-6 py-4 text-center text-lg font-bold text-white shadow-sm hover:bg-red-800">
+          Daftar seminar
         </Link>
       </div>
     </section>

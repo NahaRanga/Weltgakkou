@@ -26,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       { href: "/admin/siswa", label: "Siswa", icon: "siswa" },
       { href: "/admin/sertifikasi", label: "Sertifikasi", icon: "sertifikat" },
       { href: "/admin/waiting-list", label: "Waiting list", icon: "waiting", badge: leads.count ?? 0 },
+      { href: "/admin/seminar", label: "Seminar", icon: "seminar" },
       { href: "/admin/referral", label: "Referral", icon: "referral" },
       { href: "/admin/laporan", label: "Laporan", icon: "laporan" },
       { href: "/admin/tim", label: "Tim", icon: "tim" },

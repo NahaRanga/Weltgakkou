@@ -7,7 +7,7 @@ import {
   setBatchStatus,
   updateSession,
 } from "@/app/admin/batch/actions";
-import { setEnrollmentStatus } from "@/app/admin/siswa/actions";
+import { issueCertificate, revokeCertificate, setEnrollmentStatus } from "@/app/admin/siswa/actions";
 import {
   BatchEditForm,
   MeetingLinkForm,
@@ -44,6 +44,8 @@ type Enrollment = {
   profile_id: string;
   profiles: ParticipantProfile;
   invoices: { installment_no: number; status: string }[];
+  // Ada setelah migrasi 0007_sertifikat.sql dijalankan.
+  certificate_no?: string | null;
 };
 
 type Batch = {
@@ -86,7 +88,7 @@ export default async function BatchDetailPage({
     .from("batches")
     .select(
       // "*" supaya kolom baru (is_trial, registration_deadline) ikut bila migrasinya sudah jalan.
-      "*, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), enrollments(id, status, plan, profile_id, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
+      "*, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), enrollments(*, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -298,6 +300,7 @@ export default async function BatchDetailPage({
                   {isAdmin && <th className={thClass}>Bayar</th>}
                   <th className={thClass}>Hadir</th>
                   <th className={thClass}>Nilai</th>
+                  {!batch.is_trial && <th className={thClass}>Sertifikat</th>}
                   {isAdmin && <th className={thClass}></th>}
                 </tr>
               </thead>
@@ -359,6 +362,28 @@ export default async function BatchDetailPage({
                           </span>
                         )}
                       </td>
+                      {!batch.is_trial && (
+                        <td className={tdClass}>
+                          {e.certificate_no ? (
+                            <span className="whitespace-nowrap">
+                              <a href={withBase(`/belajar/sertifikat/${e.id}`)} className="font-mono text-xs text-stone-900 hover:underline">
+                                {e.certificate_no}
+                              </a>
+                              {isAdmin && (
+                                <form action={revokeCertificate.bind(null, e.id)} className="inline">
+                                  <button className="ml-2 text-xs text-stone-500 hover:text-red-700">Cabut</button>
+                                </form>
+                              )}
+                            </span>
+                          ) : isAdmin && e.status === "selesai" && "certificate_no" in e ? (
+                            <form action={issueCertificate.bind(null, e.id)}>
+                              <button className="text-xs text-stone-600 hover:underline">Terbitkan</button>
+                            </form>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                      )}
                       {isAdmin && (
                       <td className={tdClass}>
                         <div className="flex flex-wrap gap-1">
@@ -412,6 +437,8 @@ export default async function BatchDetailPage({
         <p className="mt-3 text-xs text-stone-500">
           Nilai = rata-rata tes kemampuan Jumat, hanya untuk melihat progres
           siswa. Kehadiran juga hanya info; nonton rekaman dihitung hadir.
+          {!batch.is_trial &&
+            " Sertifikat terbit otomatis saat siswa ditandai Lulus/selesai atau batch ditandai selesai (semua siswa aktif ikut selesai)."}
         </p>
       </Card>
 

@@ -15,6 +15,8 @@ export type Program = {
   summary: string;
   topics: string[];
   open: boolean;
+  // Silabus per minggu, tampil di halaman program bila diisi.
+  syllabus?: { week: string; theme: string; grammar: string }[];
 };
 
 export const programs: Program[] = [
@@ -83,12 +85,32 @@ export const programs: Program[] = [
     name: "Bahasa Jerman A1",
     language: "de",
     level: "A1",
-    duration: "2 bulan",
-    monthlyPrice: 700_000,
-    upfrontPrice: 1_300_000,
-    summary: "Dasar bahasa Jerman untuk pemula.",
-    topics: ["32 pembelajaran", "Persiapan ujian Goethe, ÖSD atau telc"],
+    duration: "3 bulan",
+    monthlyPrice: 650_000,
+    upfrontPrice: 1_800_000,
+    summary: "Dasar bahasa Jerman dari nol sampai siap ujian Goethe-Zertifikat A1: Start Deutsch 1.",
+    topics: [
+      "48 kelas live 90 menit lewat Zoom",
+      "Perkenalan, belanja, janji temu, arah jalan, ke dokter",
+      "Tata bahasa dasar: artikel, akusatif, datif, kata kerja modal, Perfekt",
+      "Simulasi ujian Goethe A1 (Hören, Lesen, Schreiben, Sprechen)",
+      "Tes kemampuan setiap Jumat",
+    ],
     open: false,
+    syllabus: [
+      { week: "1", theme: "Hallo! Perkenalan, alfabet, pelafalan, angka 0–20", grammar: "Kata ganti orang, sein dan heißen, kalimat tanya W" },
+      { week: "2", theme: "Keluarga, negara dan bahasa, angka sampai 100", grammar: "Konjugasi kata kerja beraturan, mein/dein, pertanyaan ja/nein" },
+      { week: "3", theme: "Rumah, perabot, warna", grammar: "Artikel der/die/das, ein/kein, bentuk jamak" },
+      { week: "4", theme: "Makanan, belanja, harga, di restoran", grammar: "Akusatif, möchten, takaran" },
+      { week: "5", theme: "Jam, hari, janji temu, rutinitas harian", grammar: "Kata kerja terpisah, am/um/von…bis, posisi kata kerja" },
+      { week: "6", theme: "Hobi dan waktu luang, tes tengah", grammar: "können/wollen, gern/lieber, nicht dan kein" },
+      { week: "7", theme: "Pekerjaan dan tempat kerja", grammar: "Präteritum sein/haben, müssen" },
+      { week: "8", theme: "Kota, arah jalan, transportasi", grammar: "Preposisi dengan datif, imperatif" },
+      { week: "9", theme: "Badan, kesehatan, ke dokter", grammar: "dürfen/sollen, imperatif bentuk Sie" },
+      { week: "10", theme: "Pakaian, cuaca, musim", grammar: "Perfekt dengan haben/sein, welch-/dies-" },
+      { week: "11", theme: "Liburan, hotel, undangan, isi formulir", grammar: "Perfekt lanjutan, bilangan urutan, tanggal" },
+      { week: "12", theme: "Persiapan ujian Goethe A1", grammar: "Strategi tiap bagian ujian dan satu simulasi lengkap" },
+    ],
   },
   {
     slug: "jerman-a2",

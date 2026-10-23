@@ -79,7 +79,24 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
           ))}
         </ul>
 
-        {program.language === "jp" && (
+        {program.syllabus && (
+          <>
+            <h2 className="mt-10 text-xl font-semibold text-stone-900">Silabus per minggu</h2>
+            <ol className="mt-3 divide-y divide-stone-200 rounded-xl border border-stone-200 bg-white">
+              {program.syllabus.map((s) => (
+                <li key={s.week} className="flex gap-4 p-4">
+                  <span className="w-20 shrink-0 text-sm font-medium text-red-700">Minggu {s.week}</span>
+                  <div>
+                    <p className="font-semibold text-stone-900">{s.theme}</p>
+                    <p className="text-sm text-stone-600">{s.grammar}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+
+        {(program.language === "jp" || program.syllabus) && (
           <>
             <h2 className="mt-10 text-xl font-semibold text-stone-900">Jadwal mingguan</h2>
             <p className="mt-2 text-stone-700">

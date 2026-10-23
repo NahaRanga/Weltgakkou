@@ -61,6 +61,8 @@ type Enrollment = {
   plan: string;
   batch_id: string;
   access_until: string | null;
+  // Ada setelah migrasi 0007_sertifikat.sql dijalankan.
+  certificate_no?: string | null;
   batches: {
     id: string;
     name: string;
@@ -91,7 +93,7 @@ async function LearnContent({
   const { data, error } = await db
     .from("enrollments")
     .select(
-      "id, status, plan, batch_id, access_until, batches(id, name, mode, start_date, schedule_label, meeting_url, programs(id, name, slug), teacher:profiles!batches_teacher_id_fkey(full_name), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url)), invoices(code, status, amount, installment_no, due_at, reject_reason, paid_at, payment_proofs(uploaded_at))",
+      "*, batches(id, name, mode, start_date, schedule_label, meeting_url, programs(id, name, slug), teacher:profiles!batches_teacher_id_fkey(full_name), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url)), invoices(code, status, amount, installment_no, due_at, reject_reason, paid_at, payment_proofs(uploaded_at))",
     )
     .eq("profile_id", user.id)
     .neq("status", "keluar")
@@ -232,6 +234,7 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
 
   return (
     <section className="mt-8 space-y-6">
+      {e.certificate_no && <CertificateCard enrollmentId={e.id} number={e.certificate_no} programName={batch.programs.name} />}
       <div className="rounded-xl border border-stone-200 bg-white p-6">
         <p className="text-sm text-stone-500">{batch.schedule_label}</p>
         <h2 className="text-xl font-semibold text-stone-900">
@@ -603,4 +606,27 @@ function Readiness({ avg, level }: { avg: number; level: string }) {
         ? ["bg-sky-50 text-sky-900", `Hampir siap untuk ujian ${level}. Ulangi bagian yang masih salah di tes Jumat.`]
         : ["bg-amber-50 text-amber-900", "Masih perlu latihan. Tonton lagi rekaman dan materinya, pelan-pelan saja."];
   return <p className={`mt-3 rounded-lg px-3 py-2 text-sm ${tone}`}>{text}</p>;
+}
+
+function CertificateCard({ enrollmentId, number, programName }: { enrollmentId: string; number: string; programName: string }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-6">
+      <div>
+        <p className="text-sm font-medium text-amber-800">🎓 Selamat, kamu sudah menyelesaikan {programName}!</p>
+        <p className="mt-1 text-sm text-stone-600">
+          Nomor sertifikat <span className="font-mono font-semibold text-stone-900">{number}</span>, bisa dicek keasliannya di{" "}
+          <Link href={`/sertifikat/${number}`} className="underline">
+            halaman cek sertifikat
+          </Link>
+          .
+        </p>
+      </div>
+      <a
+        href={withBase(`/belajar/sertifikat/${enrollmentId}`)}
+        className="rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-700"
+      >
+        Unduh sertifikat (PDF)
+      </a>
+    </div>
+  );
 }

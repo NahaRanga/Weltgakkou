@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireBatchStaff, requireSessionStaff } from "@/app/admin/guards";
 import type { BatchState, FormState } from "@/app/admin/types";
 import { requireAdmin, requireDb, requireStaff } from "@/lib/auth";
+import { issueCertificates } from "@/lib/certificates";
 
 // Isian datetime-local (jam WIB) → ISO; kosong = tenggat default (H-1 23.59 WIB).
 const deadlineField = z
@@ -94,7 +95,13 @@ export async function createBatch(_prev: BatchState, formData: FormData): Promis
 
 export async function setBatchStatus(batchId: string, status: "buka" | "berjalan" | "selesai") {
   await requireAdmin();
-  await requireDb().from("batches").update({ status }).eq("id", batchId);
+  const db = requireDb();
+  await db.from("batches").update({ status }).eq("id", batchId);
+  if (status === "selesai") {
+    // Batch selesai: semua siswa aktif ikut selesai dan otomatis dapat sertifikat.
+    const { data } = await db.from("enrollments").update({ status: "selesai" }).eq("batch_id", batchId).in("status", ["aktif", "selesai"]).select("id");
+    await issueCertificates(db, (data ?? []).map((e) => e.id));
+  }
   refresh();
 }
 

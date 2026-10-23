@@ -44,7 +44,7 @@ export default async function SeminarAdminPage({ searchParams }: { searchParams:
       <>
         <PageTitle title="Seminar" />
         <Card>
-          <Empty>Tabel seminar belum ada. Jalankan migrasi supabase/migrations/0007_seminar.sql di SQL Editor Supabase.</Empty>
+          <Empty>Tabel seminar belum ada. Jalankan migrasi supabase/migrations/0008_seminar.sql di SQL Editor Supabase.</Empty>
         </Card>
       </>
     );

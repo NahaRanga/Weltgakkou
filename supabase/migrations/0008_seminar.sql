@@ -1,5 +1,5 @@
 -- Seminar gratis "Mengenal Jepang Lebih Dekat": jadwal + pendaftar.
--- Tidak bergantung pada 0006_latihan, boleh dijalankan lebih dulu.
+-- Tidak bergantung pada 0006_latihan atau 0007_sertifikat, boleh dijalankan lebih dulu.
 -- Pengingat dikirim admin lewat link wa.me (tanpa API WA berbayar);
 -- kolom *_at mencatat kapan admin menandai pesan sudah dikirim.
 

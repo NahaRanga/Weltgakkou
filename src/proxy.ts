@@ -5,6 +5,7 @@ import { supabaseEnv } from "@/lib/supabase-env";
 // Memperbarui token sesi Supabase sebelum halaman yang butuh login dirender.
 // Pengunjung tanpa sesi di /admin dan /belajar langsung dialihkan ke /masuk.
 // Cek role (admin/pengajar/siswa) tetap di layout dan route handler masing-masing.
+// /latihan ikut diperbarui sesinya tapi terbuka untuk tamu (halaman tes mengecek login sendiri).
 const PROTECTED = /^\/(admin|belajar)(\/|$)/;
 
 export async function proxy(request: NextRequest) {
@@ -45,5 +46,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/belajar/:path*", "/admin/:path*", "/masuk/:path*", "/atur-password"],
+  matcher: ["/belajar/:path*", "/admin/:path*", "/masuk/:path*", "/atur-password", "/latihan/:path*"],
 };

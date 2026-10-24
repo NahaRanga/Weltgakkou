@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { InvoiceActions, PasswordLinkButton } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
+import { TrialToggle } from "@/components/admin/latihan-forms";
 import { participantColumns, participantRows, type ParticipantProfile } from "@/components/admin/participant";
 import { requireAdmin, requireDb } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
@@ -26,8 +27,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   await requireAdmin();
   const db = requireDb();
 
-  const [profileRes, enrollmentsRes, attendanceRes, resultsRes] = await Promise.all([
-    db.from("profiles").select(`id, role, referral_code, created_at, ${participantColumns}`).eq("id", id).maybeSingle(),
+  const [profileRes, enrollmentsRes, attendanceRes, resultsRes, practiceRes] = await Promise.all([
+    db.from("profiles").select(`id, role, referral_code, created_at, trial_attended_at, ${participantColumns}`).eq("id", id).maybeSingle(),
     db
       .from("enrollments")
       .select("id, status, plan, referral_code, created_at, batches(id, name, start_date, programs(name)), invoices(id, code, amount, status, installment_no, due_at, paid_at)")
@@ -35,11 +36,13 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       .order("created_at", { ascending: false }),
     db.from("attendance").select("session_id", { count: "exact", head: true }).eq("profile_id", id),
     db.from("exam_results").select("score, exams(title, max_score)").eq("profile_id", id),
+    db.from("quiz_attempts").select("id, score, total, submitted_at, quizzes(title)").eq("profile_id", id).not("submitted_at", "is", null).order("submitted_at", { ascending: false }),
   ]);
   if (!profileRes.data) notFound();
-  const profile = profileRes.data as unknown as ParticipantProfile & { id: string; role: string; referral_code: string | null; created_at: string };
+  const profile = profileRes.data as unknown as ParticipantProfile & { id: string; role: string; referral_code: string | null; created_at: string; trial_attended_at: string | null };
   const enrollments = (enrollmentsRes.data ?? []) as unknown as Enrollment[];
   const results = (resultsRes.data ?? []) as unknown as { score: number; exams: { title: string; max_score: number } }[];
+  const practice = (practiceRes.data ?? []) as unknown as { id: string; score: number; total: number; submitted_at: string; quizzes: { title: string } }[];
   const paidTotal = enrollments.flatMap((e) => e.invoices).filter((i) => i.status === "lunas").reduce((s, i) => s + i.amount, 0);
 
   return (
@@ -133,6 +136,23 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                 ))}
               </ul>
             )}
+            {practice.length > 0 && (
+              <>
+                <p className="mt-4 text-sm font-medium text-stone-700">Latihan gratis (tes penempatan / tryout)</p>
+                <ul className="mt-1 divide-y divide-stone-100 text-sm">
+                  {practice.map((a) => (
+                    <li key={a.id} className="flex justify-between py-1.5">
+                      <Link href={`/latihan/hasil/${a.id}`} className="hover:underline">
+                        {a.quizzes.title} · {formatDate(a.submitted_at)}
+                      </Link>
+                      <span className="font-medium">
+                        {a.score}/{a.total}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </Card>
         </div>
 
@@ -152,6 +172,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           <Card title="Akun">
             <p className="mb-2 text-sm text-stone-600">Kalau siswa lupa password atau belum menerima link, kirim ulang dari sini.</p>
             <PasswordLinkButton profileId={profile.id} />
+            <p className="mb-2 mt-4 text-sm text-stone-600">Sudah ikut kelas trial? Tandai supaya akses latihan gratisnya naik (katakana, ulang tryout, 3 pembahasan).</p>
+            <TrialToggle profileId={profile.id} attended={Boolean(profile.trial_attended_at)} />
           </Card>
         </div>
       </div>

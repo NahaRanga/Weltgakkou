@@ -156,3 +156,23 @@ export async function cancelInvoice(invoiceId: string) {
   await requireDb().from("invoices").update({ status: "kedaluwarsa" }).eq("id", invoiceId).in("status", ["belum", "ditolak"]);
   refresh();
 }
+
+// Hapus tagihan beserta bukti transfernya (mis. data test yang terlanjur lunas). Pemasukannya ikut hilang dari laporan.
+// Kalau itu tagihan terakhir di pendaftarannya, pendaftaran (dan fee referral-nya) ikut dihapus; akun siswa tetap ada.
+export async function deleteInvoice(invoiceId: string): Promise<{ error?: string }> {
+  await requireAdmin();
+  const db = requireDb();
+  const { data: invoice } = await db.from("invoices").select("id, enrollment_id, payment_proofs(file_path)").eq("id", invoiceId).maybeSingle();
+  if (!invoice) return { error: "Tagihan tidak ditemukan." };
+  const files = ((invoice.payment_proofs ?? []) as { file_path: string }[]).map((p) => p.file_path);
+  if (files.length) await db.storage.from("payment-proofs").remove(files);
+  const { error } = await db.from("invoices").delete().eq("id", invoiceId);
+  if (error) return { error: "Tagihan gagal dihapus." };
+  const { count } = await db.from("invoices").select("id", { count: "exact", head: true }).eq("enrollment_id", invoice.enrollment_id);
+  if (count === 0) {
+    await db.from("referrals").delete().eq("enrollment_id", invoice.enrollment_id);
+    await db.from("enrollments").delete().eq("id", invoice.enrollment_id);
+  }
+  refresh();
+  return {};
+}

@@ -5,6 +5,7 @@ import { deleteRecording } from "@/app/admin/rekaman/actions";
 import { requireDb, requireStaff } from "@/lib/auth";
 import { formatRupiah } from "@/lib/programs";
 import { groupByChapter, type Recording } from "@/lib/recordings";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 
 export const metadata = { title: "Video rekaman" };
 
@@ -114,7 +115,14 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                         {v.title}
                       </a>
                       <form action={deleteRecording.bind(null, v.id)}>
-                        <button className="text-xs text-red-700 hover:underline">Hapus</button>
+                        <ConfirmButton
+                          className="text-xs text-red-700 hover:underline"
+                          title="Hapus video ini?"
+                          message={`"${v.title}" (bab ${chapter}) akan dihapus dari daftar rekaman siswa.`}
+                          confirmLabel="Ya, hapus video"
+                        >
+                          Hapus
+                        </ConfirmButton>
                       </form>
                     </li>
                   ))}

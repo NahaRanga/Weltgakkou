@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { InvoiceActions, PasswordLinkButton } from "@/components/admin-controls";
+import { DeleteInvoiceButton, InvoiceActions, PasswordLinkButton } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { TrialToggle } from "@/components/admin/latihan-forms";
 import { participantColumns, participantRows, type ParticipantProfile } from "@/components/admin/participant";
@@ -108,7 +108,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                                 <td className={tdClass}>
                                   <Badge value={i.status} />
                                 </td>
-                                <td className={tdClass}>{(i.status === "belum" || i.status === "ditolak") && <InvoiceActions invoiceId={i.id} />}</td>
+                                <td className={tdClass}>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {(i.status === "belum" || i.status === "ditolak") && <InvoiceActions invoiceId={i.id} label={`${i.code} (${formatRupiah(i.amount)})`} />}
+                                    <DeleteInvoiceButton invoiceId={i.id} paid={i.status === "lunas"} label={`${i.code} · ${profile.full_name} (${formatRupiah(i.amount)})`} />
+                                  </div>
+                                </td>
                               </tr>
                             ))}
                         </tbody>

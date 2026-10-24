@@ -5,6 +5,7 @@ import { BarList } from "@/components/admin/charts";
 import { Card, Empty, PageTitle, smallButton, Stat, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { requireAdmin, requireDb } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 
 export const metadata = { title: "Sertifikasi" };
 
@@ -75,7 +76,14 @@ export default async function CertificationsPage() {
                       </td>
                       <td className={tdClass}>
                         <form action={deleteCertification.bind(null, r.id)}>
-                          <button className="text-xs text-stone-500 hover:text-red-700">Hapus</button>
+                          <ConfirmButton
+                            className="text-xs text-stone-500 hover:text-red-700"
+                            title="Hapus catatan ujian ini?"
+                            message={`Hasil ${kindLabel(r.kind)} milik ${r.profiles.full_name} akan dihapus.`}
+                            confirmLabel="Ya, hapus"
+                          >
+                            Hapus
+                          </ConfirmButton>
                         </form>
                       </td>
                     </tr>

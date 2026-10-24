@@ -46,9 +46,9 @@ export default async function ReferralPage() {
     <>
       <PageTitle title="Referral" subtitle={`Siswa yang membawa teman dapat komisi ${process.env.REFERRAL_PERCENT ?? 10}% dari pembayaran pertama temannya.`} />
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat label="Pendaftar pakai kode" value={used.length} />
-        <Stat label="Total komisi" value={formatRupiah(total)} />
-        <Stat label="Komisi belum dibayar" value={formatRupiah(unpaid)} />
+        <Stat label="Pendaftar pakai kode" value={used.length} tone="biru" />
+        <Stat label="Total komisi" value={formatRupiah(total)} tone="hijau" />
+        <Stat label="Komisi belum dibayar" value={formatRupiah(unpaid)} tone="kuning" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">

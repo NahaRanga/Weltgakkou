@@ -41,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 lg:flex">
+    <div className="min-h-screen bg-cream lg:flex">
       <AdminSidebar items={items} user={{ fullName: user.fullName, email: user.email, role: user.role }} />
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:p-8">{children}</main>
     </div>

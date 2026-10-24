@@ -27,8 +27,8 @@ export default async function CertificationsPage() {
     <>
       <PageTitle title="Sertifikasi" subtitle="Hasil JLPT, JFT-Basic, dan Goethe siswa, termasuk bonus kelulusan untuk pengajar." />
       <div className="mb-6 grid grid-cols-3 gap-3">
-        <Stat label="Hasil tercatat" value={rows.length} />
-        <Stat label="Lulus" value={passed.length} hint={rows.length ? `${Math.round((passed.length / rows.length) * 100)}% tingkat kelulusan` : undefined} />
+        <Stat label="Hasil tercatat" value={rows.length} tone="biru" />
+        <Stat label="Lulus" value={passed.length} hint={rows.length ? `${Math.round((passed.length / rows.length) * 100)}% tingkat kelulusan` : undefined} tone="hijau" />
         <Stat label="Bonus belum dibayar" value={passed.filter((r) => !r.bonus_paid).length} tone="alert" />
       </div>
 

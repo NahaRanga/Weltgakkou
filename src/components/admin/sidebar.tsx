@@ -67,35 +67,39 @@ export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullNa
   return (
     <>
       {/* Bar atas di HP */}
-      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 lg:hidden">
-        <Link href="/admin" className="flex items-center gap-2 font-bold text-stone-900">
-          <Image src={withBase("/logo-mark.png")} alt="" width={36} height={24} className="h-6 w-auto" />
+      <div className="sticky top-0 z-30 flex items-center justify-between bg-brand px-4 py-3 text-white shadow-md lg:hidden">
+        <Link href="/admin" className="flex items-center gap-2 font-bold">
+          <span className="rounded-md bg-white px-1.5 py-1">
+            <Image src={withBase("/logo-mark.png")} alt="" width={36} height={24} className="h-5 w-auto" />
+          </span>
           Weltgakko
         </Link>
-        <button onClick={() => setOpen(true)} className="rounded-lg p-2 text-stone-700 hover:bg-stone-100" aria-label="Buka menu">
+        <button onClick={() => setOpen(true)} className="rounded-lg p-2 text-white hover:bg-white/15" aria-label="Buka menu">
           <Icon name="menu" />
         </button>
       </div>
       {open && <div className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setOpen(false)} />}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-stone-200 bg-white transition-all lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b from-brand to-brand-dark text-red-50 shadow-xl transition-all lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         } ${mini ? "w-16" : "w-64"}`}
       >
-        <div className={`flex items-center border-b border-stone-100 py-4 ${mini ? "justify-center px-2" : "justify-between px-4"}`}>
-          <Link href="/admin" className="flex items-center gap-2 font-bold text-stone-900">
-            <Image src={withBase("/logo-mark.png")} alt="Weltgakko" width={42} height={28} className="h-7 w-auto" />
+        <div className={`flex items-center border-b border-white/15 py-4 ${mini ? "justify-center px-2" : "justify-between px-4"}`}>
+          <Link href="/admin" className="flex items-center gap-2 font-bold text-white">
+            <span className="rounded-lg bg-white px-1.5 py-1">
+              <Image src={withBase("/logo-mark.png")} alt="Weltgakko" width={42} height={28} className="h-6 w-auto" />
+            </span>
             {!mini && <span>Weltgakko</span>}
           </Link>
           {!mini && (
-            <button onClick={toggle} className="hidden rounded-lg p-1.5 text-stone-500 hover:bg-stone-100 lg:block" aria-label="Ciutkan menu" title="Ciutkan menu">
+            <button onClick={toggle} className="hidden rounded-lg p-1.5 text-red-100 hover:bg-white/15 lg:block" aria-label="Ciutkan menu" title="Ciutkan menu">
               <Icon name="ciut" className="h-4 w-4" />
             </button>
           )}
         </div>
         {mini && (
-          <button onClick={toggle} className="mx-auto mt-2 hidden rounded-lg p-1.5 text-stone-500 hover:bg-stone-100 lg:block" aria-label="Lebarkan menu" title="Lebarkan menu">
+          <button onClick={toggle} className="mx-auto mt-2 hidden rounded-lg p-1.5 text-red-100 hover:bg-white/15 lg:block" aria-label="Lebarkan menu" title="Lebarkan menu">
             <Icon name="ciut" className="h-4 w-4 rotate-180" />
           </button>
         )}
@@ -108,23 +112,23 @@ export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullNa
               title={mini ? item.label : undefined}
               onClick={() => setOpen(false)}
               className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${
-                isActive(item.href) ? "bg-stone-100 text-stone-900" : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                isActive(item.href) ? "bg-cream text-brand shadow-sm" : "text-red-50/90 hover:bg-white/10 hover:text-white"
               } ${mini ? "justify-center px-0" : ""}`}
             >
               <Icon name={item.icon} />
               {!mini && <span className="flex-1">{item.label}</span>}
               {item.badge ? (
-                <span className={`rounded-full bg-red-700 px-1.5 text-xs text-white ${mini ? "absolute right-1 top-0.5" : ""}`}>{item.badge}</span>
+                <span className={`rounded-full bg-amber-400 px-1.5 text-xs font-bold text-stone-900 ${mini ? "absolute right-1 top-0.5" : ""}`}>{item.badge}</span>
               ) : null}
             </Link>
           ))}
         </nav>
 
-        <div className="border-t border-stone-100 p-3">
+        <div className="border-t border-white/15 p-3">
           {!mini && (
             <div className="mb-2 px-1">
-              <p className="truncate text-sm font-semibold text-stone-900">{user.fullName}</p>
-              <p className="truncate text-xs text-stone-500">
+              <p className="truncate text-sm font-semibold text-white">{user.fullName}</p>
+              <p className="truncate text-xs text-red-100/80">
                 {roleLabel} · {user.email}
               </p>
             </div>
@@ -133,12 +137,12 @@ export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullNa
             href="/admin/profil"
             onClick={() => setOpen(false)}
             title={mini ? "Profil" : undefined}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 ${mini ? "justify-center px-0" : ""} ${isActive("/admin/profil") ? "bg-stone-100 text-stone-900" : ""}`}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-50/90 hover:bg-white/10 ${mini ? "justify-center px-0" : ""} ${isActive("/admin/profil") ? "bg-cream text-brand" : ""}`}
           >
             <Icon name="profil" />
             {!mini && "Edit profil"}
           </Link>
-          <Link href="/" title={mini ? "Lihat website" : undefined} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 ${mini ? "justify-center px-0" : ""}`}>
+          <Link href="/" title={mini ? "Lihat website" : undefined} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-50/90 hover:bg-white/10 ${mini ? "justify-center px-0" : ""}`}>
             <Icon name="dashboard" />
             {!mini && "Lihat website"}
           </Link>
@@ -151,7 +155,7 @@ export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullNa
             }
             disabled={leaving}
             title={mini ? "Keluar" : undefined}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 ${mini ? "justify-center px-0" : ""}`}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-amber-200 hover:bg-white/10 disabled:opacity-60 ${mini ? "justify-center px-0" : ""}`}
           >
             <Icon name="keluar" />
             {!mini && (leaving ? "Keluar..." : "Keluar")}

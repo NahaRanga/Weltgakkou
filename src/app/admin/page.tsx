@@ -66,10 +66,10 @@ export default async function AdminOverview() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <Stat label="Bukti bayar dicek" value={proofsRes.count ?? 0} href="/admin/pembayaran" tone="alert" />
         <Stat label="Waiting list baru" value={leadsRes.count ?? 0} href="/admin/waiting-list?status=baru" tone="alert" />
-        <Stat label="Siswa aktif" value={activeRes.count ?? 0} href="/admin/siswa" />
-        <Stat label="Menunggu bayar" value={waitingRes.count ?? 0} href="/admin/pembayaran?status=belum" />
-        <Stat label="Pemasukan bulan ini" value={formatRupiah(incomeThisMonth)} href="/admin/pembayaran?status=lunas" />
-        <Stat label="Batch aktif" value={batches.length} href="/admin/batch" />
+        <Stat label="Siswa aktif" value={activeRes.count ?? 0} href="/admin/siswa" tone="hijau" />
+        <Stat label="Menunggu bayar" value={waitingRes.count ?? 0} href="/admin/pembayaran?status=belum" tone="kuning" />
+        <Stat label="Pemasukan bulan ini" value={formatRupiah(incomeThisMonth)} href="/admin/pembayaran?status=lunas" tone="biru" />
+        <Stat label="Batch aktif" value={batches.length} href="/admin/batch" tone="ungu" />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">

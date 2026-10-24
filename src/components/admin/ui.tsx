@@ -4,8 +4,8 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-bold text-stone-900 sm:text-3xl">{title}</h1>
-        {subtitle && <p className="mt-1 text-stone-600">{subtitle}</p>}
+        <h1 className="border-l-4 border-brand pl-3 text-2xl font-bold text-stone-900 sm:text-3xl">{title}</h1>
+        {subtitle && <p className="mt-1 pl-4 text-stone-600">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -14,13 +14,14 @@ export function PageTitle({ title, subtitle, action }: { title: string; subtitle
 
 export function Card({ title, count, action, children, className = "" }: { title?: string; count?: number; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-xl border border-stone-200 bg-white p-5 ${className}`}>
+    <section className={`overflow-hidden rounded-xl border border-sand bg-white p-5 shadow-sm ${className}`}>
       {(title || action) && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="-mx-5 -mt-5 mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-sand bg-[#fbf5ec] px-5 py-3">
           {title && (
-            <h2 className="font-semibold text-stone-900">
+            <h2 className="flex items-center gap-2 font-semibold text-stone-900">
+              <span className="h-4 w-1 rounded-full bg-brand" aria-hidden />
               {title}
-              {count !== undefined && <span className="ml-2 font-normal text-stone-500">{count}</span>}
+              {count !== undefined && <span className="rounded-full bg-brand px-2 text-xs font-semibold leading-5 text-white">{count}</span>}
             </h2>
           )}
           {action}
@@ -31,17 +32,29 @@ export function Card({ title, count, action, children, className = "" }: { title
   );
 }
 
-export function Stat({ label, value, hint, href, tone = "plain" }: { label: string; value: string | number; hint?: string; href?: string; tone?: "plain" | "alert" }) {
+// Warna kartu angka. "alert" = merah hanya bila angkanya bukan 0 (ada yang perlu dicek).
+const statTones = {
+  plain: { box: "border-sand bg-white", value: "text-stone-900" },
+  merah: { box: "border-red-200 bg-red-50", value: "text-red-800" },
+  kuning: { box: "border-amber-200 bg-amber-50", value: "text-amber-800" },
+  hijau: { box: "border-emerald-200 bg-emerald-50", value: "text-emerald-800" },
+  biru: { box: "border-sky-200 bg-sky-50", value: "text-sky-800" },
+  ungu: { box: "border-violet-200 bg-violet-50", value: "text-violet-800" },
+};
+type StatTone = keyof typeof statTones | "alert";
+
+export function Stat({ label, value, hint, href, tone = "plain" }: { label: string; value: string | number; hint?: string; href?: string; tone?: StatTone }) {
+  const t = statTones[tone === "alert" ? (value !== 0 ? "merah" : "plain") : tone];
   const body = (
     <>
-      <p className="text-sm text-stone-500">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${tone === "alert" && value !== 0 ? "text-red-700" : "text-stone-900"}`}>{value}</p>
+      <p className="text-sm font-medium text-stone-600">{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${t.value}`}>{value}</p>
       {hint && <p className="mt-1 text-xs text-stone-500">{hint}</p>}
     </>
   );
-  const cls = "block rounded-xl border border-stone-200 bg-white p-4";
+  const cls = `block rounded-xl border p-4 shadow-sm ${t.box}`;
   return href ? (
-    <Link href={href} className={`${cls} hover:border-stone-400`}>
+    <Link href={href} className={`${cls} transition hover:-translate-y-0.5 hover:shadow-md`}>
       {body}
     </Link>
   ) : (
@@ -111,7 +124,7 @@ export function FilterTabs({ base, param, current, options }: { base: string; pa
         <Link
           key={o.value}
           href={o.value ? `${base}${base.includes("?") ? "&" : "?"}${param}=${o.value}` : base}
-          className={`rounded-full px-3 py-1 ${current === o.value ? "bg-stone-900 text-white" : "bg-white text-stone-700 ring-1 ring-stone-200 hover:ring-stone-400"}`}
+          className={`rounded-full px-3 py-1 ${current === o.value ? "bg-brand font-medium text-white" : "bg-white text-stone-700 ring-1 ring-sand hover:ring-brand/50"}`}
         >
           {o.label}
           {o.count !== undefined && <span className="ml-1 opacity-70">{o.count}</span>}
@@ -122,9 +135,9 @@ export function FilterTabs({ base, param, current, options }: { base: string; pa
 }
 
 export const tableClass = "w-full text-left text-sm";
-export const thClass = "px-3 py-2 font-medium text-stone-500";
+export const thClass = "bg-[#f6ead9] px-3 py-2 font-semibold text-stone-700";
 export const tdClass = "px-3 py-2 align-top";
-export const smallButton = "rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-60";
+export const smallButton = "rounded-lg border border-sand bg-white px-3 py-1.5 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-60";
 
 // Palet kategori (urutan tetap, lolos uji buta warna) untuk membedakan program.
 export const seriesColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];

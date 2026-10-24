@@ -197,7 +197,7 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
   const [materialsRes, attendanceRes, resultsRes] = await Promise.all([
     db
       .from("materials")
-      // select("*") supaya tetap jalan sebelum migrasi 0009 (meeting_no) dijalankan.
+      // select("*") supaya tetap jalan sebelum migrasi 0011 (meeting_no) dijalankan.
       .select("*")
       .or(`program_id.eq.${batch.programs.id}${sessionIds.length ? `,session_id.in.(${sessionIds.join(",")})` : ""}`)
       .order("created_at"),

@@ -13,7 +13,7 @@ export type MaterialRow = {
   url: string;
   session_id: string | null;
   program_id: string | null;
-  // Kolom dari migrasi 0009; undefined bila migrasi belum dijalankan.
+  // Kolom dari migrasi 0011; undefined bila migrasi belum dijalankan.
   meeting_no?: number | null;
 };
 

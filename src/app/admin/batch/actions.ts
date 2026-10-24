@@ -231,11 +231,11 @@ export async function addMaterial(batchId: string, _prev: FormState, formData: F
       url: m.url,
       session_id: m.session_id || null,
       program_id: m.session_id ? null : programId,
-      // Kolom meeting_no baru ada setelah migrasi 0009; jangan dikirim bila kosong.
+      // Kolom meeting_no baru ada setelah migrasi 0011; jangan dikirim bila kosong.
       ...(meetingNo ? { meeting_no: meetingNo } : {}),
     });
   if (error) {
-    if (meetingNo && error.message.includes("meeting_no")) return { error: "Jalankan dulu migrasi 0009_materi_pertemuan.sql di Supabase." };
+    if (meetingNo && error.message.includes("meeting_no")) return { error: "Jalankan dulu migrasi 0011_materi_pertemuan.sql di Supabase." };
     return { error: error.message };
   }
   refresh();

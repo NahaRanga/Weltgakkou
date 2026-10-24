@@ -125,7 +125,7 @@ export default async function BatchDetailPage({
         : empty,
       db
         .from("materials")
-        // select("*") supaya tetap jalan sebelum migrasi 0009 (meeting_no).
+        // select("*") supaya tetap jalan sebelum migrasi 0011 (meeting_no).
         .select("*")
         .or(
           `program_id.eq.${batch.programs.id}${sessionIds.length ? `,session_id.in.(${sessionIds.join(",")})` : ""}`,

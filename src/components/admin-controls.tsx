@@ -9,6 +9,7 @@ import { addCertification } from "@/app/admin/sertifikasi/actions";
 import { sendPasswordLink } from "@/app/admin/siswa/actions";
 import { addStaff } from "@/app/admin/tim/actions";
 import type { BatchState, FormState, VerifyState } from "@/app/admin/types";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 import { withBase } from "@/lib/base-path";
 
@@ -30,7 +31,7 @@ function WhatsappFollowUp({ state }: { state: { whatsappText?: string; whatsapp?
   );
 }
 
-export function VerifyButtons({ invoiceId }: { invoiceId: string }) {
+export function VerifyButtons({ invoiceId, student }: { invoiceId: string; student?: string }) {
   const [state, setState] = useState<VerifyState>({});
   const [pending, start] = useTransition();
   const [reason, setReason] = useState("");
@@ -50,26 +51,33 @@ export function VerifyButtons({ invoiceId }: { invoiceId: string }) {
     <div className="space-y-2">
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <div className="flex flex-wrap gap-2">
-        <button
+        <ConfirmButton
           className="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
           disabled={pending}
-          onClick={() => start(async () => setState(await acceptPayment(invoiceId)))}
+          danger={false}
+          title={student ? `Terima pembayaran ${student}?` : "Terima pembayaran ini?"}
+          message="Pastikan uangnya sudah masuk ke rekening. Akun dan kelas siswa langsung aktif."
+          confirmLabel="Ya, terima"
+          onConfirm={() => start(async () => setState(await acceptPayment(invoiceId)))}
         >
           Terima
-        </button>
+        </ConfirmButton>
         <input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="Alasan tolak (opsional)"
           className={`${inputClass} max-w-xs flex-1 py-1.5 text-sm`}
         />
-        <button
+        <ConfirmButton
           className="rounded-lg border border-red-300 px-4 py-2 font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
           disabled={pending}
-          onClick={() => start(async () => setState(await rejectPayment(invoiceId, reason)))}
+          title={student ? `Tolak bukti bayar ${student}?` : "Tolak bukti bayar ini?"}
+          message={reason ? `Alasan: "${reason}". Siswa harus unggah bukti baru.` : "Tanpa alasan. Siswa harus unggah bukti baru."}
+          confirmLabel="Ya, tolak"
+          onConfirm={() => start(async () => setState(await rejectPayment(invoiceId, reason)))}
         >
           Tolak
-        </button>
+        </ConfirmButton>
       </div>
     </div>
   );
@@ -185,7 +193,7 @@ export function BatchForm({ programs }: { programs: { id: string; name: string; 
   );
 }
 
-export function InvoiceActions({ invoiceId }: { invoiceId: string }) {
+export function InvoiceActions({ invoiceId, label }: { invoiceId: string; label?: string }) {
   const [state, setState] = useState<VerifyState>({});
   const [pending, start] = useTransition();
   if (state.done) {
@@ -198,24 +206,27 @@ export function InvoiceActions({ invoiceId }: { invoiceId: string }) {
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
+      <ConfirmButton
         className="rounded-lg border border-emerald-300 px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
         disabled={pending}
-        onClick={() => {
-          if (confirm("Tandai tagihan ini lunas? Pastikan uangnya sudah masuk ke rekening.")) start(async () => setState(await markInvoicePaid(invoiceId)));
-        }}
+        danger={false}
+        title={label ? `Tandai tagihan ${label} lunas?` : "Tandai tagihan ini lunas?"}
+        message="Pastikan uangnya sudah masuk ke rekening. Akun dan kelas siswa langsung aktif."
+        confirmLabel="Ya, tandai lunas"
+        onConfirm={() => start(async () => setState(await markInvoicePaid(invoiceId)))}
       >
         Tandai lunas
-      </button>
-      <button
+      </ConfirmButton>
+      <ConfirmButton
         className="rounded-lg border border-stone-300 px-2.5 py-1 text-xs text-stone-700 hover:bg-stone-50 disabled:opacity-60"
         disabled={pending}
-        onClick={() => {
-          if (confirm("Batalkan tagihan ini?")) start(async () => cancelInvoice(invoiceId));
-        }}
+        title={label ? `Batalkan tagihan ${label}?` : "Batalkan tagihan ini?"}
+        message="Tagihan tidak bisa dibayar lagi. Kalau siswa masih mau ikut, buat tagihan baru."
+        confirmLabel="Ya, batalkan tagihan"
+        onConfirm={() => start(async () => cancelInvoice(invoiceId))}
       >
         Batalkan
-      </button>
+      </ConfirmButton>
       {state.error && <span className="text-xs text-red-700">{state.error}</span>}
     </div>
   );

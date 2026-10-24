@@ -2,6 +2,7 @@ import { setRole } from "@/app/admin/tim/actions";
 import { PasswordLinkButton, StaffForm } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { requireAdmin, requireDb } from "@/lib/auth";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 
 export const metadata = { title: "Tim" };
 
@@ -51,7 +52,24 @@ export default async function TeamPage() {
                         <div className="flex flex-wrap gap-1">
                           {roles.map((r) => (
                             <form key={r} action={setRole.bind(null, p.id, r)}>
-                              <button className={`rounded px-2 py-0.5 text-xs ${p.role === r ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700 hover:bg-stone-200"}`}>{r}</button>
+                              {p.role === r ? (
+                                <span className="inline-block rounded bg-stone-900 px-2 py-0.5 text-xs text-white">{r}</span>
+                              ) : (
+                                <ConfirmButton
+                                  className="rounded bg-stone-100 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-200"
+                                  title={`Ubah peran ${p.full_name} jadi ${r}?`}
+                                  message={
+                                    r === "siswa"
+                                      ? `${p.full_name} dikeluarkan dari tim dan kehilangan akses ke dashboard admin.`
+                                      : r === "admin"
+                                        ? `${p.full_name} akan bisa melihat dan mengubah semua data, termasuk pembayaran.`
+                                        : `Peran ${p.full_name} berubah dari ${p.role} jadi ${r}.`
+                                  }
+                                  confirmLabel={r === "siswa" ? "Ya, keluarkan dari tim" : `Ya, jadikan ${r}`}
+                                >
+                                  {r}
+                                </ConfirmButton>
+                              )}
                             </form>
                           ))}
                         </div>

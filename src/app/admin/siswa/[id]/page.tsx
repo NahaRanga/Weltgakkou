@@ -108,7 +108,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                                 <td className={tdClass}>
                                   <Badge value={i.status} />
                                 </td>
-                                <td className={tdClass}>{(i.status === "belum" || i.status === "ditolak") && <InvoiceActions invoiceId={i.id} />}</td>
+                                <td className={tdClass}>{(i.status === "belum" || i.status === "ditolak") && <InvoiceActions invoiceId={i.id} label={`${i.code} (${formatRupiah(i.amount)})`} />}</td>
                               </tr>
                             ))}
                         </tbody>

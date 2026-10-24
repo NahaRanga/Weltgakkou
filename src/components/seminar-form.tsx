@@ -7,7 +7,7 @@ import { registerSeminar, type SeminarState } from "@/app/(site)/seminar/actions
 
 const initial: SeminarState = { status: "idle" };
 
-export type SeminarOption = { id: string; when: string; full: boolean };
+export type SeminarOption = { id: string; when: string; trialWhen: string | null; full: boolean };
 
 export function SeminarForm({
   seminars,
@@ -29,16 +29,21 @@ export function SeminarForm({
     return (
       <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-6 text-emerald-950" role="status">
         <p className="text-lg font-bold">{state.message}</p>
-        {state.when && <p className="mt-2 font-semibold text-red-700">{state.when} · Zoom</p>}
+        {state.when && (
+          <ul className="mt-2 space-y-0.5 font-semibold text-red-700">
+            <li>Seminar: {state.when}</li>
+            {state.trialWhen && <li>Kelas trial: {state.trialWhen}</li>}
+          </ul>
+        )}
         <p className="mt-3 text-stone-700">
-          Link Zoom dikirim admin lewat WhatsApp H-1 dan 1 jam sebelum mulai. Simpan nomor admin supaya link-nya bisa langsung diklik.
+          Semua lewat Zoom. Link-nya dikirim admin lewat WhatsApp sebelum acara, jadi simpan nomor admin supaya link bisa langsung diklik.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          {state.calendarUrl && (
-            <a href={state.calendarUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-red-700 px-4 py-2.5 font-semibold text-white hover:bg-red-800">
-              Simpan ke Google Calendar
+          {state.calendars?.map((c) => (
+            <a key={c.label} href={c.url} target="_blank" rel="noreferrer" className="rounded-lg bg-red-700 px-4 py-2.5 font-semibold text-white hover:bg-red-800">
+              Simpan {c.label.toLowerCase()} ke Google Calendar
             </a>
-          )}
+          ))}
           <a href={adminWa} target="_blank" rel="noreferrer" className="rounded-lg border border-emerald-700 px-4 py-2.5 font-semibold text-emerald-800 hover:bg-emerald-100">
             Chat admin di WhatsApp
           </a>
@@ -64,7 +69,10 @@ export function SeminarForm({
               className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 ${s.full ? "border-stone-200 bg-stone-50 text-stone-400" : "cursor-pointer border-stone-200 bg-white has-[:checked]:border-red-700 has-[:checked]:bg-red-50"}`}
             >
               <input type="radio" name="seminar_id" value={s.id} defaultChecked={(v.seminar_id || firstOpen) === s.id} disabled={s.full} className="accent-red-700" />
-              <span className="font-semibold text-stone-900">{s.when}</span>
+              <span>
+                <span className="block font-semibold text-stone-900">Seminar: {s.when}</span>
+                {s.trialWhen && <span className="block text-sm text-stone-600">+ Kelas trial: {s.trialWhen}</span>}
+              </span>
               {s.full && <span className="ml-auto text-xs font-bold uppercase">Penuh</span>}
             </label>
           ))}
@@ -122,7 +130,7 @@ export function SeminarForm({
       </div>
 
       <button type="submit" disabled={pending} className="w-full rounded-xl bg-red-700 px-4 py-3.5 text-lg font-bold text-white hover:bg-red-800 disabled:opacity-60">
-        {pending ? "Mengirim..." : "Daftar seminar gratis"}
+        {pending ? "Mengirim..." : seminars.some((s) => s.trialWhen) ? "Daftar seminar + trial gratis" : "Daftar seminar gratis"}
       </button>
     </form>
   );

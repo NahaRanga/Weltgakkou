@@ -5,13 +5,13 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { SeminarForm } from "@/components/seminar-form";
 import { withBase } from "@/lib/base-path";
-import { goals, seminarWhen, upcomingSeminars } from "@/lib/seminars";
+import { goals, seminarWhen, trialWhen, upcomingSeminars } from "@/lib/seminars";
 import { pageMetadata } from "@/lib/seo";
 import { waLink } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
   title: "Seminar gratis Mengenal Jepang Lebih Dekat",
-  description: "Seminar online gratis lewat Zoom: jalur kerja dan kuliah ke Jepang, syarat bahasa, budaya, plus mini pelajaran bahasa Jepang.",
+  description: "Seminar online gratis lewat Zoom lanjut kelas trial bahasa Jepang besoknya: jalur kerja dan kuliah ke Jepang, syarat bahasa, budaya. Sekali daftar.",
   path: "/seminar",
   image: { src: "/images/jalur-ke-jepang.jpg", alt: "Ilustrasi jalur berangkat ke Jepang" },
 });
@@ -22,6 +22,7 @@ const agenda = [
   { title: "Budaya dan kehidupan", body: "Kebiasaan kerja, sopan santun, dan hal kecil yang bikin kaget orang baru." },
   { title: "Mini pelajaran", body: "Salam dan perkenalan diri pertama kamu dalam bahasa Jepang." },
   { title: "Tanya jawab", body: "Tanya langsung apa pun soal Jepang dan belajar bahasanya." },
+  { title: "Besoknya: kelas trial", body: "Satu kelas live bareng sensei: hiragana pertama, angka, dan perkenalan diri. Sekali daftar, langsung dapat dua-duanya." },
 ];
 
 export default function SeminarPage() {
@@ -33,7 +34,7 @@ export default function SeminarPage() {
             <span className="inline-block rounded-full bg-amber-400 px-3 py-1 text-xs font-bold uppercase tracking-wide text-stone-900">Seminar gratis</span>
             <h1 className="mt-3 text-4xl font-bold tracking-tight text-stone-900">Mengenal Jepang Lebih Dekat</h1>
             <p className="mt-3 text-lg text-stone-600">
-              Seminar online lewat Zoom buat kamu yang penasaran kerja, kuliah, atau sekadar belajar bahasa Jepang. Gratis, cukup daftar pakai nomor WhatsApp.
+              Seminar online lewat Zoom buat kamu yang penasaran kerja, kuliah, atau sekadar belajar bahasa Jepang, lanjut kelas trial gratis besoknya. Satu kali daftar pakai nomor WhatsApp.
             </p>
             <ul className="mt-6 space-y-3">
               {agenda.map((a) => (
@@ -94,8 +95,8 @@ async function SeminarSchedule() {
   return (
     <>
       <h2 className="text-2xl font-bold text-stone-900">Daftar seminar</h2>
-      <p className="mb-6 mt-1 text-stone-600">Isi sekali, link Zoom dan pengingat dikirim lewat WhatsApp.</p>
-      <SeminarForm seminars={seminars.map((s) => ({ id: s.id, when: seminarWhen(s), full: s.full }))} goals={goals} adminWa={adminWa} />
+      <p className="mb-6 mt-1 text-stone-600">Isi sekali untuk seminar dan kelas trial-nya. Link Zoom dan pengingat dikirim lewat WhatsApp.</p>
+      <SeminarForm seminars={seminars.map((s) => ({ id: s.id, when: seminarWhen(s), trialWhen: trialWhen(s), full: s.full }))} goals={goals} adminWa={adminWa} />
     </>
   );
 }

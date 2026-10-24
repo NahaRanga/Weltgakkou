@@ -5,7 +5,7 @@ import { BannerStripShell } from "@/components/banner-strip-shell";
 import { withBase } from "@/lib/base-path";
 import { openBatches, upcomingTrials, type OpenBatch } from "@/lib/batches";
 import { formatDay, formatTime, requestTime } from "@/lib/format";
-import { seminarWhen, upcomingSeminars } from "@/lib/seminars";
+import { seminarWhen, trialWhen, upcomingSeminars } from "@/lib/seminars";
 
 const DAY = 86400_000;
 
@@ -160,8 +160,11 @@ export async function SeminarBanner() {
         <div>
           <span className="inline-block rounded-full bg-red-700 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">Seminar gratis</span>
           <h2 className="mt-3 text-2xl font-bold text-stone-900">{seminar.title}</h2>
-          <p className="mt-1 text-lg font-semibold text-red-700">{seminarWhen(seminar)}</p>
-          <p className="mt-1 text-stone-700">Jalur kerja dan kuliah ke Jepang, syarat bahasa, budaya, plus mini pelajaran. Online lewat Zoom.</p>
+          <p className="mt-1 text-lg font-semibold text-red-700">Seminar: {seminarWhen(seminar)}</p>
+          {trialWhen(seminar) && <p className="font-semibold text-red-700">+ Kelas trial: {trialWhen(seminar)}</p>}
+          <p className="mt-1 text-stone-700">
+            Jalur kerja dan kuliah ke Jepang, syarat bahasa, budaya{trialWhen(seminar) ? ", lanjut kelas trial bareng sensei. Sekali daftar untuk dua-duanya" : ", plus mini pelajaran"}. Online lewat Zoom.
+          </p>
         </div>
         <Link href="/seminar" className="shrink-0 rounded-xl bg-red-700 px-6 py-4 text-center text-lg font-bold text-white shadow-sm hover:bg-red-800">
           Daftar seminar

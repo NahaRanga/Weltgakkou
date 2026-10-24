@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { formatDay, formatTime, requestTime } from "@/lib/format";
 
+// Satu rangkaian acara: seminar (Sabtu) + kelas trial gratis (biasanya Minggu besoknya).
+// Kolom trial_* dari migrasi 0012; sebelum migrasi itu jalan nilainya undefined dan trial tidak ditampilkan.
 export type Seminar = {
   id: string;
   title: string;
@@ -10,6 +12,9 @@ export type Seminar = {
   meeting_url: string | null;
   quota: number | null;
   is_open: boolean;
+  trial_starts_at?: string | null;
+  trial_duration_minutes?: number;
+  trial_meeting_url?: string | null;
 };
 
 export type OpenSeminar = Seminar & { registered: number; full: boolean };
@@ -20,7 +25,7 @@ export async function upcomingSeminars(db: SupabaseClient | null = getSupabaseAd
   if (!db) return [];
   const { data, error } = await db
     .from("seminars")
-    .select("id, title, starts_at, duration_minutes, meeting_url, quota, is_open")
+    .select("*")
     .eq("is_open", true)
     .gt("starts_at", new Date(requestTime()).toISOString())
     .order("starts_at");
@@ -39,20 +44,33 @@ export async function upcomingSeminars(db: SupabaseClient | null = getSupabaseAd
   });
 }
 
-export const seminarWhen = (s: Pick<Seminar, "starts_at">) => `${formatDay(s.starts_at)}, ${formatTime(s.starts_at)} WIB`;
+const when = (iso: string) => `${formatDay(iso)}, ${formatTime(iso)} WIB`;
+export const seminarWhen = (s: Pick<Seminar, "starts_at">) => when(s.starts_at);
+export const trialWhen = (s: Pick<Seminar, "trial_starts_at">) => (s.trial_starts_at ? when(s.trial_starts_at) : null);
+// Link Zoom trial; kalau kosong pakai link seminar.
+export const trialZoom = (s: Seminar) => s.trial_meeting_url || s.meeting_url;
 
 // Link "Simpan ke Google Calendar" untuk peserta.
-export function calendarLink(s: Pick<Seminar, "title" | "starts_at" | "duration_minutes">) {
+function calendarUrl(text: string, startIso: string, minutes: number, details: string) {
   const fmt = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const start = new Date(s.starts_at).getTime();
+  const start = new Date(startIso).getTime();
   const params = new URLSearchParams({
     action: "TEMPLATE",
-    text: `Seminar gratis Weltgakko: ${s.title}`,
-    dates: `${fmt(start)}/${fmt(start + s.duration_minutes * 60_000)}`,
-    details: "Seminar online lewat Zoom. Link Zoom dikirim admin Weltgakko lewat WhatsApp H-1 dan 1 jam sebelum mulai.",
+    text,
+    dates: `${fmt(start)}/${fmt(start + minutes * 60_000)}`,
+    details,
     location: "Zoom",
   });
   return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+export function calendarLinks(s: Seminar) {
+  const details = "Online lewat Zoom. Link Zoom dikirim admin Weltgakko lewat WhatsApp sebelum acara.";
+  const links = [{ label: "Seminar", url: calendarUrl(`Seminar gratis Weltgakko: ${s.title}`, s.starts_at, s.duration_minutes, details) }];
+  if (s.trial_starts_at) {
+    links.push({ label: "Kelas trial", url: calendarUrl("Kelas trial bahasa Jepang gratis Weltgakko", s.trial_starts_at, s.trial_duration_minutes ?? 60, details) });
+  }
+  return links;
 }
 
 export const goals = [
@@ -65,10 +83,12 @@ export const goals = [
 export const goalLabel = (v: string | null) => goals.find((g) => g.value === v)?.label ?? v ?? "";
 
 // Jenis pesan WA yang dikirim admin, berikut kolom penanda "sudah dikirim".
+// `trial` hanya dipakai bila seminar punya jadwal trial.
 export const reminderKinds = {
   konfirmasi: { label: "Konfirmasi", column: "confirmed_at" },
   h1: { label: "H-1", column: "reminded_h1_at" },
   h0: { label: "1 jam lagi", column: "reminded_h0_at" },
+  trial: { label: "Trial", column: "trial_reminded_at" },
   followup: { label: "Follow-up", column: "followed_up_at" },
 } as const;
 export type ReminderKind = keyof typeof reminderKinds;
@@ -79,16 +99,18 @@ export function seminarMessage(kind: ReminderKind, s: Seminar, opts: { name?: st
   const zoom = s.meeting_url ?? "[link Zoom]";
   const day = formatDay(s.starts_at);
   const time = `${formatTime(s.starts_at)} WIB`;
+  const trial = trialWhen(s);
+  const event = trial ? `seminar gratis "${s.title}" + kelas trial` : `seminar gratis "${s.title}"`;
   switch (kind) {
     case "konfirmasi":
       return [
-        `${hi}, terima kasih sudah daftar seminar gratis "${s.title}" dari Weltgakko.`,
+        `${hi}, terima kasih sudah daftar ${event} dari Weltgakko.`,
         "",
-        `Jadwal: ${day}`,
-        `Jam: ${time}`,
-        "Tempat: Zoom (online)",
+        `1. Seminar: ${day}, ${time}`,
+        ...(trial ? [`2. Kelas trial bahasa Jepang: ${trial}`] : []),
+        "Semuanya lewat Zoom (online), gratis.",
         "",
-        "Link Zoom kami kirim lewat chat ini H-1 dan 1 jam sebelum mulai. Simpan nomor ini ya, biar link-nya bisa langsung diklik. Sampai ketemu!",
+        "Link Zoom kami kirim lewat chat ini sebelum acara. Simpan nomor ini ya, biar link-nya bisa langsung diklik. Sampai ketemu!",
       ].join("\n");
     case "h1":
       return [
@@ -96,6 +118,7 @@ export function seminarMessage(kind: ReminderKind, s: Seminar, opts: { name?: st
         "",
         `${day}, ${time}`,
         `Link Zoom: ${zoom}`,
+        ...(trial ? ["", `Lanjut kelas trial bahasa Jepang: ${trial} (link dikirim pagi harinya).`] : []),
         "",
         "Ruang Zoom dibuka 10 menit sebelum mulai. Siapkan pertanyaan seputar Jepang yang mau kamu tanyakan ya!",
       ].join("\n");
@@ -107,18 +130,26 @@ export function seminarMessage(kind: ReminderKind, s: Seminar, opts: { name?: st
         "",
         "Pakai nama asli di Zoom biar gampang kami absen. Sampai ketemu sebentar lagi!",
       ].join("\n");
+    case "trial":
+      return [
+        `${hi}, hari ini kelas trial bahasa Jepang gratis dari Weltgakko, lanjutan seminar kemarin.`,
+        "",
+        `Jam: ${trial ?? "[jam trial]"}`,
+        `Link Zoom: ${trialZoom(s) ?? "[link Zoom]"}`,
+        "",
+        "Siapkan buku dan pulpen ya, kita belajar hiragana pertama dan perkenalan diri bareng sensei.",
+      ].join("\n");
     case "followup":
       return opts.attended === false
         ? [
-            `${hi}, kemarin belum sempat ikut seminar "${s.title}" ya? Nggak apa-apa.`,
+            `${hi}, kemarin belum sempat ikut acara Weltgakko ya? Nggak apa-apa.`,
             "",
             "Kamu tetap bisa coba kelas trial bahasa Jepang gratis lewat Zoom: https://weltgakko.com/trial",
             "Atau balas chat ini kalau mau dikabari jadwal seminar berikutnya.",
           ].join("\n")
         : [
-            `${hi}, terima kasih sudah ikut seminar "${s.title}" bareng Weltgakko!`,
+            `${hi}, terima kasih sudah ikut ${event} bareng Weltgakko!`,
             "",
-            "Kalau mau langsung coba belajar, ada kelas trial gratis lewat Zoom: https://weltgakko.com/trial",
             "Batch 1 JLPT N5 mulai Senin, 16 November 2026. Info dan daftar: https://weltgakko.com/program/jlpt-n5",
             "",
             "Ada yang mau ditanyakan? Balas aja chat ini.",

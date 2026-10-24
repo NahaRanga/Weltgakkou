@@ -2,16 +2,17 @@
 
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { calendarLink, goals, seminarWhen, upcomingSeminars } from "@/lib/seminars";
+import { calendarLinks, goals, seminarWhen, trialWhen, upcomingSeminars } from "@/lib/seminars";
 
 export type SeminarState = {
   status: "idle" | "ok" | "error";
   message?: string;
   fieldErrors?: Partial<Record<"seminar_id" | "full_name" | "whatsapp" | "email", string>>;
   values?: Record<string, string>;
-  // Diisi saat berhasil, untuk tombol simpan ke kalender.
+  // Diisi saat berhasil: jadwal seminar (+ trial) dan tombol simpan ke kalender.
   when?: string;
-  calendarUrl?: string;
+  trialWhen?: string | null;
+  calendars?: { label: string; url: string }[];
 };
 
 const fields = ["seminar_id", "full_name", "whatsapp", "email", "city", "goal", "source", "question"] as const;
@@ -70,16 +71,20 @@ export async function registerSeminar(_prev: SeminarState, formData: FormData): 
   const ok: SeminarState = {
     status: "ok",
     when: seminarWhen(seminar),
-    calendarUrl: calendarLink(seminar),
+    trialWhen: trialWhen(seminar),
+    calendars: calendarLinks(seminar),
   };
 
   const { error } = await db.from("seminar_registrations").insert(row);
   if (error?.code === "23505") {
-    return { ...ok, message: `Nomor ini sudah terdaftar di seminar ${seminar.title}. Sampai ketemu!` };
+    return { ...ok, message: `Nomor ini sudah terdaftar di acara ${seminar.title}. Sampai ketemu!` };
   }
   if (error) {
     console.error("Gagal menyimpan pendaftar seminar", error);
     return { status: "error", message: gangguan, values };
   }
-  return { ...ok, message: `Terima kasih, ${row.full_name.split(" ")[0]}! Kamu terdaftar di seminar gratis ${seminar.title}.` };
+  return {
+    ...ok,
+    message: `Terima kasih, ${row.full_name.split(" ")[0]}! Kamu terdaftar di seminar gratis ${seminar.title}${ok.trialWhen ? " sekaligus kelas trial-nya" : ""}.`,
+  };
 }

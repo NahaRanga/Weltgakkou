@@ -1,7 +1,7 @@
 import { BarList, ColumnChart } from "@/components/admin/charts";
 import { Card, PageTitle, smallButton, Stat } from "@/components/admin/ui";
 import { inputClass } from "@/components/ui/form";
-import { requireAdmin, requireDb } from "@/lib/auth";
+import { requireFinance, requireDb } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { formatDate, requestTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
@@ -14,7 +14,7 @@ type EnrollmentRow = { created_at: string; status: string; batches: { programs: 
 const sourceLabels: Record<string, string> = { tiktok: "TikTok", instagram: "Instagram", whatsapp: "WhatsApp", teman: "Teman", seminar: "Seminar" };
 
 export default async function ReportPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await requireAdmin();
+  await requireFinance();
   const range = reportRange(await searchParams, requestTime());
   const db = requireDb();
 

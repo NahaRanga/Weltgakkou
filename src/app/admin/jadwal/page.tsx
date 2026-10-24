@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, PageTitle, seriesColors, smallButton, Stat } from "@/components/admin/ui";
-import { requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
 import { requestTime } from "@/lib/format";
 import { MonthCalendar, MonthNav, monthTitle, resolveMonth, timeLabel } from "@/components/month-calendar";
 
@@ -27,7 +27,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     .gte("starts_at", new Date(cal.start).toISOString())
     .lt("starts_at", new Date(cal.end).toISOString())
     .order("starts_at");
-  if (user.role !== "admin") query = query.eq("batches.teacher_id", user.id);
+  if (!isAdminRole(user.role)) query = query.eq("batches.teacher_id", user.id);
 
   const [sessionsRes, programsRes] = await Promise.all([query, db.from("programs").select("id, name").order("created_at")]);
   const sessions = (sessionsRes.data ?? []) as unknown as SessionRow[];
@@ -58,7 +58,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     <>
       <PageTitle
         title="Jadwal"
-        subtitle={user.role === "admin" ? "Semua sesi kelas dan ujian." : "Sesi kelas dan ujian yang kamu ajar."}
+        subtitle={isAdminRole(user.role) ? "Semua sesi kelas dan ujian." : "Sesi kelas dan ujian yang kamu ajar."}
         action={
           <MonthNav cal={cal} path="/admin/jadwal" buttonClass={smallButton} />
         }

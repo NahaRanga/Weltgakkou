@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdminRole } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { RECORDING_COUNTS_AS_PRESENT } from "@/lib/recordings";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/belajar/reka
     .eq("batch_id", session.batch_id)
     .in("status", ["aktif", "selesai"])
     .maybeSingle();
-  const isStaff = user.role === "admin" || user.role === "pengajar";
+  const isStaff = isAdminRole(user.role) || user.role === "pengajar";
   if (!enrollment && !isStaff) return back();
 
   const started = new Date(session.starts_at).getTime() <= Date.now();

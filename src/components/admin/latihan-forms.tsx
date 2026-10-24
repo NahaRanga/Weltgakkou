@@ -3,6 +3,7 @@
 import { useActionState, useTransition } from "react";
 import { addQuestion, createQuiz, deleteQuestion, importQuestions, setTrialAttended, updateQuiz } from "@/app/admin/latihan/actions";
 import type { FormState } from "@/app/admin/types";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 import { smallButton } from "@/components/admin/ui";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 import { sectionLabels, sections } from "@/lib/quiz";
@@ -163,9 +164,16 @@ export function ImportForm({ quizId, hasSamples }: { quizId: string; hasSamples:
 export function DeleteQuestionButton({ questionId }: { questionId: string }) {
   const [pending, start] = useTransition();
   return (
-    <button onClick={() => start(() => deleteQuestion(questionId))} disabled={pending} className="text-sm font-medium text-red-700 hover:underline disabled:opacity-60">
+    <ConfirmButton
+      onConfirm={() => start(() => deleteQuestion(questionId))}
+      disabled={pending}
+      className="text-sm font-medium text-red-700 hover:underline disabled:opacity-60"
+      title="Hapus soal ini?"
+      message="Soal dihapus dari tes ini dan tidak bisa dikembalikan."
+      confirmLabel="Ya, hapus soal"
+    >
       {pending ? "Menghapus..." : "Hapus"}
-    </button>
+    </ConfirmButton>
   );
 }
 

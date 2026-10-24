@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdminRole } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { withBase } from "@/lib/base-path";
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/belajar/masu
     .eq("batch_id", session.batch_id)
     .eq("status", "aktif")
     .maybeSingle();
-  const isStaff = user.role === "admin" || user.role === "pengajar";
+  const isStaff = isAdminRole(user.role) || user.role === "pengajar";
   if (!enrollment && !isStaff) return NextResponse.redirect(new URL(withBase("/belajar"), request.url));
 
   const url = session.meeting_url ?? (session.batches as unknown as { meeting_url: string | null }).meeting_url;

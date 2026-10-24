@@ -63,12 +63,12 @@ export async function signInWithCode(_prev: CodeState, formData: FormData): Prom
   return { redirectTo: await destination(formData.get("next"), data.user.id) };
 }
 
-// Admin dan pengajar yang login tanpa tujuan khusus langsung dibawa ke dashboard.
+// Staf (admin, admin utama, finance, pengajar) yang login tanpa tujuan khusus langsung dibawa ke dashboard.
 async function destination(rawNext: FormDataEntryValue | null, userId: string) {
   const next = safeNext(rawNext);
   if (next !== "/belajar") return next;
   const { data: profile } = (await getSupabaseAdmin()?.from("profiles").select("role").eq("id", userId).maybeSingle()) ?? { data: null };
-  return profile?.role === "admin" || profile?.role === "pengajar" ? "/admin" : next;
+  return ["admin", "admin_utama", "finance", "pengajar"].includes(profile?.role ?? "") ? "/admin" : next;
 }
 
 export async function signOut() {

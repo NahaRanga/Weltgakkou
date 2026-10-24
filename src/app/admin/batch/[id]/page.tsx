@@ -30,8 +30,9 @@ import {
   ParticipantDetails,
   type ParticipantProfile,
 } from "@/components/admin/participant";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 import { inputClass } from "@/components/ui/form";
-import { requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { formatDate, formatDateTime, requestTime, siteUrl } from "@/lib/format";
 
@@ -79,7 +80,7 @@ export default async function BatchDetailPage({
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const user = await requireStaff();
-  const isAdmin = user.role === "admin";
+  const isAdmin = isAdminRole(user.role);
   const db = requireDb();
 
   const { data } = await db
@@ -133,7 +134,7 @@ export default async function BatchDetailPage({
       db
         .from("profiles")
         .select("id, full_name")
-        .in("role", ["pengajar", "admin"])
+        .in("role", ["pengajar", "admin", "admin_utama"])
         .order("full_name"),
     ]);
 
@@ -224,7 +225,21 @@ export default async function BatchDetailPage({
               .filter((s) => s !== batch.status)
               .map((s) => (
                 <form key={s} action={setBatchStatus.bind(null, batch.id, s)}>
-                  <button className={smallButton}>Tandai {s}</button>
+                  <ConfirmButton
+                    className={smallButton}
+                    danger={s === "selesai"}
+                    title={`Tandai batch "${batch.name}" ${s}?`}
+                    message={
+                      s === "selesai"
+                        ? "Batch dianggap sudah tamat. Pastikan semua pertemuan memang sudah selesai."
+                        : s === "buka"
+                          ? "Batch akan tampil lagi di situs dan bisa didaftar calon siswa."
+                          : "Pendaftaran batch ini ditutup dan kelas dianggap sedang berjalan."
+                    }
+                    confirmLabel={`Ya, tandai ${s}`}
+                  >
+                    Tandai {s}
+                  </ConfirmButton>
                 </form>
               ))}
           </div>
@@ -370,9 +385,15 @@ export default async function BatchDetailPage({
                                 "selesai",
                               )}
                             >
-                              <button className="text-xs text-stone-600 hover:underline">
+                              <ConfirmButton
+                                className="text-xs text-stone-600 hover:underline"
+                                danger={false}
+                                title={`Tandai ${e.profiles.full_name} lulus/selesai?`}
+                                message={`Siswa ini dianggap sudah menyelesaikan ${batch.name}.`}
+                                confirmLabel="Ya, tandai selesai"
+                              >
                                 Lulus/selesai
-                              </button>
+                              </ConfirmButton>
                             </form>
                           )}
                           {e.status === "selesai" && (
@@ -395,9 +416,20 @@ export default async function BatchDetailPage({
                               "keluar",
                             )}
                           >
-                            <button className="text-xs text-red-700 hover:underline">
+                            <ConfirmButton
+                              className="text-xs text-red-700 hover:underline"
+                              title={`Keluarkan ${e.profiles.full_name}?`}
+                              message={
+                                <>
+                                  <span className="font-semibold">{e.profiles.full_name}</span> akan dikeluarkan dari{" "}
+                                  <span className="font-semibold">{batch.programs.name} · {batch.name}</span> dan tidak bisa masuk kelas lagi.
+                                  Refund (bila ada) tetap diurus manual.
+                                </>
+                              }
+                              confirmLabel="Ya, keluarkan"
+                            >
                               Keluarkan
-                            </button>
+                            </ConfirmButton>
                           </form>
                         </div>
                       </td>
@@ -618,9 +650,14 @@ export default async function BatchDetailPage({
                   </span>
                   {(isAdmin || session) && (
                   <form action={deleteMaterial.bind(null, m.id)}>
-                    <button className="text-xs text-stone-500 hover:text-red-700">
+                    <ConfirmButton
+                      className="text-xs text-stone-500 hover:text-red-700"
+                      title="Hapus materi ini?"
+                      message={`"${m.title}" akan dihapus dan tidak bisa dibuka siswa lagi.`}
+                      confirmLabel="Ya, hapus"
+                    >
                       Hapus
-                    </button>
+                    </ConfirmButton>
                   </form>
                   )}
                 </li>

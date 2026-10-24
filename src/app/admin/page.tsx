@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ColumnChart } from "@/components/admin/charts";
 import { Badge, Card, Empty, PageTitle, Stat, WaLink } from "@/components/admin/ui";
-import { requireDb, requireStaff, type CurrentUser } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff, type CurrentUser } from "@/lib/auth";
 import { formatDateTime, requestTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 
@@ -27,7 +27,7 @@ type DueRow = { id: string; code: string; amount: number; due_at: string; instal
 
 export default async function AdminOverview() {
   const user = await requireStaff();
-  if (user.role !== "admin") return <TeacherDashboard user={user} />;
+  if (!isAdminRole(user.role)) return <TeacherDashboard user={user} />;
   const db = requireDb();
   const [start, end] = todayRangeIso();
   const in3days = new Date(requestTime() + 3 * 86400_000).toISOString();

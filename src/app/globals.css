@@ -3,6 +3,11 @@
 @theme inline {
   --font-sans: var(--font-noto-sans);
   --font-jp: var(--font-noto-jp);
+  /* Warna brand Weltgakko (logo): merah bata + krem, dipakai dashboard admin. */
+  --color-brand: #9b2416;
+  --color-brand-dark: #741a0f;
+  --color-cream: #f8efe2;
+  --color-sand: #ead8c0;
 }
 
 body {

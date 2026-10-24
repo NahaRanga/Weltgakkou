@@ -242,9 +242,9 @@ async function HistoryTab() {
   return (
     <>
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat label="Pemasukan bulan ini" value={formatRupiah(thisMonth)} />
-        <Stat label="Bulan lalu" value={formatRupiah(lastMonth)} />
-        <Stat label="12 bulan terakhir" value={formatRupiah(total)} />
+        <Stat label="Pemasukan bulan ini" value={formatRupiah(thisMonth)} tone="hijau" />
+        <Stat label="Bulan lalu" value={formatRupiah(lastMonth)} tone="biru" />
+        <Stat label="12 bulan terakhir" value={formatRupiah(total)} tone="ungu" />
       </div>
       <Card title="Pemasukan per bulan">
         <ColumnChart data={months} format={(v) => formatRupiah(v)} />

@@ -34,11 +34,11 @@ export default async function AdminOverview() {
 
   const [paidRes, activeRes, waitingRes, proofsRes, leadsRes, batchesRes, todayRes, recentRes, dueRes] = await Promise.all([
     db.from("invoices").select("amount, paid_at").eq("status", "lunas").gte("paid_at", monthStartIso(-5)),
-    db.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "aktif"),
-    db.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "menunggu_bayar"),
+    db.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "aktif").eq("is_test", false),
+    db.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "menunggu_bayar").eq("is_test", false),
     db.from("invoices").select("id", { count: "exact", head: true }).eq("status", "menunggu_verifikasi"),
     db.from("leads").select("id", { count: "exact", head: true }).eq("status", "baru"),
-    db.from("batches").select("id, name, status, quota, start_date, programs(name), enrollments(status)").eq("mode", "live").neq("status", "selesai").order("start_date"),
+    db.from("batches").select("id, name, status, quota, start_date, programs(name), enrollments(status)").eq("enrollments.is_test", false).eq("mode", "live").neq("status", "selesai").order("start_date"),
     db.from("sessions").select("id, number, starts_at, kind, topic, batches!inner(id, name, status, programs(name))").gte("starts_at", start).lt("starts_at", end).neq("batches.status", "selesai").order("starts_at"),
     db.from("enrollments").select("id, status, created_at, profiles(full_name, whatsapp), batches(id, name, programs(name))").order("created_at", { ascending: false }).limit(6),
     db.from("invoices").select("id, code, amount, due_at, installment_no, enrollments(profiles(full_name, whatsapp))").eq("status", "belum").lte("due_at", in3days).order("due_at").limit(8),
@@ -186,7 +186,7 @@ async function TeacherDashboard({ user }: { user: CurrentUser }) {
   const db = requireDb();
   const in7days = new Date(requestTime() + 7 * 86400_000).toISOString();
   const [batchesRes, upcomingRes] = await Promise.all([
-    db.from("batches").select("id, name, status, quota, start_date, programs(name), enrollments(status)").eq("mode", "live").eq("teacher_id", user.id).neq("status", "selesai").order("start_date"),
+    db.from("batches").select("id, name, status, quota, start_date, programs(name), enrollments(status)").eq("enrollments.is_test", false).eq("mode", "live").eq("teacher_id", user.id).neq("status", "selesai").order("start_date"),
     db
       .from("sessions")
       .select("id, number, starts_at, kind, topic, batches!inner(id, name, teacher_id, programs(name))")

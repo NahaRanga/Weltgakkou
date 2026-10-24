@@ -28,7 +28,7 @@ type BatchRow = {
   is_trial?: boolean;
   registration_deadline?: string | null;
   programs: { slug: string; name: string } | null;
-  enrollments: { status: string }[];
+  enrollments: { status: string; is_test?: boolean }[];
   sessions: { starts_at: string }[];
 };
 
@@ -52,7 +52,7 @@ const listOpen = cache(async (): Promise<OpenBatch[]> => {
   if (!db) return [];
   const { data, error } = await db
     .from("batches")
-    .select("*, programs(slug, name), enrollments(status), sessions(starts_at)")
+    .select("*, programs(slug, name), enrollments(status, is_test), sessions(starts_at)")
     .eq("mode", "live")
     .eq("status", "buka")
     .order("start_date")
@@ -65,7 +65,8 @@ const listOpen = cache(async (): Promise<OpenBatch[]> => {
     const firstSession = b.sessions[0]?.starts_at ?? null;
     const deadline = registrationDeadline({ ...b, firstSession });
     if (deadline.getTime() < now || !b.programs) return [];
-    const taken = b.enrollments.filter((e) => e.status === "menunggu_bayar" || e.status === "aktif").length;
+    // Akun test (enrollments.is_test) tidak memakan kursi.
+    const taken = b.enrollments.filter((e) => !e.is_test && (e.status === "menunggu_bayar" || e.status === "aktif")).length;
     return [
       {
         id: b.id,

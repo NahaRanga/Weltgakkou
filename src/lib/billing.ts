@@ -58,6 +58,7 @@ export async function seatsTaken(db: SupabaseClient, batchId: string) {
     .from("enrollments")
     .select("id", { count: "exact", head: true })
     .eq("batch_id", batchId)
-    .in("status", ["menunggu_bayar", "aktif"]);
+    .in("status", ["menunggu_bayar", "aktif"])
+    .eq("is_test", false);
   return count ?? 0;
 }

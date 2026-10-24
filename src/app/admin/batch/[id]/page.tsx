@@ -42,6 +42,8 @@ type Enrollment = {
   status: string;
   plan: string;
   profile_id: string;
+  // Kolom dari migrasi 0009; akun test tidak dihitung di angka aktif/menunggu.
+  is_test?: boolean;
   profiles: ParticipantProfile;
   invoices: { installment_no: number; status: string }[];
 };
@@ -86,7 +88,7 @@ export default async function BatchDetailPage({
     .from("batches")
     .select(
       // "*" supaya kolom baru (is_trial, registration_deadline) ikut bila migrasinya sudah jalan.
-      "*, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), enrollments(id, status, plan, profile_id, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
+      "*, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), enrollments(*, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -199,9 +201,9 @@ export default async function BatchDetailPage({
     : sessions.length;
   const windowStart = Math.max(0, nextIndex - 3);
   const windowEnd = Math.min(sessions.length, nextIndex + 6);
-  const active = enrollments.filter((e) => e.status === "aktif").length;
+  const active = enrollments.filter((e) => !e.is_test && e.status === "aktif").length;
   const waiting = enrollments.filter(
-    (e) => e.status === "menunggu_bayar",
+    (e) => !e.is_test && e.status === "menunggu_bayar",
   ).length;
   const registerUrl = `${siteUrl()}/daftar/${batch.id}`;
 
@@ -320,6 +322,11 @@ export default async function BatchDetailPage({
                           </Link>
                         ) : (
                           <span className="font-medium text-stone-900">{e.profiles.full_name}</span>
+                        )}{" "}
+                        {e.is_test && (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                            Akun test
+                          </span>
                         )}{" "}
                         <WaLink number={e.profiles.whatsapp} />
                         <ParticipantDetails p={e.profiles} />

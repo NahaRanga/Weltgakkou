@@ -29,6 +29,7 @@ export function SiteFooter() {
           <FooterLink href="/waiting-list">Daftar / waiting list</FooterLink>
           <FooterLink href="/faq">FAQ</FooterLink>
           <FooterLink href="/refund">Kebijakan refund</FooterLink>
+          <FooterLink href="/privasi">Kebijakan privasi</FooterLink>
         </FooterColumn>
         <FooterColumn title="Info">
           {infoPages.map((p) => (
@@ -60,6 +61,7 @@ export function SiteFooter() {
           <p>© {year} {site.name}. Hak cipta dilindungi.</p>
           <div className="flex gap-4">
             <Link href="/refund" className="hover:text-stone-800">Kebijakan refund</Link>
+            <Link href="/privasi" className="hover:text-stone-800">Privasi</Link>
             <Link href="/kontak" className="hover:text-stone-800">Kontak</Link>
           </div>
         </div>

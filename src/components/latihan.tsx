@@ -48,7 +48,7 @@ export function PracticeLoginForm() {
   );
 }
 
-export function OnboardingForm({ goals, levels, ssw }: { goals: string[]; levels: string[]; ssw: string[] }) {
+export function OnboardingForm({ goals, levels, ssw, askWhatsapp }: { goals: string[]; levels: string[]; ssw: string[]; askWhatsapp?: boolean }) {
   const [state, action, pending] = useActionState(saveOnboarding, {} as ActionResult);
   const select = (name: string, label: string, options: string[]) => (
     <Field label={label}>
@@ -67,6 +67,13 @@ export function OnboardingForm({ goals, levels, ssw }: { goals: string[]; levels
       {state.error && (
         <div className="sm:col-span-2">
           <Notice tone="error">{state.error}</Notice>
+        </div>
+      )}
+      {askWhatsapp && (
+        <div className="sm:col-span-2">
+          <Field label="Nomor WhatsApp (untuk kabar hasil dan jadwal kelas)">
+            <input name="whatsapp" required inputMode="tel" placeholder="081234567890" autoComplete="tel" className={inputClass} />
+          </Field>
         </div>
       )}
       {select("learning_goal", "Tujuan belajar bahasa Jepang", goals)}

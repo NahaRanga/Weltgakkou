@@ -63,10 +63,17 @@ export async function saveOnboarding(_prev: ActionResult, formData: FormData): P
   const parsed = onboardingSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: "Jawab keempat pertanyaan dulu, ya." };
   const { been_to_japan, ...rest } = parsed.data;
+  // Akun dari login Google belum punya nomor WhatsApp: formnya menampilkan kolom WA dan wajib diisi.
+  const extra: { whatsapp?: string } = {};
+  if (formData.has("whatsapp")) {
+    const wa = loginSchema.shape.whatsapp.safeParse(String(formData.get("whatsapp") ?? ""));
+    if (!wa.success) return { error: wa.error.issues[0]?.message ?? "Nomor WhatsApp tidak valid." };
+    extra.whatsapp = wa.data;
+  }
   const db = requireDb();
   await db
     .from("profiles")
-    .update({ ...rest, been_to_japan: been_to_japan === "ya", practice_onboarded_at: new Date().toISOString() })
+    .update({ ...rest, ...extra, been_to_japan: been_to_japan === "ya", practice_onboarded_at: new Date().toISOString() })
     .eq("id", user.id);
   refresh();
   return {};

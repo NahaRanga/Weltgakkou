@@ -116,7 +116,7 @@ export function SiteNav({ account }: { account: Account }) {
             <Link href="/belajar" className={linkClass(pathname.startsWith("/masuk"))}>
               Masuk
             </Link>
-            <Link href="/waiting-list" className="ml-1 rounded-xl bg-red-700 px-4 py-2 font-semibold text-white shadow-sm hover:bg-red-800">
+            <Link href="/daftar" className="ml-1 rounded-xl bg-red-700 px-4 py-2 font-semibold text-white shadow-sm hover:bg-red-800">
               Daftar
             </Link>
           </>
@@ -126,7 +126,7 @@ export function SiteNav({ account }: { account: Account }) {
       {/* HP dan tablet */}
       <div className="flex items-center gap-2 lg:hidden">
         {!account && (
-          <Link href="/waiting-list" className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
+          <Link href="/daftar" className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">
             Daftar
           </Link>
         )}
@@ -176,8 +176,8 @@ export function SiteNav({ account }: { account: Account }) {
                 </>
               ) : (
                 <>
-                  <Link href="/waiting-list" className="rounded-xl bg-red-700 px-4 py-3 text-center font-semibold text-white hover:bg-red-800">
-                    Daftar sekarang
+                  <Link href="/daftar" className="rounded-xl bg-red-700 px-4 py-3 text-center font-semibold text-white hover:bg-red-800">
+                    Daftar akun gratis
                   </Link>
                   <Link href={trialHref} className="rounded-xl border-2 border-red-700 px-4 py-3 text-center font-semibold text-red-700 hover:bg-red-50">
                     Coba kelas gratis

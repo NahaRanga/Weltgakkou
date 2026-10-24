@@ -81,7 +81,7 @@ export default async function PracticePage() {
     );
   }
 
-  const { data: profile } = await db.from("profiles").select("practice_onboarded_at").eq("id", user.id).maybeSingle();
+  const { data: profile } = await db.from("profiles").select("practice_onboarded_at, whatsapp").eq("id", user.id).maybeSingle();
   if (!profile?.practice_onboarded_at && !staff) {
     return (
       <>
@@ -90,7 +90,7 @@ export default async function PracticePage() {
           <div className="rounded-2xl border border-stone-200 bg-white p-6">
             <h2 className="text-xl font-bold text-stone-900">Halo {user.fullName.split(" ")[0]}, 4 pertanyaan singkat dulu</h2>
             <p className="mb-5 mt-1 text-sm text-stone-600">Cukup sekali. Jawabanmu membantu kami menyarankan kelas yang pas.</p>
-            <OnboardingForm goals={goalOptions} levels={levelOptions} ssw={sswOptions} />
+            <OnboardingForm goals={goalOptions} levels={levelOptions} ssw={sswOptions} askWhatsapp={!profile?.whatsapp} />
           </div>
         </div>
       </>

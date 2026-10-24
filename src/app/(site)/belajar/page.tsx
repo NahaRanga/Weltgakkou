@@ -68,6 +68,8 @@ type Enrollment = {
     start_date: string;
     schedule_label: string;
     meeting_url: string | null;
+    // Kosong/undefined = belum diisi (atau migrasi 0010 belum jalan); batches(*) dipakai supaya query tetap aman.
+    whatsapp_group_url?: string | null;
     programs: { id: string; name: string; slug: string };
     teacher: { full_name: string } | null;
     sessions: Session[];
@@ -91,7 +93,7 @@ async function LearnContent({
   const { data, error } = await db
     .from("enrollments")
     .select(
-      "id, status, plan, batch_id, access_until, batches(id, name, mode, start_date, schedule_label, meeting_url, programs(id, name, slug), teacher:profiles!batches_teacher_id_fkey(full_name), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url)), invoices(code, status, amount, installment_no, due_at, reject_reason, paid_at, payment_proofs(uploaded_at))",
+      "id, status, plan, batch_id, access_until, batches(*, programs(id, name, slug), teacher:profiles!batches_teacher_id_fkey(full_name), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url)), invoices(code, status, amount, installment_no, due_at, reject_reason, paid_at, payment_proofs(uploaded_at))",
     )
     .eq("profile_id", user.id)
     .neq("status", "keluar")
@@ -242,6 +244,8 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
           {teacher && <span>· Pengajar: {teacher}</span>}
           <span>· Kelas live lewat Zoom</span>
         </p>
+
+        {batch.whatsapp_group_url && <WhatsappGroupButton href={batch.whatsapp_group_url} />}
 
         {next ? (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-lg bg-stone-50 p-4">
@@ -500,6 +504,26 @@ function ClassCalendar({ enrollments, cal }: { enrollments: Enrollment[]; cal: C
         />
       </div>
     </section>
+  );
+}
+
+// Tombol gabung grup WA batch; hanya dirender untuk enrollment yang sudah lewat verifikasi bayar.
+function WhatsappGroupButton({ href }: { href: string }) {
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
+      <div>
+        <p className="font-semibold text-stone-900">Grup WhatsApp kelas</p>
+        <p className="text-sm text-stone-600">Info jadwal, materi, dan tanya jawab bareng teman sekelas dan sensei.</p>
+      </div>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded-lg bg-green-600 px-5 py-2.5 font-semibold text-white hover:bg-green-700"
+      >
+        Gabung grup WhatsApp
+      </a>
+    </div>
   );
 }
 

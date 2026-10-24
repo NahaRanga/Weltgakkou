@@ -11,6 +11,7 @@ import { setEnrollmentStatus } from "@/app/admin/siswa/actions";
 import {
   BatchEditForm,
   MeetingLinkForm,
+  WhatsappGroupForm,
   InstallmentButton,
   MaterialForm,
 } from "@/components/admin-controls";
@@ -54,6 +55,8 @@ type Batch = {
   quota: number;
   schedule_label: string;
   meeting_url: string | null;
+  // undefined = migrasi 0010 belum dijalankan.
+  whatsapp_group_url?: string | null;
   mode: string;
   teacher_id: string | null;
   is_trial?: boolean;
@@ -264,6 +267,22 @@ export default async function BatchDetailPage({
         </p>
       </Card>
       )}
+
+      <Card title="Grup WhatsApp batch" className="mt-6">
+        {batch.whatsapp_group_url === undefined ? (
+          <p className="text-sm text-stone-600">
+            Jalankan dulu migrasi <span className="font-mono">0010_grup_wa.sql</span> di SQL Editor Supabase, lalu isi link grup di sini.
+          </p>
+        ) : (
+          <>
+            <WhatsappGroupForm batchId={batch.id} url={batch.whatsapp_group_url} />
+            <p className="mt-2 text-xs text-stone-500">
+              Tempel link undangan grup (WhatsApp &gt; info grup &gt; Undang lewat link). Tombol Gabung grup WhatsApp
+              hanya muncul untuk siswa yang pembayarannya sudah diverifikasi.
+            </p>
+          </>
+        )}
+      </Card>
 
       {isAdmin && (
       <Card title="Link pendaftaran" className="mt-6">

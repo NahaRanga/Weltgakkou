@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { addMaterial, createBatch, setBatchMeetingUrl, updateBatch } from "@/app/admin/batch/actions";
+import { addMaterial, createBatch, setBatchMeetingUrl, setBatchWhatsappUrl, updateBatch } from "@/app/admin/batch/actions";
 import { acceptPayment, cancelInvoice, createNextInstallment, markInvoicePaid, rejectPayment } from "@/app/admin/pembayaran/actions";
 import { changePassword, updateProfile } from "@/app/admin/profil/actions";
 import { addRecording, setRecordingPackage } from "@/app/admin/rekaman/actions";
@@ -306,6 +306,28 @@ export function MeetingLinkForm({ batchId, meetingUrl }: { batchId: string; meet
           defaultValue={meetingUrl ?? ""}
           placeholder="https://zoom.us/j/..."
           aria-label="Link kelas Zoom atau Meet"
+          className={`${inputClass} sm:flex-1`}
+        />
+        <button className={buttonClass} disabled={pending}>
+          {pending ? "Menyimpan..." : "Simpan link"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function WhatsappGroupForm({ batchId, url }: { batchId: string; url: string | null }) {
+  const [state, action, pending] = useActionState(setBatchWhatsappUrl.bind(null, batchId), {} as FormState);
+  return (
+    <form action={action} className="space-y-3">
+      <Messages state={state} />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          name="whatsapp_group_url"
+          type="url"
+          defaultValue={url ?? ""}
+          placeholder="https://chat.whatsapp.com/..."
+          aria-label="Link undangan grup WhatsApp"
           className={`${inputClass} sm:flex-1`}
         />
         <button className={buttonClass} disabled={pending}>

@@ -109,6 +109,22 @@ export async function setBatchMeetingUrl(batchId: string, _prev: FormState, form
   return { ok: url ? "Link kelas disimpan. Siswa bisa masuk lewat tombol Masuk kelas." : "Link kelas dihapus." };
 }
 
+// Link grup WhatsApp batch; diisi admin atau sensei batch itu. Tampil sebagai tombol di area belajar siswa yang sudah aktif.
+export async function setBatchWhatsappUrl(batchId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireBatchStaff(batchId);
+  const url = String(formData.get("whatsapp_group_url") ?? "").trim();
+  if (url && !/^https:\/\/chat\.whatsapp\.com\/\S+$/.test(url)) {
+    return { error: "Pakai link undangan grup, contoh https://chat.whatsapp.com/AbCdEf123 (WhatsApp > info grup > Undang lewat link)." };
+  }
+  const { error } = await requireDb().from("batches").update({ whatsapp_group_url: url || null }).eq("id", batchId);
+  if (error) {
+    if (error.message.includes("whatsapp_group_url")) return { error: "Kolom grup WA belum ada. Jalankan dulu migrasi 0010_grup_wa.sql di SQL Editor Supabase." };
+    return { error: error.message };
+  }
+  refresh();
+  return { ok: url ? "Link grup WA disimpan. Siswa aktif sekarang lihat tombol Gabung grup WhatsApp." : "Link grup WA dihapus." };
+}
+
 const batchUpdateSchema = z.object({
   name: z.string().trim().min(2).max(80),
   schedule_label: z.string().trim().min(2).max(120),

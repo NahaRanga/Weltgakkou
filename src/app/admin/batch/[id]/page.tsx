@@ -32,7 +32,7 @@ import {
 } from "@/components/admin/participant";
 import { ConfirmButton } from "@/components/admin/confirm-button";
 import { inputClass } from "@/components/ui/form";
-import { requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { formatDate, formatDateTime, requestTime, siteUrl } from "@/lib/format";
 
@@ -80,7 +80,7 @@ export default async function BatchDetailPage({
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const user = await requireStaff();
-  const isAdmin = user.role === "admin";
+  const isAdmin = isAdminRole(user.role);
   const db = requireDb();
 
   const { data } = await db
@@ -134,7 +134,7 @@ export default async function BatchDetailPage({
       db
         .from("profiles")
         .select("id, full_name")
-        .in("role", ["pengajar", "admin"])
+        .in("role", ["pengajar", "admin", "admin_utama"])
         .order("full_name"),
     ]);
 

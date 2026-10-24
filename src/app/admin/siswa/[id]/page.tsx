@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DeleteInvoiceButton, InvoiceActions, PasswordLinkButton } from "@/components/admin-controls";
+import { DeleteInvoiceButton, DeleteStudentButton, InvoiceActions, PasswordLinkButton } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { TrialToggle } from "@/components/admin/latihan-forms";
 import { participantColumns, participantRows, type ParticipantProfile } from "@/components/admin/participant";
-import { requireAdmin, requireDb } from "@/lib/auth";
+import { canDeleteStudents, isAdminRole, requireDb, requireFinance } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
@@ -24,7 +24,7 @@ type Enrollment = {
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  await requireAdmin();
+  const me = await requireFinance();
   const db = requireDb();
 
   const [profileRes, enrollmentsRes, attendanceRes, resultsRes, practiceRes] = await Promise.all([
@@ -174,12 +174,26 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
               <dd className="font-mono text-stone-900">{profile.referral_code ?? "-"}</dd>
             </dl>
           </Card>
-          <Card title="Akun">
-            <p className="mb-2 text-sm text-stone-600">Kalau siswa lupa password atau belum menerima link, kirim ulang dari sini.</p>
-            <PasswordLinkButton profileId={profile.id} />
-            <p className="mb-2 mt-4 text-sm text-stone-600">Sudah ikut kelas trial? Tandai supaya akses latihan gratisnya naik (katakana, ulang tryout, 3 pembahasan).</p>
-            <TrialToggle profileId={profile.id} attended={Boolean(profile.trial_attended_at)} />
-          </Card>
+          {isAdminRole(me.role) && (
+            <Card title="Akun">
+              <p className="mb-2 text-sm text-stone-600">Kalau siswa lupa password atau belum menerima link, kirim ulang dari sini.</p>
+              <PasswordLinkButton profileId={profile.id} />
+              <p className="mb-2 mt-4 text-sm text-stone-600">Sudah ikut kelas trial? Tandai supaya akses latihan gratisnya naik (katakana, ulang tryout, 3 pembahasan).</p>
+              <TrialToggle profileId={profile.id} attended={Boolean(profile.trial_attended_at)} />
+            </Card>
+          )}
+          {canDeleteStudents(me.role) && profile.role === "siswa" && (
+            <Card title="Hapus siswa">
+              <p className="mb-3 text-sm text-stone-600">Untuk akun test atau salah daftar. Semua data siswa ini ikut terhapus permanen.</p>
+              <DeleteStudentButton
+                profileId={profile.id}
+                name={profile.full_name}
+                paid={paidTotal > 0}
+                afterDelete="/admin/siswa"
+                className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+              />
+            </Card>
+          )}
         </div>
       </div>
     </>

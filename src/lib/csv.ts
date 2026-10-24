@@ -1,5 +1,5 @@
 import "server-only";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdminRole } from "@/lib/auth";
 
 // CSV dengan pemisah titik koma dan BOM, supaya langsung rapi saat dibuka di Excel versi Indonesia.
 export function toCsv(header: string[], rows: (string | number | boolean | null | undefined)[][]) {
@@ -19,7 +19,8 @@ export function csvResponse(filename: string, body: string) {
   });
 }
 
-export async function requireAdminForExport() {
+export async function requireAdminForExport(allowFinance = false) {
   const user = await getCurrentUser();
-  return user?.role === "admin" ? user : null;
+  if (!user) return null;
+  return isAdminRole(user.role) || (allowFinance && user.role === "finance") ? user : null;
 }

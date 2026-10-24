@@ -1,12 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { addMaterial, createBatch, setBatchMeetingUrl, updateBatch } from "@/app/admin/batch/actions";
 import { acceptPayment, cancelInvoice, createNextInstallment, deleteInvoice, markInvoicePaid, rejectPayment } from "@/app/admin/pembayaran/actions";
 import { changePassword, updateProfile } from "@/app/admin/profil/actions";
 import { addRecording, setRecordingPackage } from "@/app/admin/rekaman/actions";
 import { addCertification } from "@/app/admin/sertifikasi/actions";
-import { sendPasswordLink } from "@/app/admin/siswa/actions";
+import { deleteStudent, sendPasswordLink } from "@/app/admin/siswa/actions";
 import { addStaff } from "@/app/admin/tim/actions";
 import type { BatchState, FormState, VerifyState } from "@/app/admin/types";
 import { ConfirmButton } from "@/components/admin/confirm-button";
@@ -396,7 +397,7 @@ export function MaterialForm({ batchId, sessions, allowProgramWide }: { batchId:
   );
 }
 
-export function StaffForm() {
+export function StaffForm({ canAddOwner = false }: { canAddOwner?: boolean }) {
   const [state, action, pending] = useActionState(addStaff, {} as FormState);
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-2">
@@ -416,7 +417,9 @@ export function StaffForm() {
         <select name="role" className={inputClass}>
           <option value="pengajar">Pengajar</option>
           <option value="konten">Konten</option>
+          <option value="finance">Finance</option>
           <option value="admin">Admin</option>
+          {canAddOwner && <option value="admin_utama">Admin utama</option>}
         </select>
       </Field>
       <div className="sm:col-span-2">
@@ -425,6 +428,53 @@ export function StaffForm() {
         </button>
       </div>
     </form>
+  );
+}
+
+// Hapus akun siswa permanen (hanya tampil untuk admin utama dan finance).
+export function DeleteStudentButton({
+  profileId,
+  name,
+  paid,
+  afterDelete,
+  className = "text-xs text-stone-500 hover:text-red-700 disabled:opacity-60",
+}: {
+  profileId: string;
+  name: string;
+  paid: boolean;
+  afterDelete?: string;
+  className?: string;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [pending, start] = useTransition();
+  return (
+    <span>
+      <ConfirmButton
+        className={className}
+        disabled={pending}
+        title={`Hapus siswa ${name}?`}
+        message={
+          <>
+            Akun login, pendaftaran kelas, tagihan, foto bukti transfer, absen, nilai, dan riwayat latihan siswa ini dihapus permanen dan tidak bisa
+            dikembalikan.
+            {paid && <span className="mt-2 block font-semibold text-red-700">Siswa ini sudah punya pembayaran lunas. Pastikan ini memang akun test atau salah input.</span>}
+          </>
+        }
+        confirmText={paid ? "HAPUS" : undefined}
+        confirmLabel="Ya, hapus siswa"
+        onConfirm={() =>
+          start(async () => {
+            const res = await deleteStudent(profileId, paid ? "HAPUS" : "");
+            setError(res.error ?? "");
+            if (!res.error && afterDelete) router.push(afterDelete);
+          })
+        }
+      >
+        {pending ? "Menghapus..." : "Hapus siswa"}
+      </ConfirmButton>
+      {error && <span className="ml-2 text-xs text-red-700">{error}</span>}
+    </span>
   );
 }
 

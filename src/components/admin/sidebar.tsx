@@ -37,7 +37,7 @@ function Icon({ name, className = "h-5 w-5" }: { name: string; className?: strin
 
 export type NavItem = { href: string; label: string; icon: string; badge?: number };
 
-export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullName: string; email: string; role: string } }) {
+export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullName: string; email: string; roleLabel: string } }) {
   const path = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState(false);
@@ -61,7 +61,6 @@ export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullNa
   }
 
   const isActive = (href: string) => (href === "/admin" ? path === "/admin" : path.startsWith(href));
-  const roleLabel = user.role === "admin" ? "Admin" : user.role === "pengajar" ? "Pengajar" : user.role;
   const mini = collapsed && !open;
 
   return (
@@ -125,7 +124,7 @@ export function AdminSidebar({ items, user }: { items: NavItem[]; user: { fullNa
             <div className="mb-2 px-1">
               <p className="truncate text-sm font-semibold text-stone-900">{user.fullName}</p>
               <p className="truncate text-xs text-stone-500">
-                {roleLabel} · {user.email}
+                {user.roleLabel} · {user.email}
               </p>
             </div>
           )}

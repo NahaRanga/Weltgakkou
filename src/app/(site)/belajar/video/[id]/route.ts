@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdminRole } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { canWatchProgram } from "@/lib/recordings";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/belajar/vide
   const { data: video } = await db.from("recordings").select("id, url, program_id").eq("id", id).maybeSingle();
   if (!video) return back();
 
-  const isStaff = user.role === "admin" || user.role === "pengajar";
+  const isStaff = isAdminRole(user.role) || user.role === "pengajar";
   if (!isStaff) {
     if (!(await canWatchProgram(db, user.id, video.program_id, Date.now()))) return back("?video=habis");
     await db

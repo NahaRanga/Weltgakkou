@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { createPasswordLink } from "@/app/(site)/masuk/actions";
 import type { FormState } from "@/app/admin/types";
-import { requireAdmin, requireDb } from "@/lib/auth";
+import { requireAdmin, requireDb, type Role } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { siteUrl } from "@/lib/format";
 
@@ -12,19 +12,21 @@ const staffSchema = z.object({
   full_name: z.string().trim().min(2).max(80),
   email: z.email().transform((v) => v.toLowerCase()),
   whatsapp: z.string().trim().max(20).optional(),
-  role: z.enum(["pengajar", "admin", "konten"]),
+  role: z.enum(["pengajar", "admin", "admin_utama", "finance", "konten"]),
 });
 
 // Menambah anggota tim. Akun dibuat tanpa password; link atur password dikirim lewat WhatsApp/email.
 export async function addStaff(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireAdmin();
+  const me = await requireAdmin();
   const parsed = staffSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: "Isi nama dan email yang valid." };
   const s = parsed.data;
+  if (s.role === "admin_utama" && me.role !== "admin_utama") return { error: "Hanya admin utama yang bisa menambah admin utama." };
   const db = requireDb();
   const whatsapp = s.whatsapp ? s.whatsapp.replace(/\D/g, "").replace(/^0/, "62") : null;
 
-  const { data: existing } = await db.from("profiles").select("id").eq("email", s.email).maybeSingle();
+  const { data: existing } = await db.from("profiles").select("id, role").eq("email", s.email).maybeSingle();
+  if (existing?.role === "admin_utama" && me.role !== "admin_utama") return { error: "Peran admin utama hanya bisa diubah oleh admin utama." };
   if (existing) {
     await db.from("profiles").update({ role: s.role, full_name: s.full_name, ...(whatsapp ? { whatsapp } : {}) }).eq("id", existing.id);
   } else {
@@ -44,9 +46,19 @@ export async function addStaff(_prev: FormState, formData: FormData): Promise<Fo
   return { ok: `Akun ${s.full_name} siap. Kirim pesan ini lewat WhatsApp:`, whatsappText: text, whatsapp: whatsapp ?? undefined };
 }
 
-export async function setRole(profileId: string, role: "siswa" | "pengajar" | "admin" | "konten") {
+const assignable: Role[] = ["siswa", "pengajar", "konten", "finance", "admin", "admin_utama"];
+
+export async function setRole(profileId: string, role: Role) {
   const admin = await requireAdmin();
   if (profileId === admin.id) return; // admin tidak bisa menurunkan dirinya sendiri
-  await requireDb().from("profiles").update({ role }).eq("id", profileId);
+  if (!assignable.includes(role)) return;
+  const db = requireDb();
+  // Peran admin utama hanya bisa diberikan atau dicabut oleh admin utama.
+  if (admin.role !== "admin_utama") {
+    if (role === "admin_utama") return;
+    const { data: target } = await db.from("profiles").select("role").eq("id", profileId).maybeSingle();
+    if (target?.role === "admin_utama") return;
+  }
+  await db.from("profiles").update({ role }).eq("id", profileId);
   refresh();
 }

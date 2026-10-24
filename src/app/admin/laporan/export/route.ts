@@ -15,7 +15,7 @@ type Row = {
 
 // Pendaftaran dalam rentang laporan, lengkap dengan total yang sudah dibayar.
 export async function GET(request: NextRequest) {
-  if (!(await requireAdminForExport())) return new Response("Hanya admin", { status: 403 });
+  if (!(await requireAdminForExport(true))) return new Response("Hanya admin", { status: 403 });
   const range = reportRange(Object.fromEntries(request.nextUrl.searchParams), Date.now());
   const { data } = await requireDb()
     .from("enrollments")

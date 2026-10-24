@@ -13,7 +13,7 @@ import {
   teacherLabel,
   type StudentInvoice,
 } from "@/components/belajar";
-import { requireDb, requireUser, type CurrentUser } from "@/lib/auth";
+import { isAdminRole, requireDb, requireUser, type CurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 import { withBase } from "@/lib/base-path";
@@ -117,7 +117,7 @@ async function LearnContent({
           <p className="text-stone-600">Area belajar Weltgakko</p>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          {user.role === "admin" && (
+          {isAdminRole(user.role) && (
             <Link href="/admin" className="font-semibold text-red-700">
               Admin
             </Link>

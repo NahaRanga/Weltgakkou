@@ -2,7 +2,7 @@ import Link from "next/link";
 import { RecordingForm, RecordingPackageForm } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle } from "@/components/admin/ui";
 import { deleteRecording } from "@/app/admin/rekaman/actions";
-import { requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
 import { formatRupiah } from "@/lib/programs";
 import { groupByChapter, type Recording } from "@/lib/recordings";
 import { ConfirmButton } from "@/components/admin/confirm-button";
@@ -19,7 +19,7 @@ type Program = {
 
 export default async function RecordingsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireStaff();
-  const isAdmin = user.role === "admin";
+  const isAdmin = isAdminRole(user.role);
   const sp = await searchParams;
   const db = requireDb();
 

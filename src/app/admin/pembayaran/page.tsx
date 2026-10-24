@@ -3,7 +3,7 @@ import { DeleteInvoiceButton, InvoiceActions, VerifyButtons } from "@/components
 import { ColumnChart } from "@/components/admin/charts";
 import { Badge, Card, Empty, FilterTabs, PageTitle, smallButton, Stat, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { inputClass } from "@/components/ui/form";
-import { requireAdmin, requireDb } from "@/lib/auth";
+import { requireFinance, requireDb } from "@/lib/auth";
 import { formatDateTime, requestTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 
@@ -57,7 +57,7 @@ function monthStart(back: number) {
 }
 
 export default async function PaymentsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await requireAdmin();
+  await requireFinance();
   const sp = await searchParams;
   const db = requireDb();
 

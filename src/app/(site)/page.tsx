@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BatchOpenCard, TrialBanner } from "@/components/batch-open-banner";
+import { BatchOpenCard, SeminarBanner, TrialBanner } from "@/components/batch-open-banner";
 import { trialHref } from "@/lib/info-pages";
 import { withBase } from "@/lib/base-path";
 import { ProgramCard } from "@/components/program-card";
@@ -88,6 +88,7 @@ export default function Home() {
 
       <Suspense fallback={null}>
         <TrialBanner />
+        <SeminarBanner />
       </Suspense>
 
       <section className="mx-auto grid max-w-5xl items-center gap-10 px-4 py-16 lg:grid-cols-[0.9fr_1fr]">

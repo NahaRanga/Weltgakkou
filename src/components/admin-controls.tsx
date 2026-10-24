@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { addMaterial, createBatch, setBatchMeetingUrl, updateBatch } from "@/app/admin/batch/actions";
-import { acceptPayment, cancelInvoice, createNextInstallment, markInvoicePaid, rejectPayment } from "@/app/admin/pembayaran/actions";
+import { acceptPayment, cancelInvoice, createNextInstallment, deleteInvoice, markInvoicePaid, rejectPayment } from "@/app/admin/pembayaran/actions";
 import { changePassword, updateProfile } from "@/app/admin/profil/actions";
 import { addRecording, setRecordingPackage } from "@/app/admin/rekaman/actions";
 import { addCertification } from "@/app/admin/sertifikasi/actions";
@@ -229,6 +229,36 @@ export function InvoiceActions({ invoiceId, label }: { invoiceId: string; label?
       </ConfirmButton>
       {state.error && <span className="text-xs text-red-700">{state.error}</span>}
     </div>
+  );
+}
+
+export function DeleteInvoiceButton({ invoiceId, label, paid }: { invoiceId: string; label: string; paid: boolean }) {
+  const [error, setError] = useState("");
+  const [pending, start] = useTransition();
+  return (
+    <span>
+      <ConfirmButton
+        className="text-xs text-stone-500 hover:text-red-700 disabled:opacity-60"
+        disabled={pending}
+        title={`Hapus tagihan ${label}?`}
+        message={
+          <>
+            Tagihan dan foto bukti transfernya dihapus permanen{paid ? ", dan pemasukannya hilang dari laporan" : ""}. Kalau ini satu-satunya tagihan di
+            pendaftaran itu, pendaftarannya ikut dihapus (siswa keluar dari batch). Akun siswa tetap ada. Pakai untuk data test atau salah input saja.
+          </>
+        }
+        confirmLabel="Ya, hapus tagihan"
+        onConfirm={() =>
+          start(async () => {
+            const res = await deleteInvoice(invoiceId);
+            setError(res.error ?? "");
+          })
+        }
+      >
+        {pending ? "Menghapus..." : "Hapus"}
+      </ConfirmButton>
+      {error && <span className="ml-2 text-xs text-red-700">{error}</span>}
+    </span>
   );
 }
 

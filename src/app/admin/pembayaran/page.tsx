@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { InvoiceActions, VerifyButtons } from "@/components/admin-controls";
+import { DeleteInvoiceButton, InvoiceActions, VerifyButtons } from "@/components/admin-controls";
 import { ColumnChart } from "@/components/admin/charts";
 import { Badge, Card, Empty, FilterTabs, PageTitle, smallButton, Stat, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { inputClass } from "@/components/ui/form";
@@ -182,7 +182,14 @@ function InvoiceTable({ invoices, actions }: { invoices: InvoiceRow[]; actions: 
               <td className={`${tdClass} text-xs text-stone-600`}>
                 {i.status === "lunas" && i.paid_at ? `Lunas ${formatDateTime(i.paid_at)}` : `Jatuh tempo ${formatDateTime(i.due_at)}`}
               </td>
-              {actions && <td className={tdClass}>{(i.status === "belum" || i.status === "ditolak") && <InvoiceActions invoiceId={i.id} label={`${i.code} · ${i.enrollments.profiles.full_name} (${formatRupiah(i.amount)})`} />}</td>}
+              {actions && (
+                <td className={tdClass}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {(i.status === "belum" || i.status === "ditolak") && <InvoiceActions invoiceId={i.id} label={`${i.code} · ${i.enrollments.profiles.full_name} (${formatRupiah(i.amount)})`} />}
+                    <DeleteInvoiceButton invoiceId={i.id} paid={i.status === "lunas"} label={`${i.code} · ${i.enrollments.profiles.full_name} (${formatRupiah(i.amount)})`} />
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

@@ -19,7 +19,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const db = requireDb();
 
   const [enrollmentsRes, paidRes, leadsRes, referralsRes] = await Promise.all([
-    db.from("enrollments").select("created_at, status, batches(programs(name))").gte("created_at", range.fromIso).lt("created_at", range.toIso),
+    db.from("enrollments").select("created_at, status, batches(programs(name))").eq("is_test", false).gte("created_at", range.fromIso).lt("created_at", range.toIso),
     db.from("invoices").select("amount, paid_at").eq("status", "lunas").gte("paid_at", range.fromIso).lt("paid_at", range.toIso),
     db.from("leads").select("source, status").gte("created_at", range.fromIso).lt("created_at", range.toIso),
     db.from("referrals").select("profiles(full_name), enrollments!inner(created_at)").gte("enrollments.created_at", range.fromIso).lt("enrollments.created_at", range.toIso),

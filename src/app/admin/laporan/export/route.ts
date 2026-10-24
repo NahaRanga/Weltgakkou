@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   const { data } = await requireDb()
     .from("enrollments")
     .select("status, plan, referral_code, created_at, profiles(full_name, whatsapp, email, domicile, learning_goal), batches(name, programs(name)), invoices(amount, status)")
+    .eq("is_test", false)
     .gte("created_at", range.fromIso)
     .lt("created_at", range.toIso)
     .order("created_at");

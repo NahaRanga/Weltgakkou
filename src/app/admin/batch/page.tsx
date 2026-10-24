@@ -29,6 +29,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
   let query = db
     .from("batches")
     .select("*, programs(name), teacher:profiles!batches_teacher_id_fkey(full_name), enrollments(status)")
+    .eq("enrollments.is_test", false)
     .eq("mode", "live")
     .order("start_date", { ascending: view === "" });
   if (view === "") query = query.neq("status", "selesai");

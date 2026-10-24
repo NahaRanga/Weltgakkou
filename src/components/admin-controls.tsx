@@ -318,13 +318,18 @@ export function MeetingLinkForm({ batchId, meetingUrl }: { batchId: string; meet
 
 export function MaterialForm({ batchId, sessions, allowProgramWide }: { batchId: string; sessions: { id: string; label: string }[]; allowProgramWide: boolean }) {
   const [state, action, pending] = useActionState(addMaterial.bind(null, batchId), {} as FormState);
+  const [programWide, setProgramWide] = useState(allowProgramWide);
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
         <Messages state={state} />
+        <p className="text-xs text-stone-500">
+          Siswa melihat materi pertemuan yang sudah lewat + 3 kelas berikutnya; materi setelahnya tampil terkunci (judul saja).
+          {allowProgramWide && " Materi \"semua batch\" dengan nomor kelas otomatis ikut ke batch berikutnya."}
+        </p>
       </div>
       <Field label="Judul materi">
-        <input name="title" required placeholder="Bab 1: Salam dan perkenalan" className={inputClass} />
+        <input name="title" required placeholder="Pertemuan 1: Hiragana & salam" className={inputClass} />
       </Field>
       <Field label="Jenis">
         <select name="kind" className={inputClass}>
@@ -337,7 +342,7 @@ export function MaterialForm({ batchId, sessions, allowProgramWide }: { batchId:
         <input name="url" type="url" required placeholder="https://drive.google.com/..." className={inputClass} />
       </Field>
       <Field label="Untuk sesi">
-        <select name="session_id" className={inputClass}>
+        <select name="session_id" className={inputClass} onChange={(e) => setProgramWide(e.target.value === "")}>
           {allowProgramWide && <option value="">Semua batch program ini</option>}
           {sessions.map((s) => (
             <option key={s.id} value={s.id}>
@@ -346,6 +351,11 @@ export function MaterialForm({ batchId, sessions, allowProgramWide }: { batchId:
           ))}
         </select>
       </Field>
+      {programWide && (
+        <Field label="Kelas ke- (kosongkan = materi umum, selalu terbuka)">
+          <input name="meeting_no" type="number" min={1} max={200} placeholder="1" className={inputClass} />
+        </Field>
+      )}
       <div className="sm:col-span-2">
         <button className={buttonClass} disabled={pending}>
           {pending ? "Menyimpan..." : "Tambah materi"}

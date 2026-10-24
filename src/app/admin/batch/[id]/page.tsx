@@ -125,7 +125,8 @@ export default async function BatchDetailPage({
         : empty,
       db
         .from("materials")
-        .select("id, title, kind, url, session_id")
+        // select("*") supaya tetap jalan sebelum migrasi 0009 (meeting_no).
+        .select("*")
         .or(
           `program_id.eq.${batch.programs.id}${sessionIds.length ? `,session_id.in.(${sessionIds.join(",")})` : ""}`,
         )
@@ -163,8 +164,10 @@ export default async function BatchDetailPage({
     kind: string;
     url: string;
     session_id: string | null;
+    meeting_no?: number | null;
   }[];
-
+  // Urutan sesi kelas (tanpa tes Jumat), dipakai materi "kelas ke-N" semua batch.
+  const classSessions = sessions.filter((s) => s.kind === "kelas");
   const now = requestTime();
   const past = sessions.filter((s) => new Date(s.starts_at).getTime() < now);
   const pastIds = new Set(past.map((s) => s.id));
@@ -593,8 +596,11 @@ export default async function BatchDetailPage({
       <Card title="Materi" count={materials.length} className="mt-6">
         {materials.length > 0 && (
           <ul className="mb-5 divide-y divide-stone-100">
-            {materials.map((m) => {
+            {[...materials]
+              .sort((a, b) => (a.meeting_no ?? 0) - (b.meeting_no ?? 0))
+              .map((m) => {
               const session = sessions.find((s) => s.id === m.session_id);
+              const programSession = m.meeting_no ? classSessions[m.meeting_no - 1] : undefined;
               return (
                 <li
                   key={m.id}
@@ -613,7 +619,13 @@ export default async function BatchDetailPage({
                       {m.kind} ·{" "}
                       {session
                         ? `sesi ${session.number}`
-                        : `semua batch ${batch.programs.name}`}
+                        : m.meeting_no
+                          ? `kelas ke-${m.meeting_no} semua batch ${batch.programs.name}${
+                              programSession
+                                ? ` (di batch ini ${formatDate(programSession.starts_at)})`
+                                : " (batch ini tidak punya kelas itu)"
+                            }`
+                          : `materi umum semua batch ${batch.programs.name}`}
                     </span>
                   </span>
                   {(isAdmin || session) && (

@@ -8,6 +8,7 @@ import {
   FirstClassGuide,
   HelpButton,
   InvoiceHistory,
+  MaterialList,
   PendingEnrollment,
   TrustPoints,
   teacherLabel,
@@ -18,6 +19,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 import { formatRupiah } from "@/lib/programs";
 import { withBase } from "@/lib/base-path";
 import { waLink } from "@/lib/site";
+import { MATERIAL_LOOKAHEAD, placeMaterials, type MaterialRow } from "@/lib/materials";
 import { groupByChapter, RECORDING_COUNTS_AS_PRESENT, type Recording } from "@/lib/recordings";
 import { MonthCalendar, MonthNav, monthTitle, resolveMonth, timeLabel, type CalendarMonth } from "@/components/month-calendar";
 
@@ -195,7 +197,8 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
   const [materialsRes, attendanceRes, resultsRes] = await Promise.all([
     db
       .from("materials")
-      .select("id, title, kind, url, session_id")
+      // select("*") supaya tetap jalan sebelum migrasi 0009 (meeting_no) dijalankan.
+      .select("*")
       .or(`program_id.eq.${batch.programs.id}${sessionIds.length ? `,session_id.in.(${sessionIds.join(",")})` : ""}`)
       .order("created_at"),
     sessionIds.length
@@ -205,6 +208,7 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
   ]);
 
   const now = requestTime();
+  const materials = placeMaterials((materialsRes.data ?? []) as MaterialRow[], sessions, now);
   const next = sessions.find((s) => new Date(s.starts_at).getTime() + OPEN_AFTER_MS > now);
   const canJoin = next && new Date(next.starts_at).getTime() - OPEN_BEFORE_MS <= now;
   const past = sessions.filter((s) => s.kind === "kelas" && new Date(s.starts_at).getTime() < now);
@@ -323,25 +327,9 @@ async function EnrollmentCard({ enrollment: e, userId }: { enrollment: Enrollmen
 
       <FirstClassGuide open={beforeFirstClass} />
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-xl border border-stone-200 bg-white p-6">
-          <h3 className="font-semibold text-stone-900">Materi</h3>
-          {(materialsRes.data ?? []).length === 0 ? (
-            <p className="mt-2 text-sm text-stone-500">Materi akan muncul di sini setelah diunggah pengajar.</p>
-          ) : (
-            <ul className="mt-3 space-y-2 text-sm">
-              {(materialsRes.data ?? []).map((m) => (
-                <li key={m.id}>
-                  <a href={m.url} target="_blank" rel="noreferrer" className="text-red-700 hover:underline">
-                    {m.title}
-                  </a>{" "}
-                  <span className="text-stone-400">{m.kind}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      <MaterialList {...materials} lookahead={MATERIAL_LOOKAHEAD} nextSessionStart={next?.starts_at ?? null} />
 
+      <div>
         <div className="rounded-xl border border-stone-200 bg-white p-6">
           <h3 className="font-semibold text-stone-900">Nilai tes kemampuan</h3>
           {results.length === 0 ? (

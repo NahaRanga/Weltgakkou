@@ -204,6 +204,8 @@ const materialSchema = z.object({
   kind: z.enum(["pdf", "video", "link"]),
   url: z.url(),
   session_id: z.union([z.literal(""), z.uuid()]),
+  // Hanya untuk materi semua batch: kelas ke-N (kosong = materi umum, selalu terbuka).
+  meeting_no: z.union([z.literal(""), z.coerce.number().int().min(1).max(200)]).optional(),
 });
 
 export async function addMaterial(batchId: string, _prev: FormState, formData: FormData): Promise<FormState> {
@@ -220,10 +222,22 @@ export async function addMaterial(batchId: string, _prev: FormState, formData: F
     const { data: session } = await requireDb().from("sessions").select("batch_id").eq("id", m.session_id).maybeSingle();
     if (session?.batch_id !== batchId) return { error: "Sesi tidak ditemukan di batch ini." };
   }
+  const meetingNo = !m.session_id && m.meeting_no ? m.meeting_no : null;
   const { error } = await requireDb()
     .from("materials")
-    .insert({ title: m.title, kind: m.kind, url: m.url, session_id: m.session_id || null, program_id: m.session_id ? null : programId });
-  if (error) return { error: error.message };
+    .insert({
+      title: m.title,
+      kind: m.kind,
+      url: m.url,
+      session_id: m.session_id || null,
+      program_id: m.session_id ? null : programId,
+      // Kolom meeting_no baru ada setelah migrasi 0009; jangan dikirim bila kosong.
+      ...(meetingNo ? { meeting_no: meetingNo } : {}),
+    });
+  if (error) {
+    if (meetingNo && error.message.includes("meeting_no")) return { error: "Jalankan dulu migrasi 0009_materi_pertemuan.sql di Supabase." };
+    return { error: error.message };
+  }
   refresh();
   return { ok: "Materi ditambahkan." };
 }

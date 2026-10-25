@@ -13,6 +13,7 @@ import {
   MeetingLinkForm,
   InstallmentButton,
   MaterialForm,
+  TeacherPickForm,
 } from "@/components/admin-controls";
 import {
   Badge,
@@ -43,7 +44,7 @@ type Enrollment = {
   plan: string;
   profile_id: string;
   profiles: ParticipantProfile;
-  invoices: { installment_no: number; status: string }[];
+  invoices?: { installment_no: number; status: string }[];
 };
 
 type Batch = {
@@ -82,11 +83,15 @@ export default async function BatchDetailPage({
   const isAdmin = user.role === "admin";
   const db = requireDb();
 
+  // Sensei hanya perlu nama murid; data pribadi, WA, dan tagihan cuma diambil untuk admin.
+  const enrollmentFields = isAdmin
+    ? "enrollments(id, status, plan, profile_id, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))"
+    : "enrollments(id, status, plan, profile_id, profiles(full_name))";
   const { data } = await db
     .from("batches")
     .select(
       // "*" supaya kolom baru (is_trial, registration_deadline) ikut bila migrasinya sudah jalan.
-      "*, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), enrollments(id, status, plan, profile_id, profiles(full_name, whatsapp, email, nickname, gender, birth_place_date, domicile, address, education, occupation, tiktok, instagram, studied_before, prior_level, learning_goal), invoices(installment_no, status))",
+      `*, programs(id, name, months), sessions(id, number, starts_at, kind, topic, meeting_url, recording_url), ${enrollmentFields}`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -98,8 +103,9 @@ export default async function BatchDetailPage({
     a.starts_at.localeCompare(b.starts_at),
   );
   const sessionIds = sessions.map((s) => s.id);
+  // Sensei hanya melihat murid yang sudah resmi ikut kelas (bukan yang masih menunggu bayar).
   const enrollments = batch.enrollments
-    .filter((e) => e.status !== "keluar")
+    .filter((e) => (isAdmin ? e.status !== "keluar" : e.status === "aktif" || e.status === "selesai"))
     .sort((a, b) => a.profiles.full_name.localeCompare(b.profiles.full_name));
   const students = enrollments.filter(
     (e) => e.status === "aktif" || e.status === "selesai",
@@ -130,12 +136,20 @@ export default async function BatchDetailPage({
           `program_id.eq.${batch.programs.id}${sessionIds.length ? `,session_id.in.(${sessionIds.join(",")})` : ""}`,
         )
         .order("created_at"),
-      db
-        .from("profiles")
-        .select("id, full_name")
-        .in("role", ["pengajar", "admin"])
-        .order("full_name"),
+      isAdmin
+        ? db
+            .from("profiles")
+            .select("id, full_name, role")
+            .in("role", ["pengajar", "admin"])
+            .order("full_name")
+        : empty,
     ]);
+  const teachers = (teachersRes.data ?? []) as {
+    id: string;
+    full_name: string;
+    role: string;
+  }[];
+  const teacherName = teachers.find((t) => t.id === batch.teacher_id)?.full_name;
 
   const attendance = (attendanceRes.data ?? []) as {
     session_id: string;
@@ -173,7 +187,7 @@ export default async function BatchDetailPage({
     const count = attendance.filter(
       (a) => a.profile_id === profileId && pastIds.has(a.session_id),
     ).length;
-    return Math.round((count / past.length) * 100);
+    return { count, percent: Math.round((count / past.length) * 100) };
   };
   const examAverage = (profileId: string) => {
     const scores = exams.flatMap((e) =>
@@ -235,7 +249,7 @@ export default async function BatchDetailPage({
         <Stat
           label="Siswa aktif"
           value={`${active}/${batch.quota}`}
-          hint={waiting ? `${waiting} menunggu bayar` : undefined}
+          hint={isAdmin && waiting ? `${waiting} menunggu bayar` : undefined}
         />
         <Stat
           label="Sesi berjalan"
@@ -252,6 +266,26 @@ export default async function BatchDetailPage({
         />
         <Stat label="Materi" value={materials.length} />
       </div>
+
+      {isAdmin && (
+        <div id="sensei" className="scroll-mt-6">
+          <Card title="Sensei" className="mt-6">
+            <TeacherPickForm
+              batchId={batch.id}
+              teacherId={batch.teacher_id}
+              teachers={teachers}
+            />
+            <p className="mt-2 text-xs text-stone-500">
+              {teacherName
+                ? `Sekarang: ${teacherName}. `
+                : "Batch ini belum punya sensei. "}
+              Sensei hanya melihat batch yang ia ajar: nama murid, jadwal, dan
+              absensi (tanpa nomor WA, data pribadi, atau tagihan). Akun
+              sensei dibuat di menu Tim.
+            </p>
+          </Card>
+        </div>
+      )}
 
       {batch.mode === "live" && (
       <Card title="Link kelas (Zoom/Meet)" className="mt-6">
@@ -285,9 +319,9 @@ export default async function BatchDetailPage({
       </Card>
       )}
 
-      <Card title="Siswa" count={enrollments.length} className="mt-6">
+      <Card title={isAdmin ? "Siswa" : "Murid"} count={enrollments.length} className="mt-6">
         {enrollments.length === 0 ? (
-          <Empty>Belum ada pendaftar di batch ini.</Empty>
+          <Empty>{isAdmin ? "Belum ada pendaftar di batch ini." : "Belum ada murid aktif di batch ini."}</Empty>
         ) : (
           <div className="-mx-5 overflow-x-auto">
             <table className={tableClass}>
@@ -303,7 +337,8 @@ export default async function BatchDetailPage({
               </thead>
               <tbody>
                 {enrollments.map((e) => {
-                  const paid = e.invoices.filter(
+                  // invoices hanya diambil untuk admin.
+                  const paid = (e.invoices ?? []).filter(
                     (i) => i.status === "lunas",
                   ).length;
                   const rate = attendanceRate(e.profile_id);
@@ -320,9 +355,14 @@ export default async function BatchDetailPage({
                           </Link>
                         ) : (
                           <span className="font-medium text-stone-900">{e.profiles.full_name}</span>
-                        )}{" "}
-                        <WaLink number={e.profiles.whatsapp} />
-                        <ParticipantDetails p={e.profiles} />
+                        )}
+                        {isAdmin && (
+                          <>
+                            {" "}
+                            <WaLink number={e.profiles.whatsapp} />
+                            <ParticipantDetails p={e.profiles} />
+                          </>
+                        )}
                       </td>
                       <td className={tdClass}>
                         <Badge value={e.status} />
@@ -345,8 +385,8 @@ export default async function BatchDetailPage({
                         {rate === null ? (
                           "-"
                         ) : (
-                          <span>
-                            {rate}%
+                          <span className="whitespace-nowrap">
+                            {rate.count}/{past.length} sesi ({rate.percent}%)
                           </span>
                         )}
                       </td>
@@ -640,7 +680,7 @@ export default async function BatchDetailPage({
 
       {isAdmin && (
         <Card title="Pengaturan batch" className="mt-6">
-          <BatchEditForm batch={batch} teachers={teachersRes.data ?? []} />
+          <BatchEditForm batch={batch} />
         </Card>
       )}
     </>

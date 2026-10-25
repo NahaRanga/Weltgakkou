@@ -24,6 +24,7 @@ const batchSchema = z.object({
   meeting_url: z.union([z.literal(""), z.url()]),
   schedule_label: z.string().trim().min(2).max(120),
   is_trial: z.literal("1").optional(),
+  teacher_id: z.union([z.literal(""), z.uuid()]).optional(),
   registration_deadline: deadlineField,
 });
 
@@ -49,6 +50,7 @@ export async function createBatch(_prev: BatchState, formData: FormData): Promis
       schedule_label: b.schedule_label,
       quota: b.quota,
       meeting_url: b.meeting_url || null,
+      teacher_id: b.teacher_id || null,
       // Kolom dari migrasi 0005 hanya dikirim bila dipakai, supaya buat batch biasa tetap jalan sebelum migrasi.
       ...(b.is_trial ? { is_trial: true } : {}),
       ...(b.registration_deadline ? { registration_deadline: b.registration_deadline } : {}),
@@ -113,9 +115,26 @@ const batchUpdateSchema = z.object({
   name: z.string().trim().min(2).max(80),
   schedule_label: z.string().trim().min(2).max(120),
   quota: z.coerce.number().int().min(1).max(50),
-  teacher_id: z.union([z.literal(""), z.uuid()]),
   registration_deadline: deadlineField,
 });
+
+// Sensei batch dipilih admin; hanya akun peran pengajar/admin yang boleh dipilih.
+export async function setBatchTeacher(batchId: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const parsed = z.union([z.literal(""), z.uuid()]).safeParse(String(formData.get("teacher_id") ?? ""));
+  if (!parsed.success) return { error: "Pilih sensei dari daftar." };
+  const db = requireDb();
+  let teacherName = "";
+  if (parsed.data) {
+    const { data: teacher } = await db.from("profiles").select("full_name, role").eq("id", parsed.data).maybeSingle();
+    if (!teacher || !["pengajar", "admin"].includes(teacher.role)) return { error: "Akun ini bukan pengajar. Buat dulu akunnya di menu Tim." };
+    teacherName = teacher.full_name;
+  }
+  const { error } = await db.from("batches").update({ teacher_id: parsed.data || null }).eq("id", batchId);
+  if (error) return { error: error.message };
+  refresh();
+  return { ok: teacherName ? `${teacherName} sekarang jadi sensei batch ini.` : "Sensei batch dikosongkan." };
+}
 
 export async function updateBatch(batchId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   await requireAdmin();
@@ -128,7 +147,6 @@ export async function updateBatch(batchId: string, _prev: FormState, formData: F
       name: b.name,
       schedule_label: b.schedule_label,
       quota: b.quota,
-      teacher_id: b.teacher_id || null,
       // Field tenggat hanya ada di form bila kolomnya sudah ada (migrasi 0005).
       ...(formData.has("registration_deadline") ? { registration_deadline: b.registration_deadline } : {}),
     })

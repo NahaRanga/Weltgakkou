@@ -35,7 +35,11 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
   if (view === "selesai") query = query.eq("status", "selesai");
   if (!isAdmin) query = query.eq("teacher_id", user.id);
 
-  const [batchesRes, programsRes] = await Promise.all([query, db.from("programs").select("id, name, months").eq("active", true).order("created_at")]);
+  const [batchesRes, programsRes, teachersRes] = await Promise.all([
+    query,
+    db.from("programs").select("id, name, months").eq("active", true).order("created_at"),
+    isAdmin ? db.from("profiles").select("id, full_name, role").in("role", ["pengajar", "admin"]).order("full_name") : Promise.resolve({ data: [] }),
+  ]);
   const batches = (batchesRes.data ?? []) as unknown as BatchRow[];
 
   return (
@@ -71,7 +75,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
                 <tr>
                   <th className={thClass}>Batch</th>
                   <th className={thClass}>Mulai</th>
-                  <th className={thClass}>Pengajar</th>
+                  <th className={thClass}>Sensei</th>
                   <th className={thClass}>Siswa</th>
                   <th className={thClass}>Status</th>
                 </tr>
@@ -90,7 +94,16 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
                         <span className="block text-xs text-stone-500">{b.schedule_label}</span>
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>{formatDate(b.start_date)}</td>
-                      <td className={tdClass}>{b.teacher?.full_name ?? <span className="text-stone-400">Belum ada</span>}</td>
+                      <td className={tdClass}>
+                        {b.teacher?.full_name ??
+                          (isAdmin ? (
+                            <Link href={`/admin/batch/${b.id}#sensei`} className="font-medium text-red-700 hover:underline">
+                              Pilih sensei
+                            </Link>
+                          ) : (
+                            <span className="text-stone-400">Belum ada</span>
+                          ))}
+                      </td>
                       <td className={`${tdClass} whitespace-nowrap`}>
                         {active}/{b.quota}
                         {waiting > 0 && <span className="block text-xs text-amber-700">+{waiting} menunggu bayar</span>}
@@ -111,7 +124,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
       <div id="buat" className="scroll-mt-6">
         <Card title="Buat batch baru" className="mt-6">
           <p className="mb-4 text-sm text-stone-600">Jadwal kelas dan ujian mingguan dibuat otomatis dari tanggal mulai, hari kelas, dan jumlah minggu.</p>
-          <BatchForm programs={programsRes.data ?? []} />
+          <BatchForm programs={programsRes.data ?? []} teachers={teachersRes.data ?? []} />
         </Card>
       </div>
       )}

@@ -10,6 +10,11 @@ export function isAdminRole(role: string | null | undefined) {
   return role === "admin" || role === "admin_utama";
 }
 
+// Akun yang boleh dipilih jadi sensei batch.
+export function isTeacherRole(role: string | null | undefined) {
+  return role === "pengajar" || isAdminRole(role);
+}
+
 // Hanya admin utama dan finance yang boleh menghapus akun siswa.
 export function canDeleteStudents(role: string | null | undefined) {
   return role === "admin_utama" || role === "finance";

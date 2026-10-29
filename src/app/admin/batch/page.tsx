@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BatchForm } from "@/components/admin-controls";
 import { Badge, Card, Empty, FilterTabs, PageTitle, tableClass, tdClass, thClass } from "@/components/admin/ui";
-import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, isTeacherRole, requireDb, requireStaff } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Batch & kelas" };
@@ -38,7 +38,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
   const [batchesRes, programsRes, teachersRes] = await Promise.all([
     query,
     db.from("programs").select("id, name, months").eq("active", true).order("created_at"),
-    isAdmin ? db.from("profiles").select("id, full_name, role").in("role", ["pengajar", "admin", "admin_utama"]).order("full_name") : Promise.resolve({ data: [] }),
+    isAdmin ? db.from("profiles").select("id, full_name, role").neq("role", "siswa").order("full_name") : Promise.resolve({ data: [] }),
   ]);
   const batches = (batchesRes.data ?? []) as unknown as BatchRow[];
 
@@ -124,7 +124,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
       <div id="buat" className="scroll-mt-6">
         <Card title="Buat batch baru" className="mt-6">
           <p className="mb-4 text-sm text-stone-600">Jadwal kelas dan ujian mingguan dibuat otomatis dari tanggal mulai, hari kelas, dan jumlah minggu.</p>
-          <BatchForm programs={programsRes.data ?? []} teachers={teachersRes.data ?? []} />
+          <BatchForm programs={programsRes.data ?? []} teachers={((teachersRes.data ?? []) as { id: string; full_name: string; role: string }[]).filter((t) => isTeacherRole(t.role))} />
         </Card>
       </div>
       )}

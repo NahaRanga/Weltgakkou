@@ -33,7 +33,7 @@ import {
 } from "@/components/admin/participant";
 import { ConfirmButton } from "@/components/admin/confirm-button";
 import { inputClass } from "@/components/ui/form";
-import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, isTeacherRole, requireDb, requireStaff } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 import { formatDate, formatDateTime, requestTime, siteUrl } from "@/lib/format";
 
@@ -141,15 +141,14 @@ export default async function BatchDetailPage({
         ? db
             .from("profiles")
             .select("id, full_name, role")
-            .in("role", ["pengajar", "admin", "admin_utama"])
+            // Filter peran di kode: "admin_utama" di .in() bikin query gagal bila migrasi 0013 belum jalan.
+            .neq("role", "siswa")
             .order("full_name")
         : empty,
     ]);
-  const teachers = (teachersRes.data ?? []) as {
-    id: string;
-    full_name: string;
-    role: string;
-  }[];
+  const teachers = (
+    (teachersRes.data ?? []) as { id: string; full_name: string; role: string }[]
+  ).filter((t) => isTeacherRole(t.role));
   const teacherName = teachers.find((t) => t.id === batch.teacher_id)?.full_name;
 
   const attendance = (attendanceRes.data ?? []) as {

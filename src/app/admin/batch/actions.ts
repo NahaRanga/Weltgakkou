@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireBatchStaff, requireSessionStaff } from "@/app/admin/guards";
 import type { BatchState, FormState } from "@/app/admin/types";
-import { isAdminRole, requireAdmin, requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, isTeacherRole, requireAdmin, requireDb, requireStaff } from "@/lib/auth";
 
 // Isian datetime-local (jam WIB) → ISO; kosong = tenggat default (H-1 23.59 WIB).
 const deadlineField = z
@@ -127,7 +127,7 @@ export async function setBatchTeacher(batchId: string, _prev: FormState, formDat
   let teacherName = "";
   if (parsed.data) {
     const { data: teacher } = await db.from("profiles").select("full_name, role").eq("id", parsed.data).maybeSingle();
-    if (!teacher || !["pengajar", "admin", "admin_utama"].includes(teacher.role)) return { error: "Akun ini bukan pengajar. Buat dulu akunnya di menu Tim." };
+    if (!teacher || !isTeacherRole(teacher.role)) return { error: "Akun ini bukan pengajar. Buat dulu akunnya di menu Tim." };
     teacherName = teacher.full_name;
   }
   const { error } = await db.from("batches").update({ teacher_id: parsed.data || null }).eq("id", batchId);

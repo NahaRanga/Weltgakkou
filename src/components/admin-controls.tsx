@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
-import { addMaterial, createBatch, setBatchMeetingUrl, updateBatch } from "@/app/admin/batch/actions";
+import { addMaterial, createBatch, setBatchMeetingUrl, setBatchTeacher, updateBatch } from "@/app/admin/batch/actions";
 import { acceptPayment, cancelInvoice, createNextInstallment, deleteInvoice, markInvoicePaid, rejectPayment } from "@/app/admin/pembayaran/actions";
 import { changePassword, updateProfile } from "@/app/admin/profil/actions";
 import { addRecording, setRecordingPackage } from "@/app/admin/rekaman/actions";
@@ -117,7 +117,43 @@ const DAYS = [
   { v: 6, l: "Sab" },
 ];
 
-export function BatchForm({ programs }: { programs: { id: string; name: string; months: number | null }[] }) {
+type Teacher = { id: string; full_name: string; role: string };
+
+// Pilihan sensei: akun pengajar dulu, akun admin ditandai supaya tidak tertukar.
+function TeacherOptions({ teachers }: { teachers: Teacher[] }) {
+  return (
+    <>
+      <option value="">Belum ditentukan</option>
+      {[...teachers]
+        .sort((a, b) => Number(a.role !== "pengajar") - Number(b.role !== "pengajar") || a.full_name.localeCompare(b.full_name))
+        .map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.full_name}
+            {t.role !== "pengajar" ? " (admin)" : ""}
+          </option>
+        ))}
+    </>
+  );
+}
+
+export function TeacherPickForm({ batchId, teacherId, teachers }: { batchId: string; teacherId: string | null; teachers: Teacher[] }) {
+  const [state, action, pending] = useActionState(setBatchTeacher.bind(null, batchId), {} as FormState);
+  return (
+    <form action={action} className="space-y-3">
+      <Messages state={state} />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <select name="teacher_id" defaultValue={teacherId ?? ""} aria-label="Sensei batch" className={`${inputClass} sm:flex-1`}>
+          <TeacherOptions teachers={teachers} />
+        </select>
+        <button className={buttonClass} disabled={pending}>
+          {pending ? "Menyimpan..." : "Simpan sensei"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function BatchForm({ programs, teachers }: { programs: { id: string; name: string; months: number | null }[]; teachers: Teacher[] }) {
   const [state, action, pending] = useActionState(createBatch, {} as BatchState);
   return (
     <form action={action} className="grid gap-4 sm:grid-cols-2">
@@ -167,6 +203,11 @@ export function BatchForm({ programs }: { programs: { id: string; name: string; 
               {d.l}
             </option>
           ))}
+        </select>
+      </Field>
+      <Field label="Sensei (bisa diisi nanti)">
+        <select name="teacher_id" defaultValue="" className={inputClass}>
+          <TeacherOptions teachers={teachers} />
         </select>
       </Field>
       <Field label="Keterangan jadwal (tampil ke calon siswa)">
@@ -275,7 +316,6 @@ function Messages({ state }: { state: FormState }) {
 
 export function BatchEditForm({
   batch,
-  teachers,
 }: {
   batch: {
     id: string;
@@ -283,12 +323,10 @@ export function BatchEditForm({
     schedule_label: string;
     quota: number;
     meeting_url: string | null;
-    teacher_id: string | null;
     start_date: string;
     // undefined = kolom belum ada (migrasi 0005 belum dijalankan), field tenggat disembunyikan.
     registration_deadline?: string | null;
   };
-  teachers: { id: string; full_name: string }[];
 }) {
   const [state, action, pending] = useActionState(updateBatch.bind(null, batch.id), {} as FormState);
   return (
@@ -304,16 +342,6 @@ export function BatchEditForm({
       </Field>
       <Field label="Keterangan jadwal">
         <input name="schedule_label" defaultValue={batch.schedule_label} required className={inputClass} />
-      </Field>
-      <Field label="Pengajar">
-        <select name="teacher_id" defaultValue={batch.teacher_id ?? ""} className={inputClass}>
-          <option value="">Belum ditentukan</option>
-          {teachers.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.full_name}
-            </option>
-          ))}
-        </select>
       </Field>
       {batch.registration_deadline !== undefined && (
         <Field label="Tutup pendaftaran (WIB)">

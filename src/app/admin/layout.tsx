@@ -44,6 +44,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       { href: "/admin", label: "Dashboard", icon: "dashboard" },
       { href: "/admin/jadwal", label: "Jadwal", icon: "jadwal" },
       { href: "/admin/batch", label: "Kelas saya", icon: "batch" },
+      { href: "/admin/murid", label: "Murid saya", icon: "siswa" },
       { href: "/admin/rekaman", label: "Video rekaman", icon: "video" },
     ];
   }

@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { createPasswordLink } from "@/app/(site)/masuk/actions";
 import type { VerifyState } from "@/app/admin/types";
-import { requireAdmin, requireDb } from "@/lib/auth";
+import { requireFinance, requireDb } from "@/lib/auth";
 import { createInvoice } from "@/lib/billing";
 import { sendEmail } from "@/lib/email";
 import { formatDate, siteUrl } from "@/lib/format";
@@ -35,7 +35,7 @@ type InvoiceRow = {
 };
 
 export async function acceptPayment(invoiceId: string): Promise<VerifyState> {
-  const admin = await requireAdmin();
+  const admin = await requireFinance();
   const db = requireDb();
 
   const { data } = await db
@@ -103,7 +103,7 @@ async function recordReferral(code: string | null, studentId: string, enrollment
 }
 
 export async function rejectPayment(invoiceId: string, reason: string): Promise<VerifyState> {
-  await requireAdmin();
+  await requireFinance();
   const db = requireDb();
   const { data } = await db
     .from("invoices")
@@ -122,7 +122,7 @@ export async function rejectPayment(invoiceId: string, reason: string): Promise<
 }
 
 export async function createNextInstallment(enrollmentId: string): Promise<{ code?: string; error?: string }> {
-  await requireAdmin();
+  await requireFinance();
   const db = requireDb();
   const { data } = await db
     .from("enrollments")
@@ -142,7 +142,7 @@ export async function createNextInstallment(enrollmentId: string): Promise<{ cod
 
 // Tagihan yang dibayar tanpa unggah bukti (misalnya transfer dicek langsung di mutasi).
 export async function markInvoicePaid(invoiceId: string): Promise<VerifyState> {
-  await requireAdmin();
+  await requireFinance();
   const db = requireDb();
   const { data } = await db.from("invoices").select("status").eq("id", invoiceId).maybeSingle();
   if (!data || !["belum", "ditolak", "menunggu_verifikasi"].includes(data.status)) return { error: "Tagihan ini tidak bisa ditandai lunas." };
@@ -152,7 +152,27 @@ export async function markInvoicePaid(invoiceId: string): Promise<VerifyState> {
 }
 
 export async function cancelInvoice(invoiceId: string) {
-  await requireAdmin();
+  await requireFinance();
   await requireDb().from("invoices").update({ status: "kedaluwarsa" }).eq("id", invoiceId).in("status", ["belum", "ditolak"]);
   refresh();
+}
+
+// Hapus tagihan beserta bukti transfernya (mis. data test yang terlanjur lunas). Pemasukannya ikut hilang dari laporan.
+// Kalau itu tagihan terakhir di pendaftarannya, pendaftaran (dan fee referral-nya) ikut dihapus; akun siswa tetap ada.
+export async function deleteInvoice(invoiceId: string): Promise<{ error?: string }> {
+  await requireFinance();
+  const db = requireDb();
+  const { data: invoice } = await db.from("invoices").select("id, enrollment_id, payment_proofs(file_path)").eq("id", invoiceId).maybeSingle();
+  if (!invoice) return { error: "Tagihan tidak ditemukan." };
+  const files = ((invoice.payment_proofs ?? []) as { file_path: string }[]).map((p) => p.file_path);
+  if (files.length) await db.storage.from("payment-proofs").remove(files);
+  const { error } = await db.from("invoices").delete().eq("id", invoiceId);
+  if (error) return { error: "Tagihan gagal dihapus." };
+  const { count } = await db.from("invoices").select("id", { count: "exact", head: true }).eq("enrollment_id", invoice.enrollment_id);
+  if (count === 0) {
+    await db.from("referrals").delete().eq("enrollment_id", invoice.enrollment_id);
+    await db.from("enrollments").delete().eq("id", invoice.enrollment_id);
+  }
+  refresh();
+  return {};
 }

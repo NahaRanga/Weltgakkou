@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, Empty, PageTitle, tableClass, tdClass, thClass } from "@/components/admin/ui";
-import { requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
 import { formatDate, requestTime } from "@/lib/format";
 
 export const metadata = { title: "Murid saya" };
@@ -17,7 +17,7 @@ type BatchRow = {
 // Sengaja tanpa WA, email, data pribadi, atau tagihan.
 export default async function MuridPage() {
   const user = await requireStaff();
-  const isAdmin = user.role === "admin";
+  const isAdmin = isAdminRole(user.role);
   const db = requireDb();
 
   let query = db

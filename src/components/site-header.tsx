@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { SiteNav } from "@/components/site-nav";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isAdminRole } from "@/lib/auth";
 import { withBase } from "@/lib/base-path";
 
 export async function SiteHeader() {
@@ -11,9 +11,9 @@ export async function SiteHeader() {
   const user = hasSession ? await getCurrentUser() : null;
   const account = !user
     ? null
-    : user.role === "admin"
+    : isAdminRole(user.role)
       ? { href: "/admin", label: "Admin" }
-      : user.role === "pengajar"
+      : user.role === "pengajar" || user.role === "finance"
         ? { href: "/admin", label: "Dashboard" }
         : { href: "/belajar", label: "Area belajar" };
   return (

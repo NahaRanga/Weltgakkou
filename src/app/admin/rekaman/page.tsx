@@ -2,9 +2,10 @@ import Link from "next/link";
 import { RecordingForm, RecordingPackageForm } from "@/components/admin-controls";
 import { Badge, Card, Empty, PageTitle } from "@/components/admin/ui";
 import { deleteRecording } from "@/app/admin/rekaman/actions";
-import { requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
 import { formatRupiah } from "@/lib/programs";
 import { groupByChapter, type Recording } from "@/lib/recordings";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 
 export const metadata = { title: "Video rekaman" };
 
@@ -18,7 +19,7 @@ type Program = {
 
 export default async function RecordingsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireStaff();
-  const isAdmin = user.role === "admin";
+  const isAdmin = isAdminRole(user.role);
   const sp = await searchParams;
   const db = requireDb();
 
@@ -114,7 +115,14 @@ export default async function RecordingsPage({ searchParams }: { searchParams: P
                         {v.title}
                       </a>
                       <form action={deleteRecording.bind(null, v.id)}>
-                        <button className="text-xs text-red-700 hover:underline">Hapus</button>
+                        <ConfirmButton
+                          className="text-xs text-red-700 hover:underline"
+                          title="Hapus video ini?"
+                          message={`"${v.title}" (bab ${chapter}) akan dihapus dari daftar rekaman siswa.`}
+                          confirmLabel="Ya, hapus video"
+                        >
+                          Hapus
+                        </ConfirmButton>
                       </form>
                     </li>
                   ))}

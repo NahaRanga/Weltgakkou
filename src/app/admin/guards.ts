@@ -1,5 +1,5 @@
 import "server-only";
-import { requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
 
 // Penjaga akses untuk server action admin. Sengaja tidak di file "use server"
 // supaya tidak ikut terbuka sebagai action yang bisa dipanggil dari browser.
@@ -7,7 +7,7 @@ import { requireDb, requireStaff } from "@/lib/auth";
 // Pengajar hanya boleh mengubah batch yang ia ajar; admin boleh semua.
 export async function requireBatchStaff(batchId: string) {
   const user = await requireStaff();
-  if (user.role === "admin") return user;
+  if (isAdminRole(user.role)) return user;
   const { data } = await requireDb().from("batches").select("teacher_id").eq("id", batchId).maybeSingle();
   if (!data || data.teacher_id !== user.id) throw new Error("Batch ini bukan kelas Anda.");
   return user;
@@ -25,7 +25,7 @@ export async function requireSessionStaff(sessionId: string) {
 // yang punya batch yang ia ajar.
 export async function requireProgramStaff(programId: string) {
   const user = await requireStaff();
-  if (user.role === "admin") return user;
+  if (isAdminRole(user.role)) return user;
   const { count } = await requireDb()
     .from("batches")
     .select("id", { count: "exact", head: true })

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Badge, Card, Empty, FilterTabs, PageTitle, smallButton, tableClass, tdClass, thClass, WaLink } from "@/components/admin/ui";
 import { inputClass } from "@/components/ui/form";
-import { requireAdmin, requireDb } from "@/lib/auth";
+import { DeleteStudentButton } from "@/components/admin-controls";
+import { canDeleteStudents, requireDb, requireFinance } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Siswa" };
@@ -13,7 +14,7 @@ type StudentRow = {
   email: string | null;
   domicile: string | null;
   created_at: string;
-  enrollments: { status: string; batches: { id: string; name: string; programs: { name: string } } }[];
+  enrollments: { status: string; batches: { id: string; name: string; programs: { name: string } }; invoices: { status: string }[] }[];
 };
 
 const views = [
@@ -28,12 +29,13 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
   const view = typeof sp.status === "string" && views.some((v) => v.value === sp.status) ? sp.status : "";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const batch = typeof sp.batch === "string" && /^[0-9a-f-]{36}$/i.test(sp.batch) ? sp.batch : "";
-  await requireAdmin();
+  const me = await requireFinance();
+  const canDelete = canDeleteStudents(me.role);
   const db = requireDb();
 
   let query = db
     .from("profiles")
-    .select(`id, full_name, whatsapp, email, domicile, created_at, enrollments${view || batch ? "!inner" : ""}(status, batch_id, batches(id, name, programs(name)))`)
+    .select(`id, full_name, whatsapp, email, domicile, created_at, enrollments${view || batch ? "!inner" : ""}(status, batch_id, batches(id, name, programs(name)), invoices(status))`)
     .eq("role", "siswa")
     .order("created_at", { ascending: false })
     .limit(200);
@@ -76,6 +78,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                   <th className={thClass}>Kelas</th>
                   <th className={thClass}>Domisili</th>
                   <th className={thClass}>Daftar</th>
+                  {canDelete && <th className={thClass}></th>}
                 </tr>
               </thead>
               <tbody>
@@ -106,6 +109,11 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                     </td>
                     <td className={tdClass}>{s.domicile ?? "-"}</td>
                     <td className={`${tdClass} whitespace-nowrap`}>{formatDate(s.created_at)}</td>
+                    {canDelete && (
+                      <td className={tdClass}>
+                        <DeleteStudentButton profileId={s.id} name={s.full_name} paid={s.enrollments.some((e) => e.invoices.some((i) => i.status === "lunas"))} />
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireBatchStaff, requireSessionStaff } from "@/app/admin/guards";
 import type { BatchState, FormState } from "@/app/admin/types";
-import { requireAdmin, requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireAdmin, requireDb, requireStaff } from "@/lib/auth";
 
 // Isian datetime-local (jam WIB) → ISO; kosong = tenggat default (H-1 23.59 WIB).
 const deadlineField = z
@@ -127,7 +127,7 @@ export async function setBatchTeacher(batchId: string, _prev: FormState, formDat
   let teacherName = "";
   if (parsed.data) {
     const { data: teacher } = await db.from("profiles").select("full_name, role").eq("id", parsed.data).maybeSingle();
-    if (!teacher || !["pengajar", "admin"].includes(teacher.role)) return { error: "Akun ini bukan pengajar. Buat dulu akunnya di menu Tim." };
+    if (!teacher || !["pengajar", "admin", "admin_utama"].includes(teacher.role)) return { error: "Akun ini bukan pengajar. Buat dulu akunnya di menu Tim." };
     teacherName = teacher.full_name;
   }
   const { error } = await db.from("batches").update({ teacher_id: parsed.data || null }).eq("id", batchId);
@@ -233,7 +233,7 @@ export async function addMaterial(batchId: string, _prev: FormState, formData: F
   if (!parsed.success) return { error: "Isi judul dan link yang valid (diawali https://)." };
   const m = parsed.data;
   // Materi untuk semua batch satu program hanya boleh dibuat admin.
-  if (!m.session_id && user.role !== "admin") return { error: "Pilih sesi untuk materi ini." };
+  if (!m.session_id && !isAdminRole(user.role)) return { error: "Pilih sesi untuk materi ini." };
   if (m.session_id) {
     const { data: session } = await requireDb().from("sessions").select("batch_id").eq("id", m.session_id).maybeSingle();
     if (session?.batch_id !== batchId) return { error: "Sesi tidak ditemukan di batch ini." };
@@ -249,7 +249,7 @@ export async function addMaterial(batchId: string, _prev: FormState, formData: F
 export async function deleteMaterial(materialId: string) {
   const user = await requireStaff();
   const db = requireDb();
-  if (user.role !== "admin") {
+  if (!isAdminRole(user.role)) {
     const { data } = await db.from("materials").select("sessions(batch_id)").eq("id", materialId).maybeSingle();
     const batchId = (data?.sessions as unknown as { batch_id: string } | null)?.batch_id;
     if (!batchId) return;

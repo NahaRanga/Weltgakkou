@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BatchForm } from "@/components/admin-controls";
 import { Badge, Card, Empty, FilterTabs, PageTitle, tableClass, tdClass, thClass } from "@/components/admin/ui";
-import { requireDb, requireStaff } from "@/lib/auth";
+import { isAdminRole, requireDb, requireStaff } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Batch & kelas" };
@@ -23,7 +23,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const view = sp.status === "selesai" || sp.status === "semua" ? sp.status : "";
   const user = await requireStaff();
-  const isAdmin = user.role === "admin";
+  const isAdmin = isAdminRole(user.role);
   const db = requireDb();
 
   let query = db
@@ -38,7 +38,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
   const [batchesRes, programsRes, teachersRes] = await Promise.all([
     query,
     db.from("programs").select("id, name, months").eq("active", true).order("created_at"),
-    isAdmin ? db.from("profiles").select("id, full_name, role").in("role", ["pengajar", "admin"]).order("full_name") : Promise.resolve({ data: [] }),
+    isAdmin ? db.from("profiles").select("id, full_name, role").in("role", ["pengajar", "admin", "admin_utama"]).order("full_name") : Promise.resolve({ data: [] }),
   ]);
   const batches = (batchesRes.data ?? []) as unknown as BatchRow[];
 

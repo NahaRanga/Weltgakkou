@@ -1,14 +1,16 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { addMaterial, createBatch, setBatchMeetingUrl, setBatchTeacher, updateBatch } from "@/app/admin/batch/actions";
-import { acceptPayment, cancelInvoice, createNextInstallment, markInvoicePaid, rejectPayment } from "@/app/admin/pembayaran/actions";
+import { acceptPayment, cancelInvoice, createNextInstallment, deleteInvoice, markInvoicePaid, rejectPayment } from "@/app/admin/pembayaran/actions";
 import { changePassword, updateProfile } from "@/app/admin/profil/actions";
 import { addRecording, setRecordingPackage } from "@/app/admin/rekaman/actions";
 import { addCertification } from "@/app/admin/sertifikasi/actions";
-import { sendPasswordLink } from "@/app/admin/siswa/actions";
+import { deleteStudent, sendPasswordLink } from "@/app/admin/siswa/actions";
 import { addStaff } from "@/app/admin/tim/actions";
 import type { BatchState, FormState, VerifyState } from "@/app/admin/types";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 import { withBase } from "@/lib/base-path";
 
@@ -30,7 +32,7 @@ function WhatsappFollowUp({ state }: { state: { whatsappText?: string; whatsapp?
   );
 }
 
-export function VerifyButtons({ invoiceId }: { invoiceId: string }) {
+export function VerifyButtons({ invoiceId, student }: { invoiceId: string; student?: string }) {
   const [state, setState] = useState<VerifyState>({});
   const [pending, start] = useTransition();
   const [reason, setReason] = useState("");
@@ -50,26 +52,33 @@ export function VerifyButtons({ invoiceId }: { invoiceId: string }) {
     <div className="space-y-2">
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <div className="flex flex-wrap gap-2">
-        <button
+        <ConfirmButton
           className="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
           disabled={pending}
-          onClick={() => start(async () => setState(await acceptPayment(invoiceId)))}
+          danger={false}
+          title={student ? `Terima pembayaran ${student}?` : "Terima pembayaran ini?"}
+          message="Pastikan uangnya sudah masuk ke rekening. Akun dan kelas siswa langsung aktif."
+          confirmLabel="Ya, terima"
+          onConfirm={() => start(async () => setState(await acceptPayment(invoiceId)))}
         >
           Terima
-        </button>
+        </ConfirmButton>
         <input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="Alasan tolak (opsional)"
           className={`${inputClass} max-w-xs flex-1 py-1.5 text-sm`}
         />
-        <button
+        <ConfirmButton
           className="rounded-lg border border-red-300 px-4 py-2 font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
           disabled={pending}
-          onClick={() => start(async () => setState(await rejectPayment(invoiceId, reason)))}
+          title={student ? `Tolak bukti bayar ${student}?` : "Tolak bukti bayar ini?"}
+          message={reason ? `Alasan: "${reason}". Siswa harus unggah bukti baru.` : "Tanpa alasan. Siswa harus unggah bukti baru."}
+          confirmLabel="Ya, tolak"
+          onConfirm={() => start(async () => setState(await rejectPayment(invoiceId, reason)))}
         >
           Tolak
-        </button>
+        </ConfirmButton>
       </div>
     </div>
   );
@@ -226,7 +235,7 @@ export function BatchForm({ programs, teachers }: { programs: { id: string; name
   );
 }
 
-export function InvoiceActions({ invoiceId }: { invoiceId: string }) {
+export function InvoiceActions({ invoiceId, label }: { invoiceId: string; label?: string }) {
   const [state, setState] = useState<VerifyState>({});
   const [pending, start] = useTransition();
   if (state.done) {
@@ -239,26 +248,59 @@ export function InvoiceActions({ invoiceId }: { invoiceId: string }) {
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
+      <ConfirmButton
         className="rounded-lg border border-emerald-300 px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
         disabled={pending}
-        onClick={() => {
-          if (confirm("Tandai tagihan ini lunas? Pastikan uangnya sudah masuk ke rekening.")) start(async () => setState(await markInvoicePaid(invoiceId)));
-        }}
+        danger={false}
+        title={label ? `Tandai tagihan ${label} lunas?` : "Tandai tagihan ini lunas?"}
+        message="Pastikan uangnya sudah masuk ke rekening. Akun dan kelas siswa langsung aktif."
+        confirmLabel="Ya, tandai lunas"
+        onConfirm={() => start(async () => setState(await markInvoicePaid(invoiceId)))}
       >
         Tandai lunas
-      </button>
-      <button
+      </ConfirmButton>
+      <ConfirmButton
         className="rounded-lg border border-stone-300 px-2.5 py-1 text-xs text-stone-700 hover:bg-stone-50 disabled:opacity-60"
         disabled={pending}
-        onClick={() => {
-          if (confirm("Batalkan tagihan ini?")) start(async () => cancelInvoice(invoiceId));
-        }}
+        title={label ? `Batalkan tagihan ${label}?` : "Batalkan tagihan ini?"}
+        message="Tagihan tidak bisa dibayar lagi. Kalau siswa masih mau ikut, buat tagihan baru."
+        confirmLabel="Ya, batalkan tagihan"
+        onConfirm={() => start(async () => cancelInvoice(invoiceId))}
       >
         Batalkan
-      </button>
+      </ConfirmButton>
       {state.error && <span className="text-xs text-red-700">{state.error}</span>}
     </div>
+  );
+}
+
+export function DeleteInvoiceButton({ invoiceId, label, paid }: { invoiceId: string; label: string; paid: boolean }) {
+  const [error, setError] = useState("");
+  const [pending, start] = useTransition();
+  return (
+    <span>
+      <ConfirmButton
+        className="text-xs text-stone-500 hover:text-red-700 disabled:opacity-60"
+        disabled={pending}
+        title={`Hapus tagihan ${label}?`}
+        message={
+          <>
+            Tagihan dan foto bukti transfernya dihapus permanen{paid ? ", dan pemasukannya hilang dari laporan" : ""}. Kalau ini satu-satunya tagihan di
+            pendaftaran itu, pendaftarannya ikut dihapus (siswa keluar dari batch). Akun siswa tetap ada. Pakai untuk data test atau salah input saja.
+          </>
+        }
+        confirmLabel="Ya, hapus tagihan"
+        onConfirm={() =>
+          start(async () => {
+            const res = await deleteInvoice(invoiceId);
+            setError(res.error ?? "");
+          })
+        }
+      >
+        {pending ? "Menghapus..." : "Hapus"}
+      </ConfirmButton>
+      {error && <span className="ml-2 text-xs text-red-700">{error}</span>}
+    </span>
   );
 }
 
@@ -383,7 +425,7 @@ export function MaterialForm({ batchId, sessions, allowProgramWide }: { batchId:
   );
 }
 
-export function StaffForm() {
+export function StaffForm({ canAddOwner = false }: { canAddOwner?: boolean }) {
   const [state, action, pending] = useActionState(addStaff, {} as FormState);
   return (
     <form action={action} className="grid gap-3 sm:grid-cols-2">
@@ -403,7 +445,9 @@ export function StaffForm() {
         <select name="role" className={inputClass}>
           <option value="pengajar">Pengajar</option>
           <option value="konten">Konten</option>
+          <option value="finance">Finance</option>
           <option value="admin">Admin</option>
+          {canAddOwner && <option value="admin_utama">Admin utama</option>}
         </select>
       </Field>
       <div className="sm:col-span-2">
@@ -412,6 +456,53 @@ export function StaffForm() {
         </button>
       </div>
     </form>
+  );
+}
+
+// Hapus akun siswa permanen (hanya tampil untuk admin utama dan finance).
+export function DeleteStudentButton({
+  profileId,
+  name,
+  paid,
+  afterDelete,
+  className = "text-xs text-stone-500 hover:text-red-700 disabled:opacity-60",
+}: {
+  profileId: string;
+  name: string;
+  paid: boolean;
+  afterDelete?: string;
+  className?: string;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [pending, start] = useTransition();
+  return (
+    <span>
+      <ConfirmButton
+        className={className}
+        disabled={pending}
+        title={`Hapus siswa ${name}?`}
+        message={
+          <>
+            Akun login, pendaftaran kelas, tagihan, foto bukti transfer, absen, nilai, dan riwayat latihan siswa ini dihapus permanen dan tidak bisa
+            dikembalikan.
+            {paid && <span className="mt-2 block font-semibold text-red-700">Siswa ini sudah punya pembayaran lunas. Pastikan ini memang akun test atau salah input.</span>}
+          </>
+        }
+        confirmText={paid ? "HAPUS" : undefined}
+        confirmLabel="Ya, hapus siswa"
+        onConfirm={() =>
+          start(async () => {
+            const res = await deleteStudent(profileId, paid ? "HAPUS" : "");
+            setError(res.error ?? "");
+            if (!res.error && afterDelete) router.push(afterDelete);
+          })
+        }
+      >
+        {pending ? "Menghapus..." : "Hapus siswa"}
+      </ConfirmButton>
+      {error && <span className="ml-2 text-xs text-red-700">{error}</span>}
+    </span>
   );
 }
 

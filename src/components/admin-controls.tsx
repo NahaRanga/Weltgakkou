@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { addMaterial, createBatch, setBatchMeetingUrl, setBatchTeacher, updateBatch } from "@/app/admin/batch/actions";
@@ -142,13 +143,23 @@ export function TeacherPickForm({ batchId, teacherId, teachers }: { batchId: str
     <form action={action} className="space-y-3">
       <Messages state={state} />
       <div className="flex flex-col gap-2 sm:flex-row">
-        <select name="teacher_id" defaultValue={teacherId ?? ""} aria-label="Sensei batch" className={`${inputClass} sm:flex-1`}>
+        {/* key: setelah simpan, pilihan ikut nilai baru dari server (tidak balik ke nilai lama). */}
+        <select key={teacherId ?? ""} name="teacher_id" defaultValue={teacherId ?? ""} aria-label="Sensei batch" className={`${inputClass} sm:flex-1`}>
           <TeacherOptions teachers={teachers} />
         </select>
         <button className={buttonClass} disabled={pending}>
           {pending ? "Menyimpan..." : "Simpan sensei"}
         </button>
       </div>
+      {!teachers.some((t) => t.role === "pengajar") && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Belum ada akun berperan <b>Pengajar</b>, jadi yang bisa dipilih baru akun admin. Tambahkan sensei (mis. Eko) di menu{" "}
+          <Link href="/admin/tim" className="font-medium underline">
+            Tim
+          </Link>{" "}
+          dengan peran Pengajar, lalu pilih di sini.
+        </p>
+      )}
     </form>
   );
 }

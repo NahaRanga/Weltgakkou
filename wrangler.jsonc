@@ -10,7 +10,17 @@
     { "pattern": "panjimuhammad.com/weltgakko*", "zone_name": "panjimuhammad.com" }
   ],
   // Variabel biasa. Kunci Supabase dan rekening disimpan sebagai Secret di Cloudflare.
-  "vars": { "SITE_URL": "https://weltgakko.com", "REFERRAL_PERCENT": "10", "EMAIL_VERIFICATION": "on" },
+  // Email notifikasi lewat SMTP Hostinger; password kotak surat disimpan sebagai Secret SMTP_PASSWORD.
+  "vars": {
+    "SITE_URL": "https://weltgakko.com",
+    "REFERRAL_PERCENT": "10",
+    "EMAIL_VERIFICATION": "on",
+    "ADMIN_EMAIL": "weltgakko@gmail.com",
+    "EMAIL_FROM": "Weltgakko <admin@weltgakko.com>",
+    "SMTP_HOST": "smtp.hostinger.com",
+    "SMTP_PORT": "465",
+    "SMTP_USER": "admin@weltgakko.com"
+  },
   "name": "weltgakkou",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],

@@ -4,9 +4,9 @@ import { z } from "zod";
 import { findOrCreateProfile } from "@/lib/accounts";
 import { seatsTaken } from "@/lib/billing";
 import { registrationDeadline } from "@/lib/batches";
-import { notifyAdmin } from "@/lib/email";
+import { notifyAdmin, sendEmail } from "@/lib/email";
 import { sendPasswordEmail, verificationEnabled, verifiedUserId } from "@/lib/email-verification";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, siteUrl } from "@/lib/format";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export type TrialState = {
@@ -94,6 +94,23 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
   await notifyAdmin(
     `Pendaftar kelas trial: ${input.full_name}`,
     `${input.full_name} daftar ${batch.name} (${when}).\nWhatsApp: https://wa.me/${input.whatsapp}\nEmail: ${input.email}`,
+  ).catch(() => {});
+
+  // Konfirmasi ke pendaftar, sekaligus pengingat jadwal (semua sesi rangkaian).
+  await sendEmail(
+    input.email,
+    `Kamu terdaftar kelas trial gratis Weltgakko`,
+    [
+      `Halo ${input.full_name},`,
+      "",
+      `Kamu sudah terdaftar di ${batch.name}. Sekali daftar berlaku untuk semua sesinya:`,
+      ...sessionTimes.map((t, i) => `${i + 1}. ${formatDateTime(t)} WIB`),
+      "",
+      `Link Zoom ada di area belajar: ${siteUrl()}/masuk (pakai email ini, pilih "Kode dari email"). Tombol Masuk kelas muncul 15 menit sebelum kelas.`,
+      "",
+      "Sampai ketemu di kelas!",
+      "Weltgakko",
+    ].join("\n"),
   ).catch(() => {});
 
   return {

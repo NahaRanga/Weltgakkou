@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { notifyAdmin } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getProgram } from "@/lib/programs";
 import { TRIAL_NOTE } from "@/lib/site";
@@ -80,7 +81,18 @@ export async function joinWaitingList(
     return { status: "error", message: "Pendaftaran sedang gangguan. Silakan hubungi kami lewat WhatsApp.", values };
   }
 
-  await notifyAdmin(lead).catch((err) => console.error("Gagal mengirim email ke admin", err));
+  await notifyAdmin(
+    `${trial ? "Minat trial" : "Waiting list"}: ${lead.full_name} (${lead.program_slug})`,
+    [
+      `Nama: ${lead.full_name}`,
+      `WhatsApp: https://wa.me/${lead.whatsapp}`,
+      `Email: ${lead.email ?? "-"}`,
+      `Program: ${lead.program_slug}`,
+      `Sumber: ${lead.source ?? "-"}`,
+      `Kode referral: ${lead.referral_code ?? "-"}`,
+      `Catatan: ${lead.note ?? "-"}`,
+    ].join("\n"),
+  ).catch((err) => console.error("Gagal mengirim email ke admin", err));
 
   const program = getProgram(lead.program_slug);
   return {
@@ -89,28 +101,4 @@ export async function joinWaitingList(
       ? `Terima kasih, ${lead.full_name}! Data kamu sudah kami simpan. Begitu jadwal kelas trial dibuka, admin Weltgakko kabari lewat WhatsApp.`
       : `Terima kasih, ${lead.full_name}! Kamu masuk waiting list ${program?.name}. Tim Weltgakko akan menghubungi lewat WhatsApp.`,
   };
-}
-
-async function notifyAdmin(lead: { full_name: string; whatsapp: string; email: string | null; program_slug: string; source?: string; referral_code?: string; note?: string }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.ADMIN_EMAIL;
-  const from = process.env.EMAIL_FROM;
-  if (!apiKey || !to || !from) return;
-
-  const lines = [
-    `Nama: ${lead.full_name}`,
-    `WhatsApp: https://wa.me/${lead.whatsapp}`,
-    `Email: ${lead.email ?? "-"}`,
-    `Program: ${lead.program_slug}`,
-    `Sumber: ${lead.source ?? "-"}`,
-    `Kode referral: ${lead.referral_code ?? "-"}`,
-    `Catatan: ${lead.note ?? "-"}`,
-  ];
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject: `Lead baru: ${lead.full_name} (${lead.program_slug})`, text: lines.join("\n") }),
-  });
-  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
 }

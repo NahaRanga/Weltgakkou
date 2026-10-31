@@ -3,6 +3,7 @@ import { Badge, Card, Empty, PageTitle, tableClass, tdClass, thClass, WaLink } f
 import { requireAdmin, requireDb } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { upcomingTrials } from "@/lib/batches";
+import { TRIAL_NOTE } from "@/lib/site";
 
 export const metadata = { title: "Pendaftar trial" };
 
@@ -30,7 +31,7 @@ export default async function TrialPage() {
   await requireAdmin();
   const db = requireDb();
 
-  const [batchesRes, open] = await Promise.all([
+  const [batchesRes, open, leadsRes] = await Promise.all([
     db
       .from("batches")
       .select(
@@ -39,7 +40,15 @@ export default async function TrialPage() {
       .eq("is_trial", true)
       .order("start_date", { ascending: false }),
     upcomingTrials(),
+    // Isi form /trial saat jadwal trial belum dibuka (disimpan di waiting list).
+    db
+      .from("leads")
+      .select("id, full_name, whatsapp, email, source, note, status, created_at")
+      .like("note", `${TRIAL_NOTE}%`)
+      .order("created_at", { ascending: false })
+      .limit(200),
   ]);
+  const interested = (leadsRes.data ?? []) as { id: string; full_name: string; whatsapp: string; email: string | null; source: string | null; note: string | null; status: string; created_at: string }[];
   const batches = (batchesRes.data ?? []) as unknown as TrialBatch[];
   const total = batches.reduce((n, b) => n + b.enrollments.filter((e) => e.status !== "keluar").length, 0);
 
@@ -64,9 +73,51 @@ export default async function TrialPage() {
               Batch &amp; kelas
             </Link>{" "}
             dengan centang <b>Kelas trial gratis</b> (tanggal + jam = waktu kelas trial, kuota = batas peserta Zoom). Setelah itu form langsung muncul di /trial
-            dan pendaftarnya tampil di halaman ini.
+            dan pendaftarnya tampil di halaman ini. Sementara itu, form di /trial menyimpan peminat ke daftar &quot;Minta dikabari jadwal trial&quot;.
           </p>
         </div>
+      )}
+
+      {interested.length > 0 && (
+        <Card title="Minta dikabari jadwal trial" count={interested.length} className="mb-6">
+          <p className="mb-3 text-sm text-stone-600">
+            Mereka isi form di /trial waktu belum ada jadwal. Kirim link /trial lewat WA begitu jadwal dibuka, lalu ubah statusnya di{" "}
+            <Link href="/admin/waiting-list" className="font-medium text-red-700 underline">
+              Waiting list
+            </Link>
+            .
+          </p>
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead>
+                <tr>
+                  <th className={thClass}>Nama</th>
+                  <th className={thClass}>Catatan</th>
+                  <th className={thClass}>Masuk</th>
+                  <th className={thClass}>Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {interested.map((l) => (
+                  <tr key={l.id}>
+                    <td className={tdClass}>
+                      <span className="font-medium text-stone-900">{l.full_name}</span> <WaLink number={l.whatsapp} />
+                      <span className="block text-xs text-stone-500">
+                        {l.email ?? "tanpa email"}
+                        {l.source ? ` · dari ${l.source}` : ""}
+                      </span>
+                    </td>
+                    <td className={`${tdClass} text-stone-600`}>{(l.note ?? "").slice(TRIAL_NOTE.length).trim() || "-"}</td>
+                    <td className={`${tdClass} whitespace-nowrap text-stone-600`}>{formatDateTime(l.created_at)}</td>
+                    <td className={tdClass}>
+                      <Badge value={l.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {batches.length === 0 ? (

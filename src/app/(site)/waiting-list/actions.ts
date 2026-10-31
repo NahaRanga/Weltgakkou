@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getProgram } from "@/lib/programs";
+import { TRIAL_NOTE } from "@/lib/site";
 
 export type WaitingListState = {
   status: "idle" | "ok" | "error";
@@ -62,7 +63,10 @@ export async function joinWaitingList(
     return { status: "error", message: "Periksa lagi isian yang ditandai.", fieldErrors, values };
   }
 
-  const lead = { ...parsed.data, whatsapp: normalizeWhatsapp(parsed.data.whatsapp), email: parsed.data.email || null };
+  // Minat kelas trial (form /trial saat jadwal belum dibuka) ditandai di catatan; tampil di /admin/trial.
+  const trial = formData.get("trial") === "1";
+  const note = trial ? `${TRIAL_NOTE}${parsed.data.note ? ` ${parsed.data.note}` : ""}` : parsed.data.note;
+  const lead = { ...parsed.data, note, whatsapp: normalizeWhatsapp(parsed.data.whatsapp), email: parsed.data.email || null };
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -81,7 +85,9 @@ export async function joinWaitingList(
   const program = getProgram(lead.program_slug);
   return {
     status: "ok",
-    message: `Terima kasih, ${lead.full_name}! Kamu masuk waiting list ${program?.name}. Tim Weltgakko akan menghubungi lewat WhatsApp.`,
+    message: trial
+      ? `Terima kasih, ${lead.full_name}! Data kamu sudah kami simpan. Begitu jadwal kelas trial dibuka, admin Weltgakko kabari lewat WhatsApp.`
+      : `Terima kasih, ${lead.full_name}! Kamu masuk waiting list ${program?.name}. Tim Weltgakko akan menghubungi lewat WhatsApp.`,
   };
 }
 

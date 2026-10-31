@@ -52,7 +52,8 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
     .eq("id", input.batch_id)
     .maybeSingle();
   if (!batch?.is_trial || batch.status !== "buka") return { error: "Jadwal kelas trial ini sudah tidak menerima pendaftaran.", values };
-  const firstSession = ((batch.sessions ?? []) as { starts_at: string }[]).map((s) => s.starts_at).sort()[0] ?? null;
+  const sessionTimes = ((batch.sessions ?? []) as { starts_at: string }[]).map((s) => s.starts_at).sort();
+  const firstSession = sessionTimes[0] ?? null;
   if (registrationDeadline({ ...batch, firstSession }).getTime() < Date.now())
     return { error: "Pendaftaran kelas trial ini sudah ditutup. Pilih jadwal lain atau masuk waiting list.", values };
 
@@ -87,14 +88,15 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
 
   // Login cukup pakai kode email; link atur password tetap dikirim untuk yang ingin pakai password.
   if (account.created) await sendPasswordEmail(input.email);
-  const when = firstSession ? formatDateTime(firstSession) : batch.start_date;
+  // Rangkaian trial bisa 2 sesi (Sabtu + Minggu): sebut semuanya.
+  const when = sessionTimes.length ? sessionTimes.map((t) => `${formatDateTime(t)} WIB`).join(" dan ") : batch.start_date;
 
   await notifyAdmin(
     `Pendaftar kelas trial: ${input.full_name}`,
-    `${input.full_name} daftar ${batch.name} (${when} WIB).\nWhatsApp: https://wa.me/${input.whatsapp}\nEmail: ${input.email}`,
+    `${input.full_name} daftar ${batch.name} (${when}).\nWhatsApp: https://wa.me/${input.whatsapp}\nEmail: ${input.email}`,
   ).catch(() => {});
 
   return {
-    ok: `Kursi kamu sudah aman untuk ${when} WIB. Masuk ke area belajar di halaman Masuk dengan email ${input.email}, pilih "Kode dari email" (tanpa password). Tombol Masuk kelas (Zoom) muncul di sana 15 menit sebelum kelas.`,
+    ok: `Kursi kamu sudah aman untuk ${sessionTimes.length > 1 ? `${sessionTimes.length} sesi: ` : ""}${when}. Sekali daftar berlaku untuk semua sesinya. Masuk ke area belajar di halaman Masuk dengan email ${input.email}, pilih "Kode dari email" (tanpa password). Tombol Masuk kelas (Zoom) muncul di sana 15 menit sebelum kelas.`,
   };
 }

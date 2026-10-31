@@ -32,7 +32,7 @@ export default async function AdminOverview() {
   const [start, end] = todayRangeIso();
   const in3days = new Date(requestTime() + 3 * 86400_000).toISOString();
 
-  const [paidRes, activeRes, waitingRes, proofsRes, leadsRes, batchesRes, todayRes, recentRes, dueRes] = await Promise.all([
+  const [paidRes, activeRes, waitingRes, proofsRes, leadsRes, batchesRes, todayRes, recentRes, dueRes, trialRes] = await Promise.all([
     db.from("invoices").select("amount, paid_at").eq("status", "lunas").gte("paid_at", monthStartIso(-5)),
     db.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "aktif"),
     db.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "menunggu_bayar"),
@@ -42,6 +42,8 @@ export default async function AdminOverview() {
     db.from("sessions").select("id, number, starts_at, kind, topic, batches!inner(id, name, status, programs(name))").gte("starts_at", start).lt("starts_at", end).neq("batches.status", "selesai").order("starts_at"),
     db.from("enrollments").select("id, status, created_at, profiles(full_name, whatsapp), batches(id, name, programs(name))").order("created_at", { ascending: false }).limit(6),
     db.from("invoices").select("id, code, amount, due_at, installment_no, enrollments(profiles(full_name, whatsapp))").eq("status", "belum").lte("due_at", in3days).order("due_at").limit(8),
+    // Pendaftar kelas trial gratis (/trial) di jadwal trial yang belum selesai.
+    db.from("enrollments").select("id, batches!inner(is_trial, status)", { count: "exact", head: true }).eq("batches.is_trial", true).neq("batches.status", "selesai").neq("status", "keluar"),
   ]);
 
   const paid = paidRes.data ?? [];
@@ -70,6 +72,7 @@ export default async function AdminOverview() {
         <Stat label="Menunggu bayar" value={waitingRes.count ?? 0} href="/admin/pembayaran?status=belum" />
         <Stat label="Pemasukan bulan ini" value={formatRupiah(incomeThisMonth)} href="/admin/pembayaran?status=lunas" />
         <Stat label="Batch aktif" value={batches.length} href="/admin/batch" />
+        <Stat label="Pendaftar trial" value={trialRes.count ?? 0} href="/admin/trial" />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">

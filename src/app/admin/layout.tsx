@@ -21,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       { href: "/admin", label: "Dashboard", icon: "dashboard" },
       { href: "/admin/jadwal", label: "Jadwal", icon: "jadwal" },
       { href: "/admin/batch", label: "Batch & kelas", icon: "batch" },
+      { href: "/admin/trial", label: "Pendaftar trial", icon: "trial" },
       { href: "/admin/rekaman", label: "Video rekaman", icon: "video" },
       { href: "/admin/latihan", label: "Latihan gratis", icon: "latihan" },
       { href: "/admin/pembayaran", label: "Pembayaran", icon: "bayar", badge: proofs.count ?? 0 },

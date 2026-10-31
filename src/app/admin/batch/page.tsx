@@ -95,7 +95,16 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>{formatDate(b.start_date)}</td>
                       <td className={tdClass}>
-                        {b.teacher?.full_name ??
+                        {b.teacher?.full_name ? (
+                          <>
+                            {b.teacher.full_name}
+                            {isAdmin && (
+                              <Link href={`/admin/batch/${b.id}#sensei`} className="ml-2 text-xs font-medium text-red-700 hover:underline">
+                                Ganti
+                              </Link>
+                            )}
+                          </>
+                        ) :
                           (isAdmin ? (
                             <Link href={`/admin/batch/${b.id}#sensei`} className="font-medium text-red-700 hover:underline">
                               Pilih sensei

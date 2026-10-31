@@ -23,3 +23,6 @@ export function waLink(text: string) {
   if (!site.whatsapp) return withBase("/waiting-list");
   return `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(text)}`;
 }
+
+// Penanda catatan lead dari form /trial saat jadwal trial belum dibuka.
+export const TRIAL_NOTE = "[Minat trial]";

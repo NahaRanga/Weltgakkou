@@ -13,9 +13,12 @@ const inputClass =
 export function WaitingListForm({
   programs,
   defaultProgram,
+  trial = false,
 }: {
   programs: Pick<Program, "slug" | "name" | "open">[];
   defaultProgram?: string;
+  // true = dipakai di /trial saat jadwal trial belum dibuka; data ditandai minat trial.
+  trial?: boolean;
 }) {
   const [state, action, pending] = useActionState(joinWaitingList, initial);
 
@@ -89,6 +92,8 @@ export function WaitingListForm({
         <textarea name="note" defaultValue={v.note} rows={3} className={inputClass} />
       </Field>
 
+      {trial && <input type="hidden" name="trial" value="1" />}
+
       {/* Honeypot untuk bot, disembunyikan dari pengguna. */}
       <div aria-hidden="true" className="hidden">
         <input name="website" tabIndex={-1} autoComplete="off" />
@@ -99,7 +104,7 @@ export function WaitingListForm({
         disabled={pending}
         className="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white hover:bg-red-800 disabled:opacity-60"
       >
-        {pending ? "Mengirim..." : "Masuk waiting list"}
+        {pending ? "Mengirim..." : trial ? "Kabari saya jadwal trial" : "Masuk waiting list"}
       </button>
     </form>
   );

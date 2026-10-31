@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { TrialForm } from "@/components/trial-form";
+import { WaitingListForm } from "@/components/waiting-list-form";
 import { withBase } from "@/lib/base-path";
 import { upcomingTrials } from "@/lib/batches";
 import { verificationEnabled } from "@/lib/email-verification";
 import { formatDay, formatTime } from "@/lib/format";
+import { programs } from "@/lib/programs";
 import { pageMetadata } from "@/lib/seo";
 import { waLink } from "@/lib/site";
 
@@ -18,7 +19,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const perks = [
-  { title: "Kelas live 60 menit", body: "Langsung bareng sensei lewat Zoom, bukan video rekaman." },
+  { title: "Sekali daftar, dua sesi", body: "Sabtu sore kenalan Jepang (budaya, jalur kerja, tanya jawab), Minggu pagi kelas live 60 menit bareng sensei. Semua lewat Zoom." },
   { title: "Mulai dari nol", body: "Hiragana pertama, angka, dan cara memperkenalkan diri dalam bahasa Jepang." },
   { title: "Gratis, tanpa kartu atau transfer", body: "Cukup nama, email, dan WhatsApp. Link kelas muncul di area belajar." },
 ];
@@ -73,24 +74,27 @@ async function TrialSchedule() {
     return (
       <div className="rounded-2xl border border-stone-200 bg-white p-6 text-center">
         <h2 className="text-xl font-bold text-stone-900">Jadwal kelas trial berikutnya segera diumumkan</h2>
-        <p className="mt-2 text-stone-600">Masuk waiting list atau chat admin, nanti kamu dikabari duluan lewat WhatsApp.</p>
-        <div className="mt-5 flex flex-wrap justify-center gap-3">
-          <Link href="/waiting-list" className="rounded-lg bg-red-700 px-5 py-3 font-semibold text-white hover:bg-red-800">
-            Masuk waiting list
-          </Link>
-          <a href={waLink("Halo Weltgakko, saya mau ikut kelas trial gratis. Kapan jadwal berikutnya?")} className="rounded-lg border border-stone-300 px-5 py-3 font-semibold text-stone-800 hover:border-stone-500">
-            Chat admin
-          </a>
+        <p className="mt-2 text-stone-600">Isi data di bawah, nanti admin kabari kamu duluan lewat WhatsApp begitu jadwalnya dibuka.</p>
+        <div className="mt-5 text-left">
+          <WaitingListForm programs={programs} defaultProgram="jlpt-n5" trial />
         </div>
+        <a href={waLink("Halo Weltgakko, saya mau ikut kelas trial gratis. Kapan jadwal berikutnya?")} className="mt-4 inline-block text-sm font-semibold text-red-700 hover:underline">
+          Atau chat admin
+        </a>
       </div>
     );
   }
 
   const options = trials.map((t) => {
     const when = t.firstSession ?? t.start_date;
+    // Rangkaian beberapa sesi (mis. Sabtu + Minggu) ditampilkan semua.
+    const label =
+      t.sessionTimes.length > 1
+        ? t.sessionTimes.map((s) => `${formatDay(s)} ${formatTime(s)} WIB`).join(" + ")
+        : `${formatDay(when)}${t.firstSession ? ` · ${formatTime(t.firstSession)} WIB` : ""}`;
     return {
       id: t.id,
-      label: `${formatDay(when)}${t.firstSession ? ` · ${formatTime(t.firstSession)} WIB` : ""}`,
+      label,
       detail: `${t.name} · ${t.schedule_label}`,
       seatsLeft: t.seatsLeft,
     };

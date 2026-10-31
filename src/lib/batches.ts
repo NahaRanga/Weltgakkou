@@ -14,6 +14,8 @@ export type OpenBatch = {
   isTrial: boolean;
   // Waktu kelas pertama (ISO), dipakai untuk jam kelas trial.
   firstSession: string | null;
+  // Waktu sesi-sesi awal (ISO, maks 3); trial bisa satu rangkaian 2 sesi (mis. Sabtu + Minggu).
+  sessionTimes: string[];
   // Batas akhir pendaftaran (ISO), dari kolom registration_deadline atau default.
   deadline: string;
 };
@@ -57,7 +59,7 @@ const listOpen = cache(async (): Promise<OpenBatch[]> => {
     .eq("status", "buka")
     .order("start_date")
     .order("starts_at", { referencedTable: "sessions" })
-    .limit(1, { referencedTable: "sessions" });
+    .limit(3, { referencedTable: "sessions" });
   if (error) console.error("Gagal membaca batch buka", error.message);
   const now = Date.now();
 
@@ -78,6 +80,7 @@ const listOpen = cache(async (): Promise<OpenBatch[]> => {
         programName: b.programs.name,
         isTrial: b.is_trial === true,
         firstSession,
+        sessionTimes: b.sessions.map((x) => x.starts_at),
         deadline: deadline.toISOString(),
       },
     ];

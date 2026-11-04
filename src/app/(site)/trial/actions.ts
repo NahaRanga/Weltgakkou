@@ -7,12 +7,13 @@ import { registrationDeadline } from "@/lib/batches";
 import { notifyAdmin, sendEmail } from "@/lib/email";
 import { sendPasswordEmail, verificationEnabled, verifiedUserId } from "@/lib/email-verification";
 import { formatDateTime, siteUrl } from "@/lib/format";
+import { HEARD_FROM, heardFromLabel, normalizeHandle } from "@/lib/social-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export type TrialState = {
   ok?: string;
   error?: string;
-  fieldErrors?: Partial<Record<"full_name" | "email" | "whatsapp" | "batch_id", string>>;
+  fieldErrors?: Partial<Record<"full_name" | "email" | "whatsapp" | "batch_id" | "instagram" | "tiktok" | "heard_from", string>>;
   values?: Record<string, string>;
 };
 
@@ -26,12 +27,33 @@ const schema = z.object({
     .pipe(z.string().regex(/^(\+62|62|0)8\d{7,12}$/, "Nomor WhatsApp tidak valid, contoh 081234567890"))
     .transform((v) => (v.startsWith("+62") ? "62" + v.slice(3) : v.startsWith("0") ? "62" + v.slice(1) : v)),
   email: z.email("Email wajib diisi, dipakai untuk login").transform((v) => v.trim().toLowerCase()),
+  // Opsional: "@nama", "nama", atau link profil; disimpan sebagai username tanpa @.
+  instagram: handle("instagram"),
+  tiktok: handle("tiktok"),
+  heard_from: z
+    .string()
+    .transform((v) => v || null)
+    .pipe(z.enum(HEARD_FROM.map((o) => o.value) as [string, ...string[]], "Pilih salah satu").nullable()),
 });
+
+function handle(platform: "instagram" | "tiktok") {
+  return z.string().transform((v, ctx) => {
+    const r = normalizeHandle(platform, v);
+    if ("error" in r) {
+      ctx.addIssue({ code: "custom", message: r.error });
+      return z.NEVER;
+    }
+    return r.value;
+  });
+}
+
+// Kolom kode PostgREST/Postgres saat kolom belum ada (migrasi 0014 belum dijalankan).
+const isMissingColumn = (e: { code?: string } | null) => e?.code === "PGRST204" || e?.code === "42703";
 
 // Daftar kelas trial gratis: akun dibuat (atau dipakai yang lama), langsung aktif tanpa tagihan.
 // Satu akun hanya boleh ikut satu kelas trial.
 export async function registerTrial(_prev: TrialState, formData: FormData): Promise<TrialState> {
-  const values = Object.fromEntries(["batch_id", "full_name", "email", "whatsapp"].map((k) => [k, String(formData.get(k) ?? "")]));
+  const values = Object.fromEntries(["batch_id", "full_name", "email", "whatsapp", "instagram", "tiktok", "heard_from"].map((k) => [k, String(formData.get(k) ?? "")]));
   const parsed = schema.safeParse(values);
   if (!parsed.success) {
     const fieldErrors: TrialState["fieldErrors"] = {};
@@ -77,12 +99,14 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
 
   if ((await seatsTaken(db, input.batch_id)) >= batch.quota) return { error: "Maaf, kuota kelas trial ini sudah penuh. Pilih jadwal lain.", values };
 
-  const { error } = await db
-    .from("enrollments")
-    .upsert(
-      { profile_id: profileId, batch_id: input.batch_id, status: "aktif", agreed_at: new Date().toISOString() },
-      { onConflict: "profile_id,batch_id" },
-    );
+  const base = { profile_id: profileId, batch_id: input.batch_id, status: "aktif", agreed_at: new Date().toISOString() };
+  const extra = { instagram: input.instagram, tiktok: input.tiktok, heard_from: input.heard_from };
+  let { error } = await db.from("enrollments").upsert({ ...base, ...extra }, { onConflict: "profile_id,batch_id" });
+  // Sebelum migrasi 0014 jalan: tetap daftarkan, isian sosmed/sumber hanya ikut di email admin.
+  if (isMissingColumn(error)) {
+    console.warn("Kolom sosmed trial belum ada, jalankan 0014_trial_sosmed.sql");
+    ({ error } = await db.from("enrollments").upsert(base, { onConflict: "profile_id,batch_id" }));
+  }
   if (error) throw error;
   await db.from("leads").update({ status: "daftar" }).eq("whatsapp", input.whatsapp).in("status", ["baru", "dihubungi"]);
 
@@ -93,7 +117,14 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
 
   await notifyAdmin(
     `Pendaftar kelas trial: ${input.full_name}`,
-    `${input.full_name} daftar ${batch.name} (${when}).\nWhatsApp: https://wa.me/${input.whatsapp}\nEmail: ${input.email}`,
+    [
+      `${input.full_name} daftar ${batch.name} (${when}).`,
+      `WhatsApp: https://wa.me/${input.whatsapp}`,
+      `Email: ${input.email}`,
+      `Instagram: ${input.instagram ? `@${input.instagram}` : "-"}`,
+      `TikTok: ${input.tiktok ? `@${input.tiktok}` : "-"}`,
+      `Tau dari: ${heardFromLabel(input.heard_from) ?? "-"}`,
+    ].join("\n"),
   ).catch(() => {});
 
   // Konfirmasi ke pendaftar, sekaligus pengingat jadwal (semua sesi rangkaian).

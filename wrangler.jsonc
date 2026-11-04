@@ -21,6 +21,20 @@
     "SMTP_PORT": "465",
     "SMTP_USER": "admin@weltgakko.com"
   },
+  // Dipakai build preview per branch (`npx wrangler preview`). Preview tidak punya Secret produksi
+  // (kunci Supabase, SMTP_PASSWORD), jadi email/DB tidak jalan di sana; ini cuma supaya check PR hijau.
+  "previews": {
+    "vars": {
+      "SITE_URL": "https://weltgakko.com",
+      "REFERRAL_PERCENT": "10",
+      "EMAIL_VERIFICATION": "on",
+      "ADMIN_EMAIL": "weltgakko@gmail.com",
+      "EMAIL_FROM": "Weltgakko <admin@weltgakko.com>",
+      "SMTP_HOST": "smtp.hostinger.com",
+      "SMTP_PORT": "465",
+      "SMTP_USER": "admin@weltgakko.com"
+    }
+  },
   "name": "weltgakkou",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],

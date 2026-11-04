@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welt-chan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&family=Nunito:wght@600;800&display=swap">
+  <style>
+    :root {
+      --bg: #FAFAF9;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --red: #E63946;
+      --card: rgba(255, 255, 255, 0.9);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: Nunito, system-ui, sans-serif; overflow: hidden; }
+    body { display: flex; flex-direction: column; background: radial-gradient(ellipse at 50% 40%, #EEF5FF 0%, var(--bg) 60%); }
+    header { padding: 16px 16px 0; }
+    header h1 { margin: 0; font-size: 22px; font-weight: 800; }
+    header h1 span { color: var(--red); }
+    header p { margin: 4px 0 0; font-size: 13px; color: var(--muted); max-width: 460px; }
+    main { flex: 1; min-height: 0; display: flex; justify-content: center; }
+    svg#stage { height: 100%; width: 100%; max-width: 640px; touch-action: none; overflow: visible; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 16px 16px; }
+    .controls button {
+      font: inherit; font-weight: 800; font-size: 14px; border: 0; border-radius: 999px; padding: 10px 16px;
+      background: var(--card); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,0.08); cursor: pointer;
+    }
+    .controls button:hover { background: #fff; }
+    .ink { stroke: #2A2238; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+    .thin { stroke: #2A2238; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Welt-chan <span>ウェルトちゃん</span></h1>
+    <p>Konsep maskot Weltgakko, ilustrasi anime 2.5D yang bisa bergerak (usulan, belum final). Gerakkan kursor atau jari, Welt-chan akan menoleh.</p>
+  </header>
+  <main>
+    <svg id="stage" viewBox="60 10 480 910" preserveAspectRatio="xMidYMid meet" aria-label="Welt-chan">
+      <defs>
+        <linearGradient id="hair" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2D5CC8"/>
+          <stop offset="0.55" stop-color="#4B8BE8"/>
+          <stop offset="1" stop-color="#7DB8F5"/>
+        </linearGradient>
+        <linearGradient id="hairTail" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2D5CC8"/>
+          <stop offset="0.6" stop-color="#4B8BE8"/>
+          <stop offset="1" stop-color="#8FD9C8"/>
+        </linearGradient>
+        <linearGradient id="iris" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#16205A"/>
+          <stop offset="0.5" stop-color="#2F6FD0"/>
+          <stop offset="1" stop-color="#7BE3B8"/>
+        </linearGradient>
+        <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFEEE4"/>
+          <stop offset="1" stop-color="#FFE3D6"/>
+        </linearGradient>
+        <linearGradient id="skirt" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#1F2C55"/>
+          <stop offset="1" stop-color="#2C3E72"/>
+        </linearGradient>
+        <radialGradient id="blush">
+          <stop offset="0" stop-color="#FF7C9C" stop-opacity="0.7"/>
+          <stop offset="1" stop-color="#FF7C9C" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="shadow">
+          <stop offset="0" stop-color="#2A2238" stop-opacity="0.22"/>
+          <stop offset="1" stop-color="#2A2238" stop-opacity="0"/>
+        </radialGradient>
+        <!-- Little earth used for every accessory -->
+        <clipPath id="earthClip"><circle r="1"/></clipPath>
+        <symbol id="earth" viewBox="-1.15 -1.15 2.3 2.3" overflow="visible">
+          <circle r="1" fill="#4A90E2"/>
+          <g clip-path="url(#earthClip)">
+            <g id="earthLand" fill="#9BE8C4">
+              <path d="M-2.6 -0.6 C-2.3 -0.9 -1.9 -0.7 -1.8 -0.3 C-1.7 0.1 -2.1 0.5 -2.4 0.3 C-2.7 0.1 -2.8 -0.3 -2.6 -0.6 Z"/>
+              <path d="M-1.2 -0.8 C-0.8 -1 -0.3 -0.8 -0.2 -0.4 C-0.1 -0.1 -0.5 0 -0.6 0.3 C-0.7 0.7 -1 0.8 -1.1 0.4 C-1.2 0 -1.5 -0.5 -1.2 -0.8 Z"/>
+              <path d="M0.3 -0.5 C0.6 -0.8 1.1 -0.6 1.1 -0.2 C1.1 0.1 0.8 0.2 0.7 0.5 C0.5 0.8 0.2 0.5 0.3 0.2 C0.35 -0.1 0.1 -0.3 0.3 -0.5 Z"/>
+              <path d="M1.4 -0.6 C1.7 -0.9 2.1 -0.7 2.2 -0.3 C2.3 0.1 1.9 0.5 1.6 0.3 C1.3 0.1 1.2 -0.3 1.4 -0.6 Z"/>
+              <path d="M2.8 -0.8 C3.2 -1 3.7 -0.8 3.8 -0.4 C3.9 -0.1 3.5 0 3.4 0.3 C3.3 0.7 3 0.8 2.9 0.4 C2.8 0 2.5 -0.5 2.8 -0.8 Z"/>
+              <ellipse cx="-0.2" cy="0.65" rx="0.28" ry="0.12" fill="#fff" opacity="0.85"/>
+              <ellipse cx="1.9" cy="0.6" rx="0.25" ry="0.1" fill="#fff" opacity="0.85"/>
+            </g>
+            <path d="M-1 -1 L1 -1 L1 1 Z" fill="#000" opacity="0"/>
+            <circle r="1" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="0.25" transform="translate(-0.15 -0.15) scale(0.8)"/>
+          </g>
+          <circle r="1" fill="none" stroke="#2A2238" stroke-width="0.14"/>
+          <ellipse cx="-0.35" cy="-0.45" rx="0.22" ry="0.13" fill="#fff" opacity="0.8" transform="rotate(-30 -0.35 -0.45)"/>
+        </symbol>
+        <path id="bandCurve" d="M250 147 C278 136 322 136 350 147"/>
+      </defs>
+
+      <!-- Sparkles -->
+      <g id="sparkles" fill="#FFD45E"></g>
+
+      <ellipse id="floorShadow" cx="300" cy="886" rx="95" ry="16" fill="url(#shadow)"/>
+
+      <g id="char">
+        <!-- Legs and skirt (stay planted) -->
+        <g id="lower">
+          <g id="legs" transform="translate(0 556) scale(1 0.88) translate(0 -556)">
+          <g id="legL">
+            <path class="ink" fill="url(#skin)" d="M262 556 C258 612 264 660 269 700 C266 760 265 820 272 900 L291 900 C294 830 297 770 297 700 C300 660 300 610 299 556 Z"/>
+            <path class="ink" fill="#fff" d="M269 692 C267 760 266 820 272 900 L291 900 C293 830 295 770 296 692 C287 698 278 698 269 692 Z"/>
+            <path d="M270 702 C279 708 288 708 296 702" stroke="#D9E2F0" stroke-width="3" fill="none"/>
+            <g>
+              <ellipse class="ink" cx="281" cy="912" rx="19" ry="14" fill="#fff"/>
+              <path d="M263 916 C266 928 296 928 299 916 C292 922 270 922 263 916 Z" fill="#E63946"/>
+            </g>
+          </g>
+          <g id="legR">
+            <path class="ink" fill="url(#skin)" d="M338 556 C342 612 336 660 331 700 C334 760 335 820 328 900 L309 900 C306 830 303 770 303 700 C300 660 300 610 301 556 Z"/>
+            <path class="ink" fill="#fff" d="M331 692 C333 760 334 820 328 900 L309 900 C307 830 305 770 304 692 C313 698 322 698 331 692 Z"/>
+            <path d="M330 702 C321 708 312 708 304 702" stroke="#D9E2F0" stroke-width="3" fill="none"/>
+            <g>
+              <ellipse class="ink" cx="319" cy="912" rx="19" ry="14" fill="#fff"/>
+              <path d="M301 916 C304 928 334 928 337 916 C330 922 308 922 301 916 Z" fill="#E63946"/>
+            </g>
+          </g>
+          </g>
+          <g id="skirt">
+            <path class="ink" fill="url(#skirt)" d="M258 436 C250 470 236 520 220 566 C258 580 342 580 380 566 C364 520 350 470 342 436 Z"/>
+            <g id="pleats" fill="none" stroke="#3B5294" stroke-width="2"></g>
+          </g>
+        </g>
+
+        <!-- Upper body (bends for ojigi) -->
+        <g id="upper">
+          <g id="headBack">
+            <g id="tailL" class="tail"><path class="ink" fill="url(#hairTail)" d="M10 2 C-40 20 -64 120 -52 230 C-46 290 -58 340 -82 382 C-40 354 -14 298 -16 234 C-20 140 -6 62 14 10 Z"/><path d="M-6 30 C-30 90 -36 170 -30 250" stroke="#9CC6F7" stroke-width="3" fill="none" opacity="0.7"/></g>
+            <g id="tailR" class="tail"><path class="ink" fill="url(#hairTail)" d="M-10 2 C40 20 64 120 52 230 C46 290 58 340 82 382 C40 354 14 298 16 234 C20 140 6 62 -14 10 Z"/><path d="M6 30 C30 90 36 170 30 250" stroke="#9CC6F7" stroke-width="3" fill="none" opacity="0.7"/></g>
+            <path class="ink" fill="url(#hair)" d="M220 170 C205 120 235 76 300 74 C365 76 395 120 380 170 C394 230 392 280 374 314 L226 314 C208 280 206 230 220 170 Z"/>
+            <path id="orbitBack" d="" fill="none" stroke="#8DBBF0" stroke-width="2" opacity="0.8"/>
+            <g id="earthBackSlot"></g>
+          </g>
+
+          <!-- Randoseru behind the body -->
+          <rect class="ink" x="232" y="304" width="136" height="112" rx="20" fill="#E63946"/>
+
+          <!-- Neck -->
+          <path fill="url(#skin)" class="thin" d="M285 250 L287 302 L313 302 L315 250 Z"/>
+          <path d="M286 262 C295 276 305 276 314 262 L314 276 C305 286 295 286 286 276 Z" fill="#F4C9BA"/>
+
+          <!-- Torso -->
+          <g id="torso">
+            <path class="ink" fill="#fff" d="M288 292 C270 296 240 300 226 312 C214 324 214 350 222 372 C230 395 248 420 256 444 L344 444 C352 420 370 395 378 372 C386 350 386 324 374 312 C360 300 330 296 312 292 Z"/>
+            <path d="M358 332 C372 362 360 410 344 444 L335 444 C349 410 358 372 351 338 Z" fill="#E4EAF4"/>
+            <path d="M236 396 C250 412 262 426 266 440" stroke="#E4EAF4" stroke-width="5" fill="none"/>
+            <!-- Randoseru straps -->
+            <path d="M237 314 C240 340 243 372 249 404" stroke="#B8232F" stroke-width="9" fill="none" stroke-linecap="round"/>
+            <path d="M363 314 C360 340 357 372 351 404" stroke="#B8232F" stroke-width="9" fill="none" stroke-linecap="round"/>
+            <!-- Sailor collar -->
+            <path class="ink" fill="#24335F" d="M288 292 L300 360 L312 292 C335 296 362 302 377 315 C368 332 350 340 330 338 L300 376 L270 338 C250 340 232 332 223 315 C238 302 265 296 288 292 Z"/>
+            <path d="M232 318 C248 331 262 334 275 332 L300 364 L325 332 C338 334 352 331 368 318" stroke="#fff" stroke-width="2.6" fill="none"/>
+            <!-- Ribbon with earth brooch -->
+            <g id="ribbon">
+              <path class="ink" fill="#E63946" d="M295 350 L285 398 L294 390 L299 400 L303 390 L314 398 L305 350 Z"/>
+              <path class="ink" fill="#E63946" d="M300 346 C284 330 264 334 268 349 C272 362 290 358 300 346 Z"/>
+              <path class="ink" fill="#E63946" d="M300 346 C316 330 336 334 332 349 C328 362 310 358 300 346 Z"/>
+              <use href="#earth" x="291" y="337" width="18" height="18"/>
+            </g>
+          </g>
+
+          <!-- Arms: right (pencil) on the viewer's left, left (waves) on the viewer's right -->
+          <g id="armR">
+            <path class="ink" fill="url(#skin)" d="M214 356 C210 380 212 405 216 425 L235 425 C239 405 241 380 239 356 Z"/>
+            <g id="foreR">
+              <path class="ink" fill="url(#skin)" d="M216 420 C214 450 218 478 222 500 L236 500 C238 478 238 450 235 420 Z"/>
+              <g id="pencil">
+                <rect class="thin" x="224" y="462" width="9" height="78" rx="2" fill="#F5C04A" transform="rotate(-28 229 500)"/>
+                <path class="thin" d="M224 462 L228.5 446 L233 462 Z" fill="#F2D3A2" transform="rotate(-28 229 500)"/>
+                <path d="M227.3 450 L228.5 446 L229.7 450 Z" fill="#333" transform="rotate(-28 229 500)"/>
+                <rect class="thin" x="224" y="540" width="9" height="8" rx="2" fill="#F7A1B5" transform="rotate(-28 229 500)"/>
+              </g>
+              <ellipse class="ink" cx="229" cy="508" rx="11" ry="13" fill="url(#skin)"/>
+            </g>
+            <path class="ink" fill="#fff" d="M224 308 C204 316 200 352 213 365 C226 372 245 362 247 340 C248 322 240 308 224 308 Z"/>
+          </g>
+          <g id="armL">
+            <path class="ink" fill="url(#skin)" d="M386 356 C390 380 388 405 384 425 L365 425 C361 405 359 380 361 356 Z"/>
+            <g id="foreL">
+              <path class="ink" fill="url(#skin)" d="M384 420 C386 450 382 478 378 500 L364 500 C362 478 362 450 365 420 Z"/>
+              <path class="ink" fill="url(#skin)" d="M362 498 C356 510 360 524 371 525 C382 526 388 514 384 500 L388 492 C384 490 380 494 378 498 Z"/>
+            </g>
+            <path class="ink" fill="#fff" d="M376 308 C396 316 400 352 387 365 C374 372 355 362 353 340 C352 322 360 308 376 308 Z"/>
+          </g>
+
+          <!-- Head -->
+          <g id="headFront">
+            <path id="faceShape" class="ink" fill="url(#skin)" d="M226 165 C226 205 236 236 262 254 C278 265 290 270 300 270 C310 270 322 265 338 254 C364 236 374 205 374 165 C374 120 340 100 300 100 C260 100 226 120 226 165 Z"/>
+            <g id="features">
+              <ellipse cx="252" cy="230" rx="18" ry="9" fill="url(#blush)"/>
+              <ellipse cx="348" cy="230" rx="18" ry="9" fill="url(#blush)"/>
+              <g stroke="#FF6F91" stroke-width="1.4" stroke-linecap="round">
+                <path d="M244 233 l4 -5 M250 233 l4 -5 M256 233 l4 -5"/>
+                <path d="M340 233 l4 -5 M346 233 l4 -5 M352 233 l4 -5"/>
+              </g>
+              <g id="brows" fill="none" stroke="#24356F" stroke-width="3" stroke-linecap="round">
+                <path d="M247 178 C256 172 270 172 279 176"/>
+                <path d="M353 178 C344 172 330 172 321 176"/>
+              </g>
+              <g id="eyeL" transform="translate(263 206) scale(-1 1)"></g>
+              <g id="eyeR" transform="translate(337 206)"></g>
+              <path d="M300 230 l-2 5" stroke="#E0A190" stroke-width="1.8" stroke-linecap="round"/>
+              <g id="mouth"></g>
+            </g>
+            <!-- Front hair -->
+            <g id="frontHair">
+              <path class="ink" fill="url(#hair)" d="M222 182 C212 118 248 80 300 78 C352 80 388 118 378 182 C370 152 348 132 300 130 C252 132 230 152 222 182 Z"/>
+              <g id="lockL"><path class="ink" fill="url(#hair)" d="M226 146 C210 205 212 275 238 340 C230 290 234 222 248 160 Z"/></g>
+              <g id="lockR"><path class="ink" fill="url(#hair)" d="M374 146 C390 205 388 275 362 340 C370 290 366 222 352 160 Z"/></g>
+              <g id="bangs"></g>
+              <path d="M246 112 C272 100 328 100 354 112 C328 106 272 106 246 112 Z" fill="#fff" opacity="0.55"/>
+              <g id="ahoge"><path d="M300 82 C294 58 312 44 324 54 C332 61 324 72 314 67" stroke="#2D5CC8" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+            </g>
+            <!-- Hachimaki がんばる -->
+            <g id="band">
+              <g id="bandTails">
+                <path class="ink" fill="#E63946" d="M377 146 C392 150 410 160 424 176 L416 182 C404 168 390 160 376 156 Z"/>
+                <path class="ink" fill="#E63946" d="M377 148 C394 146 414 148 430 156 L426 165 C410 158 392 156 376 156 Z"/>
+              </g>
+              <path class="ink" fill="#E63946" d="M223 144 C250 124 350 124 377 144 L377 160 C350 141 250 141 223 160 Z"/>
+              <text font-family="Zen Maru Gothic, sans-serif" font-weight="700" font-size="13" fill="#fff" letter-spacing="2"><textPath href="#bandCurve" startOffset="50%" text-anchor="middle">がんばる</textPath></text>
+              <circle class="ink" cx="378" cy="151" r="7" fill="#E63946"/>
+            </g>
+            <!-- Earth hair bobbles -->
+            <use href="#earth" x="212" y="106" width="24" height="24"/>
+            <use href="#earth" x="364" y="106" width="24" height="24"/>
+            <path id="orbitFront" d="" fill="none" stroke="#8DBBF0" stroke-width="2.4"/>
+            <g id="earthFrontSlot"></g>
+          </g>
+        </g>
+      </g>
+    </svg>
+  </main>
+  <div class="controls">
+    <button data-act="wave">👋 Lambai</button>
+    <button data-act="jump">✊ Ikuzo!</button>
+    <button data-act="bow">🙇 Ojigi</button>
+  </div>
+
+  <script>
+    const NS = 'http://www.w3.org/2000/svg';
+    const $ = id => document.getElementById(id);
+    const el = (tag, attrs, parent) => {
+      const e = document.createElementNS(NS, tag);
+      for (const k in attrs) e.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(e);
+      return e;
+    };
+
+    // Bangs: soft pointed locks, generated so they can sway one by one
+    const bangs = [];
+    [[236, 22, 238, 186], [256, 20, 262, 196], [278, 20, 284, 190], [300, 20, 300, 198], [322, 20, 316, 190], [344, 20, 338, 196], [364, 22, 362, 186]]
+      .forEach(([x, w, tipX, tipY]) => {
+        const g = el('g', {}, $('bangs'));
+        el('path', {
+          class: 'ink', fill: 'url(#hair)',
+          d: `M${x - w} 128 C${x - w * 0.7} ${tipY - 34} ${tipX - 4} ${tipY - 12} ${tipX} ${tipY} C${tipX + 6} ${tipY - 20} ${x + w * 0.8} ${tipY - 40} ${x + w} 128 Z`,
+        }, g);
+        bangs.push({ g, x, phase: x * 0.05 });
+      });
+
+    // Anime eye, drawn for the right eye (outer corner +x) and mirrored for the left
+    function buildEye(g) {
+      const open = el('g', {}, g);
+      el('path', { fill: '#fff', d: 'M-21 -6 C-19 -20 16 -22 21 -8 C23 8 19 21 1 22 C-15 22 -22 8 -21 -6 Z' }, open);
+      const clipId = 'clip' + Math.random().toString(36).slice(2);
+      const cp = el('clipPath', { id: clipId }, open);
+      el('path', { d: 'M-21 -6 C-19 -20 16 -22 21 -8 C23 8 19 21 1 22 C-15 22 -22 8 -21 -6 Z' }, cp);
+      const look = el('g', { 'clip-path': `url(#${clipId})` }, open);
+      const iris = el('g', {}, look);
+      el('ellipse', { cx: 1, cy: 3, rx: 15, ry: 19, fill: 'url(#iris)' }, iris);
+      el('ellipse', { cx: 1, cy: 5, rx: 7, ry: 10, fill: '#0E1640' }, iris);
+      el('ellipse', { cx: -5, cy: -5, rx: 6, ry: 7, fill: '#fff' }, iris);
+      el('circle', { cx: 8, cy: 11, r: 3, fill: '#fff' }, iris);
+      el('circle', { cx: -6, cy: 14, r: 1.6, fill: '#fff' }, iris);
+      el('path', { d: 'M-21 -8 C-14 -16 14 -18 21 -8 L21 -2 C14 -10 -14 -10 -21 -2 Z', fill: '#16205A', opacity: 0.25 }, look);
+      el('path', { fill: '#2A2238', d: 'M-24 -4 C-20 -22 18 -26 25 -9 L31 -15 L28 -4 C19 -17 -16 -17 -21 -1 Z' }, open);
+      el('path', { d: 'M-13 21 C-5 25 8 25 16 19', stroke: '#2A2238', 'stroke-width': 1.6, fill: 'none', 'stroke-linecap': 'round' }, open);
+      const closed = el('path', { d: 'M-20 4 C-10 10 10 10 20 2', stroke: '#2A2238', 'stroke-width': 3.2, fill: 'none', 'stroke-linecap': 'round', opacity: 0 }, g);
+      const happy = el('path', { d: 'M-18 8 C-12 -8 12 -8 18 8', stroke: '#2A2238', 'stroke-width': 3.6, fill: 'none', 'stroke-linecap': 'round', opacity: 0 }, g);
+      return { open, iris, closed, happy };
+    }
+    const eyes = [buildEye($('eyeL')), buildEye($('eyeR'))];
+
+    const mouthSmile = el('path', { d: 'M289 247 C295 253 305 253 311 247', stroke: '#8A2D3B', 'stroke-width': 2.4, fill: 'none', 'stroke-linecap': 'round' }, $('mouth'));
+    const mouthOpen = el('g', { opacity: 0 }, $('mouth'));
+    el('path', { class: 'thin', d: 'M288 246 C292 260 308 260 312 246 C304 249 296 249 288 246 Z', fill: '#8A2D3B' }, mouthOpen);
+    el('path', { d: 'M294 254 C297 258 303 258 306 254 C303 252 297 252 294 254 Z', fill: '#FF8A9A' }, mouthOpen);
+
+    // Skirt pleats
+    for (let i = 0; i < 7; i++) {
+      const xt = 264 + i * 12, xb = 232 + i * 23;
+      el('path', { d: `M${xt} 440 C${xt - 2} 480 ${xb + 2} 530 ${xb} 570` }, $('pleats'));
+    }
+
+    // Sparkles
+    const sparkles = [[150, 220, 0], [450, 180, 1.7], [140, 560, 3.1], [460, 520, 4.4], [420, 70, 2.2], [180, 820, 5.3], [430, 780, 0.9]].map(([x, y, ph]) => {
+      const p = el('path', { d: 'M0 -12 C1 -3 3 -1 12 0 C3 1 1 3 0 12 C-1 3 -3 1 -12 0 C-3 -1 -1 -3 0 -12 Z' }, $('sparkles'));
+      return { p, x, y, ph };
+    });
+
+    // Mini earth orbiting the head
+    const earthMini = el('use', { href: '#earth', width: 34, height: 34 });
+    const orbit = { cx: 300, cy: 62, rx: 128, ry: 22, tilt: -7 };
+    const ellipsePath = (from, to) => {
+      const pts = [];
+      for (let i = 0; i <= 40; i++) {
+        const a = from + (to - from) * i / 40;
+        pts.push(orbitPoint(a));
+      }
+      return 'M' + pts.map(p => p.map(v => v.toFixed(1)).join(' ')).join(' L');
+    };
+    function orbitPoint(a) {
+      const x = orbit.rx * Math.cos(a), y = orbit.ry * Math.sin(a);
+      const r = orbit.tilt * Math.PI / 180;
+      return [orbit.cx + x * Math.cos(r) - y * Math.sin(r), orbit.cy + x * Math.sin(r) + y * Math.cos(r)];
+    }
+    $('orbitBack').setAttribute('d', ellipsePath(Math.PI, Math.PI * 2));
+    $('orbitFront').setAttribute('d', ellipsePath(0, Math.PI));
+
+    // Pointer: she looks toward it
+    let pointer = null;
+    const stage = $('stage');
+    stage.addEventListener('pointermove', e => {
+      const r = stage.getBoundingClientRect();
+      pointer = [((e.clientX - r.left) / r.width) * 2 - 1, ((e.clientY - r.top) / r.height) * 2 - 1];
+    });
+    stage.addEventListener('pointerleave', () => { pointer = null; });
+
+    let action = 'idle', actionStart = 0;
+    document.querySelectorAll('.controls button').forEach(b => b.addEventListener('click', () => {
+      action = b.dataset.act;
+      actionStart = performance.now() / 1000;
+    }));
+
+    // Damped springs so every part follows through smoothly
+    const springs = {};
+    function step(name, target, dt, k = 70, damping = 10) {
+      const s = springs[name] ??= { x: target, v: 0 };
+      s.v += ((target - s.x) * k - s.v * damping) * dt;
+      s.x += s.v * dt;
+      return s.x;
+    }
+    const ease = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    const set = (id, t) => $(id).setAttribute('transform', t);
+
+    let last = performance.now() / 1000, lastLift = 0;
+    function frame() {
+      const t = performance.now() / 1000;
+      const dt = Math.min(t - last, 0.05);
+      last = t;
+      const at = t - actionStart;
+
+      // Idle pose
+      const p = {
+        lift: 0, squash: 0, bow: 0,
+        sway: Math.sin(t * 0.9) * 1.6,
+        lookX: pointer ? pointer[0] : Math.sin(t * 0.45) * 0.55,
+        lookY: pointer ? pointer[1] * 0.6 : Math.sin(t * 0.7) * 0.15,
+        tilt: Math.sin(t * 1.1 + 0.8) * 4,
+        rS: 12, rE: -62, lS: -10, lE: 8,
+        face: 'open', mouth: 'smile',
+      };
+      // She waves on her own every few seconds
+      if ((t % 7) > 4.8) { p.lS = -150; p.lE = Math.sin(t * 10) * 22 - 10; p.mouth = 'open'; p.tilt += 4; }
+
+      if (action === 'wave') {
+        if (at < 2.4) Object.assign(p, { lS: -155, lE: Math.sin(t * 13) * 26 - 8, face: 'happy', mouth: 'open', tilt: 8 });
+        else action = 'idle';
+      } else if (action === 'jump') {
+        const d = 1.25;
+        if (at < d) {
+          const k = at / d;
+          p.sway = 0; p.tilt = 0;
+          if (k < 0.22) {
+            const c = ease(k / 0.22);
+            Object.assign(p, { squash: 0.09 * c, rS: 20 * c, lS: -20 * c, rE: -20, lE: 20 });
+          } else if (k < 0.82) {
+            const c = (k - 0.22) / 0.6;
+            Object.assign(p, { lift: Math.sin(c * Math.PI) * 60, squash: -0.04 * Math.sin(c * Math.PI), rS: 165, rE: 10, lS: -150, lE: -20, face: 'happy', mouth: 'open', lookY: -0.4 });
+          } else {
+            const c = (k - 0.82) / 0.18;
+            Object.assign(p, { squash: 0.06 * Math.sin(c * Math.PI), face: 'happy', mouth: 'open' });
+          }
+        } else action = 'idle';
+      } else if (action === 'bow') {
+        const d = 2.6;
+        if (at < d) {
+          const k = at / d;
+          const b = k < 0.3 ? ease(k / 0.3) : k < 0.7 ? 1 : 1 - ease((k - 0.7) / 0.3);
+          Object.assign(p, { bow: b, sway: 0, tilt: 0, lookX: 0, lookY: 0.2 + b * 0.8, rS: -8, rE: -55, lS: 8, lE: 55, face: b > 0.3 ? 'happy' : 'open' });
+        } else action = 'idle';
+      }
+
+      // Whole body: jump, squash, weight shift
+      const lift = step('lift', p.lift, dt, 160, 16);
+      const liftVel = (lift - lastLift) / Math.max(dt, 1e-3);
+      lastLift = lift;
+      const squash = step('squash', p.squash, dt, 140, 12);
+      const sway = step('sway', p.sway, dt, 20, 6);
+      set('char', `translate(0 ${-lift}) rotate(${sway} 300 885) translate(300 885) scale(${1 + squash * 0.5} ${1 - squash}) translate(-300 -885)`);
+      $('floorShadow').setAttribute('transform', `translate(300 886) scale(${1 - Math.min(lift, 120) / 300}) translate(-300 -886)`);
+
+      // Upper body: breathing, counter-sway, bow (foreshortened toward the viewer)
+      const bow = step('bow', p.bow, dt, 50, 10);
+      const breath = Math.sin(t * 2.2) * 0.008;
+      set('upper', `rotate(${-sway * 0.7} 300 444) translate(300 444) scale(${1 + breath * 0.5} ${1 + breath - bow * 0.16}) translate(-300 -444) translate(0 ${bow * 14})`);
+
+      // Head: tilt and turn (parallax gives a 3D feel)
+      const lookX = step('lookX', p.lookX, dt, 30, 8);
+      const lookY = step('lookY', p.lookY, dt, 30, 8);
+      const tilt = step('tilt', p.tilt + lookX * 3, dt, 40, 8);
+      const head = `translate(300 268) scale(1.14) translate(-300 -268) rotate(${tilt} 300 268) translate(${lookX * 3} ${lookY * 3 + bow * 10})`;
+      set('headFront', head);
+      set('headBack', head + ` translate(${-lookX * 6} 0)`);
+      set('features', `translate(${lookX * 7} ${lookY * 6 + bow * 6})`);
+      set('frontHair', `translate(${lookX * 9} ${lookY * 2})`);
+      set('band', `translate(${lookX * 9} ${lookY * 2})`);
+      for (const e of eyes) e.iris.setAttribute('transform', `translate(${lookX * 3} ${lookY * 3})`);
+
+      // Arms (spring per joint)
+      set('armR', `rotate(${step('rS', p.rS, dt)} 232 318)`);
+      set('foreR', `rotate(${step('rE', p.rE, dt, 90, 10)} 226 422)`);
+      set('armL', `rotate(${step('lS', p.lS, dt)} 368 318)`);
+      set('foreL', `rotate(${step('lE', p.lE, dt, 90, 10)} 374 422)`);
+
+      // Hair, ribbons and skirt follow through
+      const flow = step('flow', -sway * 2.2 - tilt * 0.8 - lookX * 4, dt, 18, 3.5);
+      const bounce = step('bounce', Math.max(-30, Math.min(30, liftVel * 0.08)), dt, 18, 3.5);
+      set('tailL', `translate(226 120) rotate(${8 + flow + bounce * 0.6 + Math.sin(t * 2) * 2})`);
+      set('tailR', `translate(374 120) rotate(${-8 + flow - bounce * 0.6 + Math.sin(t * 2 + 0.7) * 2})`);
+      set('lockL', `rotate(${flow * 0.4 + bounce * 0.2} 236 150)`);
+      set('lockR', `rotate(${flow * 0.4 - bounce * 0.2} 364 150)`);
+      bangs.forEach(b => b.g.setAttribute('transform', `rotate(${flow * 0.15 + Math.sin(t * 2.4 + b.phase) * 0.8} ${b.x} 128)`));
+      set('ahoge', `rotate(${Math.sin(t * 3.5) * 8 + flow * 0.6} 300 84)`);
+      set('bandTails', `rotate(${Math.sin(t * 5) * 6 + flow * 0.5 + bounce * 0.3} 378 151)`);
+      set('skirt', `translate(300 438) skewX(${flow * 0.25}) scale(${1 + Math.min(0.12, Math.abs(bounce) * 0.004)} ${1 - bounce * 0.002}) translate(-300 -438)`);
+
+      // Face
+      const blink = (t % 3.8) < 0.14;
+      const faceMode = p.face === 'happy' ? 'happy' : blink ? 'closed' : 'open';
+      for (const e of eyes) {
+        e.open.setAttribute('opacity', faceMode === 'open' ? 1 : 0);
+        e.closed.setAttribute('opacity', faceMode === 'closed' ? 1 : 0);
+        e.happy.setAttribute('opacity', faceMode === 'happy' ? 1 : 0);
+      }
+      mouthSmile.setAttribute('opacity', p.mouth === 'open' ? 0 : 1);
+      mouthOpen.setAttribute('opacity', p.mouth === 'open' ? 1 : 0);
+
+      // Orbiting mini earth: behind the head on the far side, in front on the near side
+      const a = t * 1.1;
+      const [ex, ey] = orbitPoint(a);
+      earthMini.setAttribute('x', ex - 17);
+      earthMini.setAttribute('y', ey - 17);
+      const slot = Math.sin(a) > 0 ? $('earthFrontSlot') : $('earthBackSlot');
+      if (earthMini.parentNode !== slot) slot.appendChild(earthMini);
+      $('earthLand').setAttribute('transform', `translate(${-((t * 0.35) % 2.0)} 0)`);
+
+      for (const s of sparkles) {
+        const k = (Math.sin(t * 2.2 + s.ph) + 1) / 2;
+        s.p.setAttribute('transform', `translate(${s.x} ${s.y}) rotate(${t * 30 + s.ph * 40}) scale(${0.4 + k * 0.9})`);
+        s.p.setAttribute('opacity', 0.4 + k * 0.6);
+      }
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

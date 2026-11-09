@@ -3,19 +3,23 @@
 import { startTransition, useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { trackEvent } from "@/components/analytics";
-import { EmailWithCode } from "@/components/register-form";
 import { registerTrial, type TrialState } from "@/app/(site)/trial/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 import { HEARD_FROM } from "@/lib/social-handle";
 
 type Option = { id: string; label: string; detail: string; seatsLeft: number };
 
-export function TrialForm({ options, verifyEmail = false }: { options: Option[]; verifyEmail?: boolean }) {
+export function TrialForm({ options }: { options: Option[] }) {
   const [state, action, pending] = useActionState(registerTrial, {} as TrialState);
   const err = state.fieldErrors ?? {};
   const v = state.values ?? {};
   const firstOpen = options.find((o) => o.seatsLeft > 0)?.id ?? "";
   const tracked = useRef(false);
+  // Waktu form mulai tampil, untuk cek anti-spam di server (dipasang di browser saja).
+  const startedAt = useRef(0);
+  useEffect(() => {
+    startedAt.current = Date.now();
+  }, []);
 
   // Konversi iklan: Lead sekali saat kursi trial berhasil didapat.
   useEffect(() => {
@@ -43,11 +47,12 @@ export function TrialForm({ options, verifyEmail = false }: { options: Option[];
   }
 
   return (
-    // onSubmit (bukan action=) supaya isian dan email terverifikasi tidak di-reset saat ada error.
+    // onSubmit (bukan action=) supaya isian tidak di-reset saat ada error.
     <form
       onSubmit={(e) => {
         e.preventDefault();
         const data = new FormData(e.currentTarget);
+        data.set("started_at", String(startedAt.current));
         startTransition(() => action(data));
       }}
       className="space-y-4"
@@ -80,13 +85,16 @@ export function TrialForm({ options, verifyEmail = false }: { options: Option[];
       <Field label="Nomor WhatsApp" error={err.whatsapp}>
         <input name="whatsapp" defaultValue={v.whatsapp} required inputMode="tel" autoComplete="tel" placeholder="081234567890" className={inputClass} />
       </Field>
-      {verifyEmail ? (
-        <EmailWithCode defaultValue={v.email} error={err.email} />
-      ) : (
-        <Field label="Email (untuk login ke area belajar)" error={err.email}>
-          <input name="email" defaultValue={v.email} type="email" required autoComplete="email" className={inputClass} />
-        </Field>
-      )}
+      <Field label="Email (untuk konfirmasi dan link kelas)" error={err.email}>
+        <input name="email" defaultValue={v.email} type="email" required autoComplete="email" inputMode="email" className={inputClass} />
+      </Field>
+      {/* Anti-spam: kolom jebakan tersembunyi (waktu mulai isi ikut dikirim saat submit). Manusia tidak melihat/mengisinya. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+        <label>
+          Website
+          <input name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </label>
+      </div>
       <fieldset>
         <legend className="mb-2 text-sm font-medium text-stone-700">
           Tau Weltgakko dari mana? <span className="font-normal text-stone-500">(opsional)</span>

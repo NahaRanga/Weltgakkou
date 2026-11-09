@@ -7,11 +7,13 @@ export async function findOrCreateProfile(
   db: SupabaseClient,
   input: { email: string; full_name: string; whatsapp: string; details?: Record<string, unknown> },
   verifiedId: string | null,
+  // false = jangan ubah profil lama (email belum diverifikasi, jadi bisa saja milik orang lain).
+  updateExisting = true,
 ): Promise<{ profileId: string; created: boolean } | { error: string }> {
   const details = input.details ?? {};
   const { data: existing } = await db.from("profiles").select("id").eq("email", input.email).maybeSingle();
   if (existing) {
-    await db.from("profiles").update({ whatsapp: input.whatsapp, ...details }).eq("id", existing.id);
+    if (updateExisting) await db.from("profiles").update({ whatsapp: input.whatsapp, ...details }).eq("id", existing.id);
     return { profileId: existing.id, created: false };
   }
 

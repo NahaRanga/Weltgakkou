@@ -6,7 +6,6 @@ import { TrialForm } from "@/components/trial-form";
 import { WaitingListForm } from "@/components/waiting-list-form";
 import { withBase } from "@/lib/base-path";
 import { upcomingTrials } from "@/lib/batches";
-import { verificationEnabled } from "@/lib/email-verification";
 import { formatDay, formatTime } from "@/lib/format";
 import { programs } from "@/lib/programs";
 import { pageMetadata } from "@/lib/seo";
@@ -21,7 +20,7 @@ export const metadata: Metadata = pageMetadata({
 const perks = [
   { title: "Sekali daftar, dua sesi", body: "Sabtu sore kenalan Jepang (budaya, jalur kerja, tanya jawab), Minggu pagi kelas live 60 menit bareng sensei. Semua lewat Zoom." },
   { title: "Mulai dari nol", body: "Hiragana pertama, angka, dan cara memperkenalkan diri dalam bahasa Jepang." },
-  { title: "Gratis, tanpa kartu atau transfer", body: "Cukup nama, email, dan WhatsApp. Link kelas muncul di area belajar." },
+  { title: "Gratis, tanpa kartu atau transfer", body: "Cukup isi nama, email, dan WhatsApp. Tanpa kode verifikasi, tanpa login. Link Zoom dikirim ke email/WhatsApp." },
 ];
 
 export default function TrialPage() {
@@ -105,7 +104,7 @@ async function TrialSchedule() {
       <h2 className="text-2xl font-bold text-stone-900">Daftar kelas trial</h2>
       <p className="mt-1 text-stone-600">Pilih jadwal, isi data singkat, selesai. Kuota terbatas.</p>
       <div className="mt-6">
-        <TrialForm options={options} verifyEmail={verificationEnabled()} />
+        <TrialForm options={options} />
       </div>
     </>
   );

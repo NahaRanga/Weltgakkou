@@ -5,14 +5,16 @@ import { findOrCreateProfile } from "@/lib/accounts";
 import { seatsTaken } from "@/lib/billing";
 import { registrationDeadline } from "@/lib/batches";
 import { notifyAdmin, sendEmail } from "@/lib/email";
-import { sendPasswordEmail, verificationEnabled, verifiedUserId } from "@/lib/email-verification";
+import { sendPasswordEmail } from "@/lib/email-verification";
 import { formatDateTime, siteUrl } from "@/lib/format";
+import { HEARD_FROM, heardFromLabel, normalizeHandle } from "@/lib/social-handle";
+import { TRIAL_WA_GROUP } from "@/lib/site";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export type TrialState = {
   ok?: string;
   error?: string;
-  fieldErrors?: Partial<Record<"full_name" | "email" | "whatsapp" | "batch_id", string>>;
+  fieldErrors?: Partial<Record<"full_name" | "email" | "whatsapp" | "batch_id" | "instagram" | "tiktok" | "heard_from", string>>;
   values?: Record<string, string>;
 };
 
@@ -26,12 +28,42 @@ const schema = z.object({
     .pipe(z.string().regex(/^(\+62|62|0)8\d{7,12}$/, "Nomor WhatsApp tidak valid, contoh 081234567890"))
     .transform((v) => (v.startsWith("+62") ? "62" + v.slice(3) : v.startsWith("0") ? "62" + v.slice(1) : v)),
   email: z.email("Email wajib diisi, dipakai untuk login").transform((v) => v.trim().toLowerCase()),
+  // Opsional: "@nama", "nama", atau link profil; disimpan sebagai username tanpa @.
+  instagram: handle("instagram"),
+  tiktok: handle("tiktok"),
+  heard_from: z
+    .string()
+    .transform((v) => v || null)
+    .pipe(z.enum(HEARD_FROM.map((o) => o.value) as [string, ...string[]], "Pilih salah satu").nullable()),
 });
 
-// Daftar kelas trial gratis: akun dibuat (atau dipakai yang lama), langsung aktif tanpa tagihan.
-// Satu akun hanya boleh ikut satu kelas trial.
+function handle(platform: "instagram" | "tiktok") {
+  return z.string().transform((v, ctx) => {
+    const r = normalizeHandle(platform, v);
+    if ("error" in r) {
+      ctx.addIssue({ code: "custom", message: r.error });
+      return z.NEVER;
+    }
+    return r.value;
+  });
+}
+
+// Kolom kode PostgREST/Postgres saat kolom belum ada (migrasi 0014 belum dijalankan).
+const isMissingColumn = (e: { code?: string } | null) => e?.code === "PGRST204" || e?.code === "42703";
+
+// Anti-spam ringan tanpa langkah tambahan: kolom jebakan tersembunyi (diisi bot) dan
+// waktu isi minimal (bot mengirim form dalam hitungan milidetik).
+const MIN_FILL_MS = 3000;
+function looksLikeBot(formData: FormData) {
+  if (String(formData.get("website") ?? "").trim()) return true;
+  const startedAt = Number(formData.get("started_at"));
+  return Number.isFinite(startedAt) && startedAt > 0 && Date.now() - startedAt < MIN_FILL_MS;
+}
+
+// Daftar kelas trial gratis TANPA verifikasi email/login (winata 2026-11-09: kode OTP bikin ribet).
+// Akun dibuat (atau dipakai yang lama), langsung aktif tanpa tagihan. Satu akun hanya boleh ikut satu kelas trial.
 export async function registerTrial(_prev: TrialState, formData: FormData): Promise<TrialState> {
-  const values = Object.fromEntries(["batch_id", "full_name", "email", "whatsapp"].map((k) => [k, String(formData.get(k) ?? "")]));
+  const values = Object.fromEntries(["batch_id", "full_name", "email", "whatsapp", "instagram", "tiktok", "heard_from"].map((k) => [k, String(formData.get(k) ?? "")]));
   const parsed = schema.safeParse(values);
   if (!parsed.success) {
     const fieldErrors: TrialState["fieldErrors"] = {};
@@ -42,6 +74,11 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
     return { error: "Periksa lagi isian yang ditandai.", fieldErrors, values };
   }
   const input = parsed.data;
+  // Bot: pura-pura berhasil supaya tidak mencoba lagi, tapi tidak disimpan.
+  if (looksLikeBot(formData)) {
+    console.warn("Pendaftaran trial ditolak sebagai spam", input.email);
+    return { ok: "Pendaftaran kamu sudah kami terima. Admin akan menghubungi lewat WhatsApp." };
+  }
 
   const db = getSupabaseAdmin();
   if (!db) return { error: "Pendaftaran sedang gangguan. Silakan hubungi kami lewat WhatsApp.", values };
@@ -57,11 +94,8 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
   if (registrationDeadline({ ...batch, firstSession }).getTime() < Date.now())
     return { error: "Pendaftaran kelas trial ini sudah ditutup. Pilih jadwal lain atau masuk waiting list.", values };
 
-  const verifiedId = verificationEnabled() ? await verifiedUserId(input.email) : null;
-  if (verificationEnabled() && !verifiedId)
-    return { error: "Verifikasi email dulu: klik Kirim kode, lalu masukkan kode dari email.", fieldErrors: { email: "Email belum diverifikasi" }, values };
-
-  const account = await findOrCreateProfile(db, input, verifiedId);
+  // Email tidak diverifikasi: profil lama dengan email ini tidak diubah (WA-nya tetap).
+  const account = await findOrCreateProfile(db, input, null, false);
   if ("error" in account) return { error: account.error, values };
   const { profileId } = account;
 
@@ -72,17 +106,19 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
     .eq("batches.is_trial", true)
     .neq("status", "keluar");
   if (priorTrials?.some((e) => e.batch_id === input.batch_id))
-    return { ok: "Kamu sudah terdaftar di kelas trial ini. Link Zoom ada di area belajar setelah login." };
+    return { ok: "Kamu sudah terdaftar di kelas trial ini. Link Zoom dibagikan di grup WhatsApp trial sebelum kelas." };
   if (priorTrials?.length) return { error: "Email ini sudah pernah ikut kelas trial. Satu akun hanya bisa ikut satu kali, ya.", values };
 
   if ((await seatsTaken(db, input.batch_id)) >= batch.quota) return { error: "Maaf, kuota kelas trial ini sudah penuh. Pilih jadwal lain.", values };
 
-  const { error } = await db
-    .from("enrollments")
-    .upsert(
-      { profile_id: profileId, batch_id: input.batch_id, status: "aktif", agreed_at: new Date().toISOString() },
-      { onConflict: "profile_id,batch_id" },
-    );
+  const base = { profile_id: profileId, batch_id: input.batch_id, status: "aktif", agreed_at: new Date().toISOString() };
+  const extra = { instagram: input.instagram, tiktok: input.tiktok, heard_from: input.heard_from };
+  let { error } = await db.from("enrollments").upsert({ ...base, ...extra }, { onConflict: "profile_id,batch_id" });
+  // Sebelum migrasi 0014 jalan: tetap daftarkan, isian sosmed/sumber hanya ikut di email admin.
+  if (isMissingColumn(error)) {
+    console.warn("Kolom sosmed trial belum ada, jalankan 0014_trial_sosmed.sql");
+    ({ error } = await db.from("enrollments").upsert(base, { onConflict: "profile_id,batch_id" }));
+  }
   if (error) throw error;
   await db.from("leads").update({ status: "daftar" }).eq("whatsapp", input.whatsapp).in("status", ["baru", "dihubungi"]);
 
@@ -93,7 +129,14 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
 
   await notifyAdmin(
     `Pendaftar kelas trial: ${input.full_name}`,
-    `${input.full_name} daftar ${batch.name} (${when}).\nWhatsApp: https://wa.me/${input.whatsapp}\nEmail: ${input.email}`,
+    [
+      `${input.full_name} daftar ${batch.name} (${when}).`,
+      `WhatsApp: https://wa.me/${input.whatsapp}`,
+      `Email: ${input.email}`,
+      `Instagram: ${input.instagram ? `@${input.instagram}` : "-"}`,
+      `TikTok: ${input.tiktok ? `@${input.tiktok}` : "-"}`,
+      `Tau dari: ${heardFromLabel(input.heard_from) ?? "-"}`,
+    ].join("\n"),
   ).catch(() => {});
 
   // Konfirmasi ke pendaftar, sekaligus pengingat jadwal (semua sesi rangkaian).
@@ -106,7 +149,12 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
       `Kamu sudah terdaftar di ${batch.name}. Sekali daftar berlaku untuk semua sesinya:`,
       ...sessionTimes.map((t, i) => `${i + 1}. ${formatDateTime(t)} WIB`),
       "",
-      `Link Zoom ada di area belajar: ${siteUrl()}/masuk (pakai email ini, pilih "Kode dari email"). Tombol Masuk kelas muncul 15 menit sebelum kelas.`,
+      // Tanpa login: link Zoom langsung di email bila sudah diisi admin/sensei.
+      batch.meeting_url
+        ? `Link Zoom (sama untuk semua sesi): ${batch.meeting_url}`
+        : "Link Zoom akan dibagikan di grup WhatsApp trial sebelum kelas.",
+      ...(TRIAL_WA_GROUP ? ["", `Wajib masuk grup WhatsApp trial (info, pengingat, link Zoom): ${TRIAL_WA_GROUP}`] : []),
+      `Bisa juga lihat jadwal dan tombol Masuk kelas di ${siteUrl()}/masuk (opsional, pakai email ini, pilih "Kode dari email").`,
       "",
       "Sampai ketemu di kelas!",
       "Weltgakko",
@@ -114,6 +162,6 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
   ).catch(() => {});
 
   return {
-    ok: `Kursi kamu sudah aman untuk ${sessionTimes.length > 1 ? `${sessionTimes.length} sesi: ` : ""}${when}. Sekali daftar berlaku untuk semua sesinya. Masuk ke area belajar di halaman Masuk dengan email ${input.email}, pilih "Kode dari email" (tanpa password). Tombol Masuk kelas (Zoom) muncul di sana 15 menit sebelum kelas.`,
+    ok: `Kursi kamu sudah aman untuk ${sessionTimes.length > 1 ? `${sessionTimes.length} sesi: ` : ""}${when}. Sekali daftar berlaku untuk semua sesinya. Konfirmasi${batch.meeting_url ? " dan link Zoom" : ""} sudah dikirim ke ${input.email}; info dan pengingat kelas ada di grup WhatsApp trial.`,
   };
 }

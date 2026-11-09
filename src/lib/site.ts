@@ -26,3 +26,6 @@ export function waLink(text: string) {
 
 // Penanda catatan lead dari form /trial saat jadwal trial belum dibuka.
 export const TRIAL_NOTE = "[Minat trial]";
+// Grup WhatsApp pendaftar kelas trial: ditampilkan setelah daftar di /trial dan di email konfirmasi.
+// Ganti di sini bila link grup diganti (kosongkan untuk menyembunyikan).
+export const TRIAL_WA_GROUP = "https://chat.whatsapp.com/F1aSdGUU8JRHY3tRYPrM6n";

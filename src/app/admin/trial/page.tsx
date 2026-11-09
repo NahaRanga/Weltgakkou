@@ -4,6 +4,7 @@ import { requireAdmin, requireDb } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { upcomingTrials } from "@/lib/batches";
 import { TRIAL_NOTE } from "@/lib/site";
+import { HEARD_FROM, heardFromLabel, profileUrl, type SocialPlatform } from "@/lib/social-handle";
 
 export const metadata = { title: "Pendaftar trial" };
 
@@ -11,6 +12,10 @@ type TrialEnrollment = {
   id: string;
   status: string;
   created_at: string;
+  // Dari migrasi 0014; undefined kalau migrasi belum dijalankan (query pakai enrollments(*)).
+  instagram?: string | null;
+  tiktok?: string | null;
+  heard_from?: string | null;
   profiles: { full_name: string; whatsapp: string | null; email: string | null } | null;
 };
 
@@ -35,7 +40,7 @@ export default async function TrialPage() {
     db
       .from("batches")
       .select(
-        "id, name, status, quota, start_date, meeting_url, programs(name), sessions(id, starts_at), enrollments(id, status, created_at, profiles(full_name, whatsapp, email))",
+        "id, name, status, quota, start_date, meeting_url, programs(name), sessions(id, starts_at), enrollments(*, profiles(full_name, whatsapp, email))",
       )
       .eq("is_trial", true)
       .order("start_date", { ascending: false }),
@@ -51,6 +56,9 @@ export default async function TrialPage() {
   const interested = (leadsRes.data ?? []) as { id: string; full_name: string; whatsapp: string; email: string | null; source: string | null; note: string | null; status: string; created_at: string }[];
   const batches = (batchesRes.data ?? []) as unknown as TrialBatch[];
   const total = batches.reduce((n, b) => n + b.enrollments.filter((e) => e.status !== "keluar").length, 0);
+  // Rekap "Tau Weltgakko dari mana?" untuk evaluasi kanal promosi.
+  const active = batches.flatMap((b) => b.enrollments.filter((e) => e.status !== "keluar"));
+  const sources = HEARD_FROM.map((o) => ({ label: o.label, count: active.filter((e) => e.heard_from === o.value).length }));
 
   return (
     <>
@@ -128,6 +136,9 @@ export default async function TrialPage() {
         <div className="space-y-6">
           <p className="text-sm text-stone-600">
             Total {total} pendaftar di {batches.length} jadwal trial.
+            {sources.some((x) => x.count > 0) && (
+              <span className="ml-1">Tau dari: {sources.map((x) => `${x.label} ${x.count}`).join(" · ")}.</span>
+            )}
           </p>
           {batches.map((b) => {
             const people = b.enrollments
@@ -158,6 +169,8 @@ export default async function TrialPage() {
                         <tr>
                           <th className={thClass}>Nama</th>
                           <th className={thClass}>Email</th>
+                          <th className={thClass}>Sosmed</th>
+                          <th className={thClass}>Tau dari</th>
                           <th className={thClass}>Daftar</th>
                         </tr>
                       </thead>
@@ -168,6 +181,12 @@ export default async function TrialPage() {
                               <span className="font-medium text-stone-900">{e.profiles?.full_name ?? "-"}</span> <WaLink number={e.profiles?.whatsapp} />
                             </td>
                             <td className={`${tdClass} text-stone-600`}>{e.profiles?.email ?? "-"}</td>
+                            <td className={`${tdClass} whitespace-nowrap text-sm`}>
+                              <SocialLink platform="instagram" handle={e.instagram} />
+                              <SocialLink platform="tiktok" handle={e.tiktok} />
+                              {!e.instagram && !e.tiktok && <span className="text-stone-400">-</span>}
+                            </td>
+                            <td className={`${tdClass} text-stone-600`}>{heardFromLabel(e.heard_from) ?? "-"}</td>
                             <td className={`${tdClass} whitespace-nowrap text-stone-600`}>{formatDateTime(e.created_at)}</td>
                           </tr>
                         ))}
@@ -181,5 +200,14 @@ export default async function TrialPage() {
         </div>
       )}
     </>
+  );
+}
+
+function SocialLink({ platform, handle }: { platform: SocialPlatform; handle: string | null | undefined }) {
+  if (!handle) return null;
+  return (
+    <a href={profileUrl(platform, handle)} target="_blank" rel="noreferrer" className="block font-medium text-red-700 hover:underline">
+      {platform === "instagram" ? "IG" : "TT"} @{handle}
+    </a>
   );
 }

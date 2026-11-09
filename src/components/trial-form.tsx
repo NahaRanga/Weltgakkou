@@ -6,6 +6,7 @@ import { trackEvent } from "@/components/analytics";
 import { registerTrial, type TrialState } from "@/app/(site)/trial/actions";
 import { buttonClass, Field, inputClass, Notice } from "@/components/ui/form";
 import { HEARD_FROM } from "@/lib/social-handle";
+import { TRIAL_WA_GROUP } from "@/lib/site";
 
 type Option = { id: string; label: string; detail: string; seatsLeft: number };
 
@@ -34,8 +35,23 @@ export function TrialForm({ options }: { options: Option[] }) {
       <div className="space-y-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-6">
         <h3 className="text-xl font-bold text-emerald-900">Kamu terdaftar! 🎉</h3>
         <p className="text-emerald-900">{state.ok}</p>
+        {TRIAL_WA_GROUP && (
+          <div className="rounded-xl border-2 border-[#25D366] bg-white p-4">
+            <p className="font-bold text-stone-900">Langkah terakhir: masuk grup WhatsApp trial</p>
+            <p className="mt-1 text-sm text-stone-700">Link Zoom, pengingat jadwal, dan info kelas dibagikan di grup ini. Wajib gabung, ya!</p>
+            <a
+              href={TRIAL_WA_GROUP}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent("Contact", { content_name: "Grup WA trial" })}
+              className="mt-3 inline-block w-full rounded-lg bg-[#25D366] px-5 py-3 text-center text-lg font-bold text-white hover:bg-[#1ebe5a]"
+            >
+              Gabung grup WhatsApp
+            </a>
+          </div>
+        )}
         <div className="flex flex-wrap gap-3">
-          <Link href="/belajar" className="rounded-lg bg-emerald-700 px-5 py-3 font-semibold text-white hover:bg-emerald-800">
+          <Link href="/belajar" className="rounded-lg border border-emerald-400 px-5 py-3 font-semibold text-emerald-900 hover:bg-white">
             Buka area belajar
           </Link>
           <Link href="/#program" className="rounded-lg border border-emerald-400 px-5 py-3 font-semibold text-emerald-900 hover:bg-white">

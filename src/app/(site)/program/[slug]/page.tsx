@@ -8,7 +8,7 @@ import { Suspense } from "react";
 import { getOpenBatches, getRecordingPackage } from "@/lib/batches";
 import { formatDate, formatDay, formatTime } from "@/lib/format";
 import { WaitingListForm } from "@/components/waiting-list-form";
-import { formatRupiah, getProgram, programImage, programs } from "@/lib/programs";
+import { displayPrice, formatRupiah, getProgram, programImage, programs, promoActive } from "@/lib/programs";
 import { pageMetadata } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -32,6 +32,8 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
 
   const formPrograms = programs.map(({ slug, name, open }) => ({ slug, name, open }));
   const image = programImage(program);
+  const promo = promoActive(program);
+  const price = displayPrice(program);
 
   return (
     <div className="mx-auto grid max-w-5xl gap-10 px-4 py-12 lg:grid-cols-[1fr_380px]">
@@ -64,13 +66,24 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
               <dd className="font-semibold text-stone-900">{formatRupiah(program.monthlyPrice)}</dd>
             </div>
           )}
-          {program.upfrontPrice && (
+          {price && (
             <div>
-              <dt className="text-sm text-stone-500">Sekali bayar</dt>
-              <dd className="font-semibold text-stone-900">{formatRupiah(program.upfrontPrice)}</dd>
+              <dt className="text-sm text-stone-500">{program.normalPrice ? "Biaya per bulan" : "Sekali bayar"}</dt>
+              <dd className="font-semibold text-stone-900">
+                {promo && program.normalPrice && (
+                  <span className="mr-2 text-sm font-normal text-stone-400 line-through">{formatRupiah(program.normalPrice)}</span>
+                )}
+                {formatRupiah(price)}
+              </dd>
             </div>
           )}
         </dl>
+        {promo && program.normalPrice && program.promoUntil && (
+          <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">
+            <span className="font-semibold">Promo khusus bulan ini:</span> {formatRupiah(price ?? 0)} dari harga normal{" "}
+            {formatRupiah(program.normalPrice)}, berlaku untuk pembayaran sampai {formatDate(`${program.promoUntil}T12:00:00+07:00`)}.
+          </p>
+        )}
 
         <h2 className="mt-10 text-xl font-semibold text-stone-900">Yang dipelajari</h2>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-stone-700">
@@ -79,7 +92,12 @@ export default async function ProgramPage({ params }: PageProps<"/program/[slug]
           ))}
         </ul>
 
-        {program.language === "jp" && (
+        {program.scheduleNote ? (
+          <>
+            <h2 className="mt-10 text-xl font-semibold text-stone-900">Jadwal mingguan</h2>
+            <p className="mt-2 text-stone-700">{program.scheduleNote}</p>
+          </>
+        ) : program.language === "jp" && (
           <>
             <h2 className="mt-10 text-xl font-semibold text-stone-900">Jadwal mingguan</h2>
             <p className="mt-2 text-stone-700">

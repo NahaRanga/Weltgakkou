@@ -15,6 +15,12 @@ export type Program = {
   summary: string;
   topics: string[];
   open: boolean;
+  /** Harga normal yang dicoret selama promo (harga bayar tetap `upfrontPrice`). */
+  normalPrice?: number;
+  /** Promo tampil sampai tanggal ini (YYYY-MM-DD, WIB). Lewat tanggal ini harga coret hilang. */
+  promoUntil?: string;
+  /** Teks jadwal mingguan khusus; kosong = jadwal standar Senin–Kamis + tes Jumat. */
+  scheduleNote?: string;
 };
 
 export const programs: Program[] = [
@@ -79,6 +85,27 @@ export const programs: Program[] = [
     open: true,
   },
   {
+    slug: "kaiwa-jft-jlpt",
+    name: "Kaiwa + Persiapan JFT/JLPT",
+    language: "jp",
+    level: "Percakapan + JFT/JLPT",
+    duration: "1 bulan, 12 pertemuan",
+    monthlyPrice: null,
+    upfrontPrice: 1_600_000,
+    normalPrice: 2_000_000,
+    promoUntil: "2026-11-30",
+    summary: "Latihan ngobrol bahasa Jepang (kaiwa) sekaligus persiapan tes JFT-Basic atau JLPT.",
+    topics: [
+      "Kaiwa: latihan bicara dan mendengar percakapan sehari-hari dan kerja",
+      "Persiapan soal JFT-Basic atau JLPT",
+      "3x seminggu, 1,5 jam per pertemuan (12 pertemuan sebulan)",
+      "Berhalangan? Boleh reschedule atau ganti dengan video rekaman",
+    ],
+    open: true,
+    scheduleNote:
+      "3x seminggu kelas live lewat Zoom, 1,5 jam per pertemuan, total 12 pertemuan dalam sebulan. Kalau berhalangan, pertemuan boleh di-reschedule atau diganti dengan video rekaman kelasnya. Link kelas dan materi tersedia di area siswa setelah pendaftaran dikonfirmasi.",
+  },
+  {
     slug: "jerman-a1",
     name: "Bahasa Jerman A1",
     language: "de",
@@ -132,6 +159,18 @@ export function getProgram(slug: string) {
   return programs.find((p) => p.slug === slug);
 }
 
+// Promo aktif sampai akhir hari `promoUntil` (WIB).
+export function promoActive(program: Program, now = Date.now()) {
+  if (!program.normalPrice || !program.promoUntil) return false;
+  return now <= new Date(`${program.promoUntil}T23:59:59+07:00`).getTime();
+}
+
+// Harga yang ditampilkan: selama promo = harga promo, setelahnya = harga normal.
+export function displayPrice(program: Program, now = Date.now()) {
+  if (program.normalPrice && program.promoUntil && !promoActive(program, now)) return program.normalPrice;
+  return program.upfrontPrice;
+}
+
 export function formatRupiah(value: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -147,6 +186,7 @@ const programImages: Record<string, { src: string; alt: string }> = {
   "jlpt-n4": { src: "/images/program-n4.jpg", alt: "Ilustrasi anak muda memakai bahasa Jepang saat bekerja" },
   "jlpt-n3": { src: "/images/program-n3.jpg", alt: "Ilustrasi membaca manga di tablet dengan sertifikat N3" },
   "jft-basic": { src: "/images/program-jft.jpg", alt: "Ilustrasi paspor, koper, dan pesawat menuju kerja di Jepang" },
+  "kaiwa-jft-jlpt": { src: "/images/program-n4.jpg", alt: "Ilustrasi anak muda ngobrol bahasa Jepang saat bekerja" },
 };
 const germanImage = { src: "/images/program-jerman.jpg", alt: "Ilustrasi belajar bahasa Jerman dengan Gerbang Brandenburg" };
 

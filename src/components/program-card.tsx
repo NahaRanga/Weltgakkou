@@ -1,10 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { withBase } from "@/lib/base-path";
-import { formatRupiah, programImage, type Program } from "@/lib/programs";
+import { displayPrice, formatRupiah, programImage, promoActive, type Program } from "@/lib/programs";
 
 export function ProgramCard({ program }: { program: Program }) {
   const image = programImage(program);
+  const promo = promoActive(program);
+  const price = displayPrice(program);
   return (
     <Link
       href={`/program/${program.slug}`}
@@ -29,6 +31,9 @@ export function ProgramCard({ program }: { program: Program }) {
           {!program.open && (
             <span className="text-xs text-stone-500">Segera dibuka</span>
           )}
+          {promo && (
+            <span className="rounded-full bg-red-700 px-2 py-0.5 text-xs font-semibold text-white">Promo bulan ini</span>
+          )}
         </div>
         <h3 className="mt-3 text-lg font-semibold text-stone-900">
           {program.name}
@@ -36,10 +41,13 @@ export function ProgramCard({ program }: { program: Program }) {
         <p className="mt-1 flex-1 text-sm text-stone-600">{program.summary}</p>
         <p className="mt-4 text-sm text-stone-500">{program.duration}</p>
         <p className="font-semibold text-stone-900">
+          {promo && program.normalPrice && (
+            <span className="mr-2 text-sm font-normal text-stone-400 line-through">{formatRupiah(program.normalPrice)}</span>
+          )}
           {program.monthlyPrice
             ? `${formatRupiah(program.monthlyPrice)} / bulan`
-            : program.upfrontPrice
-              ? formatRupiah(program.upfrontPrice)
+            : price
+              ? formatRupiah(price)
               : "Hubungi kami"}
         </p>
       </div>

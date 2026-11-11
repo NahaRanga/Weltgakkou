@@ -19,6 +19,8 @@ export type Program = {
   normalPrice?: number;
   /** Promo tampil sampai tanggal ini (YYYY-MM-DD, WIB). Lewat tanggal ini harga coret hilang. */
   promoUntil?: string;
+  /** Kode promo (huruf besar) → harga sekali bayar. Tidak ditampilkan di web; dibagikan lewat WA. */
+  promoCodes?: Record<string, number>;
   /** Teks jadwal mingguan khusus; kosong = jadwal standar Senin–Kamis + tes Jumat. */
   scheduleNote?: string;
 };
@@ -91,9 +93,8 @@ export const programs: Program[] = [
     level: "Percakapan + JFT/JLPT",
     duration: "1 bulan, 12 pertemuan",
     monthlyPrice: null,
-    upfrontPrice: 1_600_000,
-    normalPrice: 2_000_000,
-    promoUntil: "2026-11-30",
+    upfrontPrice: 2_000_000,
+    promoCodes: { WELTCHAN: 1_600_000 },
     summary: "Latihan ngobrol bahasa Jepang (kaiwa) sekaligus persiapan tes JFT-Basic atau JLPT.",
     topics: [
       "Kaiwa: latihan bicara dan mendengar percakapan sehari-hari dan kerja",
@@ -169,6 +170,12 @@ export function promoActive(program: Program, now = Date.now()) {
 export function displayPrice(program: Program, now = Date.now()) {
   if (program.normalPrice && program.promoUntil && !promoActive(program, now)) return program.normalPrice;
   return program.upfrontPrice;
+}
+
+// Harga sekali bayar setelah kode promo (diisi di kolom "Kode referral" form daftar). null = kode tidak berlaku.
+export function promoPriceFor(slug: string, code: string | undefined | null) {
+  if (!code) return null;
+  return getProgram(slug)?.promoCodes?.[code.trim().toUpperCase()] ?? null;
 }
 
 export function formatRupiah(value: number) {

@@ -8,7 +8,7 @@ import { registrationDeadline } from "@/lib/batches";
 import { notifyAdmin } from "@/lib/email";
 import { checkCode, sendCode, verificationEnabled, verifiedUserId } from "@/lib/email-verification";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { formatRupiah } from "@/lib/programs";
+import { formatRupiah, promoPriceFor } from "@/lib/programs";
 
 export type RegisterState = {
   error?: string;
@@ -129,11 +129,11 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
 
   const { data: batch } = await db
     .from("batches")
-    .select("*, programs(name, monthly_price, upfront_price, recording_price)")
+    .select("*, programs(slug, name, monthly_price, upfront_price, recording_price)")
     .eq("id", batchId)
     .maybeSingle();
   const program = batch?.programs as unknown as
-    | { name: string; monthly_price: number | null; upfront_price: number | null; recording_price: number | null }
+    | { slug: string; name: string; monthly_price: number | null; upfront_price: number | null; recording_price: number | null }
     | undefined;
   if (!batch || !program || batch.status !== "buka") return { error: "Batch ini sudah tidak menerima pendaftaran.", values };
   // Kelas trial didaftar lewat /trial; batch live tutup otomatis setelah tenggat (default H-1 23.59 WIB).
@@ -144,11 +144,13 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
   // Paket rekaman selalu sekali bayar dengan harga paket rekaman.
   const isRecording = batch.mode === "rekaman";
   if (isRecording) input.plan = "lunas";
+  // Kode promo (mis. WELTCHAN untuk Kaiwa) hanya untuk kelas live bayar lunas.
+  const promoPrice = !isRecording && input.plan === "lunas" ? promoPriceFor(program.slug, input.referral_code) : null;
   const baseAmount = isRecording
     ? program.recording_price
     : input.plan === "bulanan"
       ? program.monthly_price
-      : program.upfront_price;
+      : (promoPrice ?? program.upfront_price);
   if (!baseAmount) return { error: "Cara bayar ini tidak tersedia untuk program ini.", values };
 
   // Dengan verifikasi aktif, akun dibuat Supabase saat kode dikirim; di sini cukup cek kodenya sudah benar.
@@ -200,7 +202,7 @@ export async function register(batchId: string, _prev: RegisterState, formData: 
 
   await notifyAdmin(
     `Pendaftar baru: ${input.full_name} (${program.name})`,
-    `${input.full_name} mendaftar ${program.name}, ${isRecording ? "paket rekaman" : batch.name}.\nCara bayar: ${input.plan}, tagihan pertama ${formatRupiah(baseAmount)} + kode unik.\nWhatsApp: https://wa.me/${input.whatsapp}\nKode tagihan: ${code}`,
+    `${input.full_name} mendaftar ${program.name}, ${isRecording ? "paket rekaman" : batch.name}.\nCara bayar: ${input.plan}, tagihan pertama ${formatRupiah(baseAmount)} + kode unik${promoPrice ? ` (kode promo ${input.referral_code})` : ""}.\nWhatsApp: https://wa.me/${input.whatsapp}\nKode tagihan: ${code}`,
   ).catch(() => {});
 
   redirect(`/bayar/${code}`);

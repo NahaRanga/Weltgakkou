@@ -14,5 +14,5 @@ on conflict (slug) do update set
   months = excluded.months,
   active = true;
 
--- Setelah promo selesai (1 Desember 2026), jalankan baris ini supaya tagihan jadi harga normal:
--- update programs set upfront_price = 2000000 where slug = 'kaiwa-jft-jlpt';
+
+-- (Harga diganti jadi Rp2.000.000 di 0016_kaiwa_harga_normal.sql.)

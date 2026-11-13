@@ -46,6 +46,9 @@ export const programs: Program[] = [
     duration: "3 bulan",
     monthlyPrice: 600_000,
     upfrontPrice: 1_500_000,
+    // Harga peserta live trial 14–15 Nov 2026 (5 tercepat, DP Rp100rb lewat WA admin).
+    // Pendaftaran Batch 1 tutup Minggu 15 Nov 23.59 WIB, jadi kode ini ikut berhenti; hapus setelah itu.
+    promoCodes: { LIVE15: 1_250_000 },
     summary: "Tata bahasa dasar dan percakapan sehari-hari untuk lulus JLPT N5.",
     topics: ["Tata bahasa dasar", "Sekitar 100 kanji", "Percakapan sehari-hari", "Tes kemampuan setiap Jumat"],
     open: true,

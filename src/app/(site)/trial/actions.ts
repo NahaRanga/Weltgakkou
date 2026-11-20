@@ -8,11 +8,14 @@ import { notifyAdmin, sendEmail } from "@/lib/email";
 import { sendPasswordEmail } from "@/lib/email-verification";
 import { formatDateTime, siteUrl } from "@/lib/format";
 import { HEARD_FROM, heardFromLabel, normalizeHandle } from "@/lib/social-handle";
-import { TRIAL_WA_GROUP } from "@/lib/site";
+import { getProgram } from "@/lib/programs";
+import { TRIAL_WA_GROUPS } from "@/lib/site";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export type TrialState = {
   ok?: string;
+  // Link grup WhatsApp trial sesuai bahasa batch (kosong = tidak ditampilkan).
+  waGroup?: string;
   error?: string;
   fieldErrors?: Partial<Record<"full_name" | "email" | "whatsapp" | "batch_id" | "instagram" | "tiktok" | "heard_from", string>>;
   values?: Record<string, string>;
@@ -85,10 +88,12 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
 
   const { data: batch } = await db
     .from("batches")
-    .select("*, programs(name), sessions(starts_at)")
+    .select("*, programs(slug, name), sessions(starts_at)")
     .eq("id", input.batch_id)
     .maybeSingle();
   if (!batch?.is_trial || batch.status !== "buka") return { error: "Jadwal kelas trial ini sudah tidak menerima pendaftaran.", values };
+  const language = getProgram((batch.programs as { slug: string } | null)?.slug ?? "")?.language ?? "jp";
+  const waGroup = TRIAL_WA_GROUPS[language] || undefined;
   const sessionTimes = ((batch.sessions ?? []) as { starts_at: string }[]).map((s) => s.starts_at).sort();
   const firstSession = sessionTimes[0] ?? null;
   if (registrationDeadline({ ...batch, firstSession }).getTime() < Date.now())
@@ -101,13 +106,17 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
 
   const { data: priorTrials } = await db
     .from("enrollments")
-    .select("id, batch_id, batches!inner(is_trial)")
+    .select("id, batch_id, batches!inner(is_trial, programs(slug))")
     .eq("profile_id", profileId)
     .eq("batches.is_trial", true)
     .neq("status", "keluar");
   if (priorTrials?.some((e) => e.batch_id === input.batch_id))
-    return { ok: "Kamu sudah terdaftar di kelas trial ini. Link Zoom dibagikan di grup WhatsApp trial sebelum kelas." };
-  if (priorTrials?.length) return { error: "Email ini sudah pernah ikut kelas trial. Satu akun hanya bisa ikut satu kali, ya.", values };
+    return { ok: "Kamu sudah terdaftar di kelas trial ini. Link Zoom dikirim sebelum kelas lewat WhatsApp.", waGroup };
+  // Satu akun satu trial per bahasa: yang sudah trial Jepang tetap boleh ikut trial Jerman.
+  const trialLanguage = (e: { batches: unknown }) =>
+    getProgram((e.batches as { programs: { slug: string } | null }).programs?.slug ?? "")?.language ?? "jp";
+  if (priorTrials?.some((e) => trialLanguage(e) === language))
+    return { error: "Email ini sudah pernah ikut kelas trial bahasa ini. Satu akun hanya bisa ikut satu kali, ya.", values };
 
   if ((await seatsTaken(db, input.batch_id)) >= batch.quota) return { error: "Maaf, kuota kelas trial ini sudah penuh. Pilih jadwal lain.", values };
 
@@ -152,8 +161,10 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
       // Tanpa login: link Zoom langsung di email bila sudah diisi admin/sensei.
       batch.meeting_url
         ? `Link Zoom (sama untuk semua sesi): ${batch.meeting_url}`
-        : "Link Zoom akan dibagikan di grup WhatsApp trial sebelum kelas.",
-      ...(TRIAL_WA_GROUP ? ["", `Wajib masuk grup WhatsApp trial (info, pengingat, link Zoom): ${TRIAL_WA_GROUP}`] : []),
+        : waGroup
+          ? "Link Zoom akan dibagikan di grup WhatsApp trial sebelum kelas."
+          : "Link Zoom akan dikirim admin lewat WhatsApp sebelum kelas.",
+      ...(waGroup ? ["", `Wajib masuk grup WhatsApp trial (info, pengingat, link Zoom): ${waGroup}`] : []),
       `Bisa juga lihat jadwal dan tombol Masuk kelas di ${siteUrl()}/masuk (opsional, pakai email ini, pilih "Kode dari email").`,
       "",
       "Sampai ketemu di kelas!",
@@ -162,6 +173,7 @@ export async function registerTrial(_prev: TrialState, formData: FormData): Prom
   ).catch(() => {});
 
   return {
-    ok: `Kursi kamu sudah aman untuk ${sessionTimes.length > 1 ? `${sessionTimes.length} sesi: ` : ""}${when}. Sekali daftar berlaku untuk semua sesinya. Konfirmasi${batch.meeting_url ? " dan link Zoom" : ""} sudah dikirim ke ${input.email}; info dan pengingat kelas ada di grup WhatsApp trial.`,
+    ok: `Kursi kamu sudah aman untuk ${sessionTimes.length > 1 ? `${sessionTimes.length} sesi: ` : ""}${when}. Sekali daftar berlaku untuk semua sesinya. Konfirmasi${batch.meeting_url ? " dan link Zoom" : ""} sudah dikirim ke ${input.email}; ${waGroup ? "info dan pengingat kelas ada di grup WhatsApp trial." : "admin kirim info dan pengingat kelas lewat WhatsApp."}`,
+    waGroup,
   };
 }

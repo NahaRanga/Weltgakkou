@@ -130,17 +130,22 @@ export async function TrialBanner() {
           <span className="inline-block rounded-full bg-amber-400 px-3 py-1 text-xs font-bold uppercase tracking-wide text-stone-900">
             Gratis
           </span>
-          <h2 className="mt-3 text-2xl font-bold text-stone-900">Coba dulu kelas trial, gratis</h2>
+          <h2 className="mt-3 text-2xl font-bold text-stone-900">
+            {trial.language === "de" ? "Coba dulu kelas trial bahasa Jerman, gratis" : "Coba dulu kelas trial, gratis"}
+          </h2>
           <p className="mt-1 text-lg font-semibold text-red-700">
-            {formatDay(when)}
-            {trial.firstSession && ` · ${formatTime(trial.firstSession)} WIB`}
+            {trial.sessionTimes.length > 1
+              ? trial.sessionTimes.map((t) => `${formatDay(t)} ${formatTime(t)} WIB`).join(" + ")
+              : `${formatDay(when)}${trial.firstSession ? ` · ${formatTime(trial.firstSession)} WIB` : ""}`}
           </p>
           <p className="mt-1 text-stone-700">
-            Satu pertemuan live lewat Zoom bareng sensei: hiragana pertama, angka, dan perkenalan diri.{" "}
+            {trial.language === "de"
+              ? "Sekali daftar untuk dua sesi lewat Zoom: kenalan Jerman, lalu kelas live 60 menit (alfabet, angka, perkenalan diri)."
+              : "Sekali daftar untuk dua sesi lewat Zoom: kenalan Jepang, lalu kelas live 60 menit bareng sensei (hiragana pertama, angka, perkenalan diri)."}{" "}
             {trial.seatsLeft > 0 ? "Kuota terbatas." : "Kuota penuh, lihat jadwal lain."}
           </p>
         </div>
-        <Link href="/trial" className="shrink-0 rounded-xl bg-red-700 px-6 py-4 text-center text-lg font-bold text-white shadow-sm hover:bg-red-800">
+        <Link href={trial.language === "de" ? "/trial?bahasa=jerman" : "/trial"} className="shrink-0 rounded-xl bg-red-700 px-6 py-4 text-center text-lg font-bold text-white shadow-sm hover:bg-red-800">
           Daftar gratis
         </Link>
       </div>

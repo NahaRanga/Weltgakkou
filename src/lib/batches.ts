@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { getProgram, type Language } from "@/lib/programs";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export type OpenBatch = {
@@ -11,6 +12,8 @@ export type OpenBatch = {
   seatsLeft: number;
   programSlug: string;
   programName: string;
+  // Bahasa program (jp/de), dari src/lib/programs.ts; dipakai teks halaman /trial.
+  language: Language;
   isTrial: boolean;
   // Waktu kelas pertama (ISO), dipakai untuk jam kelas trial.
   firstSession: string | null;
@@ -78,6 +81,7 @@ const listOpen = cache(async (): Promise<OpenBatch[]> => {
         seatsLeft: Math.max(0, b.quota - taken),
         programSlug: b.programs.slug,
         programName: b.programs.name,
+        language: getProgram(b.programs.slug)?.language ?? "jp",
         isTrial: b.is_trial === true,
         firstSession,
         sessionTimes: b.sessions.map((x) => x.starts_at),

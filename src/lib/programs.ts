@@ -111,12 +111,21 @@ export const programs: Program[] = [
     name: "Bahasa Jerman A1",
     language: "de",
     level: "A1",
-    duration: "2 bulan",
+    duration: "3 bulan",
     monthlyPrice: 700_000,
-    upfrontPrice: 1_300_000,
-    summary: "Dasar bahasa Jerman untuk pemula.",
-    topics: ["32 pembelajaran", "Persiapan ujian Goethe, ÖSD atau telc"],
-    open: false,
+    // Harga lunas dan early bird belum final, jadi belum ditampilkan.
+    upfrontPrice: null,
+    summary: "Dasar bahasa Jerman untuk pemula, kelas kecil live lewat Zoom.",
+    topics: [
+      "Kelas live Senin sampai Kamis, 90 menit, lewat Zoom",
+      "Ada rekaman setiap kelas kalau berhalangan hadir",
+      "Kelas kecil supaya banyak latihan bicara",
+      "Persiapan ujian Goethe, ÖSD atau telc",
+    ],
+    // Batch Jerman A1 pertama mulai Senin 7 Des 2026 (keputusan winata 2026-11-20). Jam kelas belum diputuskan.
+    open: true,
+    scheduleNote:
+      "Senin sampai Kamis kelas live lewat Zoom, 90 menit per pertemuan. Jam kelas diumumkan sebelum batch mulai. Link kelas, materi, dan rekaman tersedia di area siswa setelah pendaftaran dikonfirmasi.",
   },
   {
     slug: "jerman-a2",

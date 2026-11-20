@@ -336,3 +336,98 @@ export function teacherLabel(fullName: string | null | undefined) {
   const initial = fullName?.trim().charAt(0).toUpperCase();
   return initial ? `Sensei ${initial}.` : null;
 }
+
+type MaterialItem = {
+  id: string;
+  title: string;
+  kind: string;
+  url: string;
+  classNo: number | null;
+  session: { starts_at: string; kind: string; topic: string | null } | null;
+};
+
+const KIND_LABEL: Record<string, string> = { pdf: "PDF", video: "Video", link: "Link" };
+
+function materialPlace(m: MaterialItem) {
+  if (!m.session) return null;
+  const label = m.session.kind === "ujian" ? (m.session.topic ?? "Tes kemampuan") : `Kelas ${m.classNo}`;
+  return `${label} · ${formatDate(m.session.starts_at)}`;
+}
+
+// Materi siswa: materi umum + pertemuan yang sudah lewat + beberapa kelas berikutnya.
+// Materi berikutnya hanya ditampilkan judul dan tanggal bukanya (link tidak dikirim).
+export function MaterialList({
+  general,
+  open,
+  locked,
+  lookahead,
+  nextSessionStart,
+}: {
+  general: MaterialItem[];
+  open: MaterialItem[];
+  locked: MaterialItem[];
+  lookahead: number;
+  nextSessionStart: string | null;
+}) {
+  const total = general.length + open.length + locked.length;
+  const upcoming = open.filter((m) => nextSessionStart && m.session && m.session.starts_at >= nextSessionStart);
+  const past = open.filter((m) => !upcoming.includes(m)).reverse();
+  const row = (m: MaterialItem, tag?: string) => (
+    <li key={m.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2">
+      <span>
+        <a href={m.url} target="_blank" rel="noreferrer" className="font-medium text-red-700 hover:underline">
+          {m.title}
+        </a>{" "}
+        <span className="text-xs text-stone-400">{KIND_LABEL[m.kind] ?? m.kind}</span>
+        {tag && <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">{tag}</span>}
+      </span>
+      {materialPlace(m) && <span className="text-xs text-stone-500">{materialPlace(m)}</span>}
+    </li>
+  );
+
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-6">
+      <h3 className="font-semibold text-stone-900">Materi belajar</h3>
+      {total === 0 ? (
+        <p className="mt-2 text-sm text-stone-500">Materi akan muncul di sini menjelang kelasnya.</p>
+      ) : (
+        <>
+          <p className="mt-1 text-sm text-stone-600">
+            Materi {lookahead} kelas berikutnya sudah bisa kamu pelajari duluan. Materi pertemuan yang sudah lewat tetap bisa dibuka kapan saja.
+          </p>
+          {upcoming.length > 0 && (
+            <>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">Pelajari duluan</p>
+              <ul className="divide-y divide-stone-100 text-sm">
+                {upcoming.map((m, i) => row(m, i === 0 ? "Berikutnya" : undefined))}
+              </ul>
+            </>
+          )}
+          {general.length > 0 && (
+            <>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-stone-500">Materi umum</p>
+              <ul className="divide-y divide-stone-100 text-sm">{general.map((m) => row(m))}</ul>
+            </>
+          )}
+          {past.length > 0 && (
+            <details className="mt-4" open={upcoming.length === 0 && general.length === 0}>
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-stone-500">
+                Pertemuan yang sudah lewat ({past.length})
+              </summary>
+              <ul className="divide-y divide-stone-100 text-sm">{past.map((m) => row(m))}</ul>
+            </details>
+          )}
+          {locked.length > 0 && (
+            <div className="mt-4 rounded-lg bg-stone-50 p-3 text-sm text-stone-600">
+              <p>
+                🔒 {locked.length} materi lagi sudah disiapkan sensei dan terbuka bertahap. Berikutnya:{" "}
+                <span className="font-medium text-stone-800">{locked[0].title}</span>
+                {materialPlace(locked[0]) && <span className="text-stone-500"> ({materialPlace(locked[0])})</span>}.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

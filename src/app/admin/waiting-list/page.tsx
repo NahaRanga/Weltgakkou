@@ -35,12 +35,24 @@ export default async function WaitingListPage({ searchParams }: { searchParams: 
 
   const [leadsRes, countsRes, programsRes] = await Promise.all([
     query,
-    db.from("leads").select("status"),
+    db.from("leads").select("status, program_slug, source"),
     db.from("programs").select("slug, name").order("created_at"),
   ]);
   const leads = (leadsRes.data ?? []) as Lead[];
   const counts = new Map<string, number>();
-  for (const l of countsRes.data ?? []) counts.set(l.status, (counts.get(l.status) ?? 0) + 1);
+  // Rekap per program (cek pasar sebelum buka kelas) dan per sumber, dari semua data.
+  const perProgram = new Map<string, { total: number; baru: number; sources: Map<string, number> }>();
+  for (const l of countsRes.data ?? []) {
+    counts.set(l.status, (counts.get(l.status) ?? 0) + 1);
+    const key = l.program_slug ?? "-";
+    const row = perProgram.get(key) ?? { total: 0, baru: 0, sources: new Map<string, number>() };
+    row.total += 1;
+    if (l.status === "baru") row.baru += 1;
+    const src = l.source || "tidak diisi";
+    row.sources.set(src, (row.sources.get(src) ?? 0) + 1);
+    perProgram.set(key, row);
+  }
+  const recap = [...perProgram.entries()].sort((a, b) => b[1].total - a[1].total);
   const programName = new Map((programsRes.data ?? []).map((p) => [p.slug, p.name]));
 
   return (
@@ -54,6 +66,41 @@ export default async function WaitingListPage({ searchParams }: { searchParams: 
           </a>
         }
       />
+      {recap.length > 0 && (
+        <Card title="Rekap per program" className="mb-6">
+          <div className="-mx-5 overflow-x-auto">
+            <table className={tableClass}>
+              <thead className="bg-stone-50">
+                <tr>
+                  <th className={thClass}>Program</th>
+                  <th className={thClass}>Total</th>
+                  <th className={thClass}>Belum dihubungi</th>
+                  <th className={thClass}>Tahu dari</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recap.map(([slug, r]) => (
+                  <tr key={slug} className="border-t border-stone-100">
+                    <td className={tdClass}>
+                      <a href={withBase(`/admin/waiting-list?program=${encodeURIComponent(slug)}`)} className="font-medium text-stone-900 hover:underline">
+                        {programName.get(slug) ?? slug}
+                      </a>
+                    </td>
+                    <td className={`${tdClass} font-semibold`}>{r.total}</td>
+                    <td className={tdClass}>{r.baru}</td>
+                    <td className={`${tdClass} text-xs text-stone-600`}>
+                      {[...r.sources.entries()]
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([src, n]) => `${src} ${n}`)
+                        .join(" · ")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
       <Card>
         <FilterTabs
           base="/admin/waiting-list"

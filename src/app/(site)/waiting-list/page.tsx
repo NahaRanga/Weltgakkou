@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { withBase } from "@/lib/base-path";
 import { WaitingListForm } from "@/components/waiting-list-form";
-import { programs } from "@/lib/programs";
+import { getProgram, programs } from "@/lib/programs";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -12,7 +12,10 @@ export const metadata: Metadata = pageMetadata({
   image: { src: "/images/waiting-list.jpg", alt: "Ilustrasi daftar waiting list kelas Weltgakko" },
 });
 
-export default function WaitingListPage() {
+// ?program=jerman-a1 / ?program=jlpt-n4 memilih program otomatis (dipakai di CTA konten & link bio).
+export default async function WaitingListPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  const preselect = typeof sp.program === "string" && getProgram(sp.program) ? sp.program : undefined;
   const formPrograms = programs.map(({ slug, name, open }) => ({ slug, name, open }));
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
@@ -28,7 +31,7 @@ export default function WaitingListPage() {
       <p className="mb-8 mt-2 text-stone-600">
         Kamu akan dikabari lebih dulu saat batch baru dibuka, beserta jadwal dan harga promonya.
       </p>
-      <WaitingListForm programs={formPrograms} />
+      <WaitingListForm programs={formPrograms} defaultProgram={preselect} />
     </div>
   );
 }

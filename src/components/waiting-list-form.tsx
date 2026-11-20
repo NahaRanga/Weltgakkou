@@ -78,6 +78,8 @@ export function WaitingListForm({
           <option value="tiktok">TikTok</option>
           <option value="instagram">Instagram</option>
           <option value="youtube">YouTube</option>
+          <option value="facebook">Facebook</option>
+          <option value="website">Website / Google</option>
           <option value="teman">Teman atau keluarga</option>
           <option value="lpk">LPK</option>
           <option value="lainnya">Lainnya</option>

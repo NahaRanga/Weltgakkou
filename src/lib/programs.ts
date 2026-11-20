@@ -122,7 +122,10 @@ export const programs: Program[] = [
       "Kelas kecil supaya banyak latihan bicara",
       "Persiapan ujian Goethe, ÖSD atau telc",
     ],
-    open: false,
+    // Batch Jerman A1 pertama mulai Senin 7 Des 2026 (keputusan winata 2026-11-20). Jam kelas belum diputuskan.
+    open: true,
+    scheduleNote:
+      "Senin sampai Kamis kelas live lewat Zoom, 90 menit per pertemuan. Jam kelas diumumkan sebelum batch mulai. Link kelas, materi, dan rekaman tersedia di area siswa setelah pendaftaran dikonfirmasi.",
   },
   {
     slug: "jerman-a2",

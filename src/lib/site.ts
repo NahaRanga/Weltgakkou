@@ -29,3 +29,9 @@ export const TRIAL_NOTE = "[Minat trial]";
 // Grup WhatsApp pendaftar kelas trial: ditampilkan setelah daftar di /trial dan di email konfirmasi.
 // Ganti di sini bila link grup diganti (kosongkan untuk menyembunyikan).
 export const TRIAL_WA_GROUP = "https://chat.whatsapp.com/F1aSdGUU8JRHY3tRYPrM6n";
+// Grup WhatsApp per bahasa kelas trial. Trial Jerman punya grup sendiri: tempel link-nya di `de`
+// (kosong = kotak grup disembunyikan, admin kirim link lewat chat WA).
+export const TRIAL_WA_GROUPS: Record<"jp" | "de", string> = {
+  jp: TRIAL_WA_GROUP,
+  de: "",
+};

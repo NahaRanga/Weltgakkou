@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welt-chan 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&family=Nunito:wght@600;800&display=swap">
+  <style>
+    :root {
+      --bg: #FAFAF9;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --red: #E63946;
+      --blue: #4A90E2;
+      --card: rgba(255, 255, 255, 0.85);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: Nunito, system-ui, sans-serif; overflow: hidden; }
+    canvas { display: block; touch-action: none; }
+    .info { position: fixed; top: 16px; left: 16px; right: 16px; pointer-events: none; }
+    .info h1 { margin: 0; font-size: 22px; font-weight: 800; }
+    .info h1 span { color: var(--red); }
+    .info p { margin: 4px 0 0; font-size: 13px; color: var(--muted); max-width: 420px; }
+    .controls { position: fixed; bottom: 16px; left: 16px; right: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .controls button {
+      font: inherit; font-weight: 800; font-size: 14px; border: 0; border-radius: 999px; padding: 10px 16px;
+      background: var(--card); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,0.08); cursor: pointer;
+    }
+    .controls button:hover { background: #fff; }
+    .controls button.on { background: var(--blue); color: #fff; }
+    .loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">Memuat Welt-chan…</div>
+  <div class="info">
+    <h1>Welt-chan <span>ウェルトちゃん</span></h1>
+    <p>Konsep 3D maskot Weltgakko, gaya anime, aksesoris bumi (usulan, belum final). Geser untuk memutar, scroll atau cubit untuk zoom.</p>
+  </div>
+  <div class="controls">
+    <button data-act="wave">👋 Lambai</button>
+    <button data-act="jump">✊ Ikuzo!</button>
+    <button data-act="bow">🙇 Ojigi</button>
+    <button data-act="spin" id="spinBtn">🔄 Putar</button>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+    const C = {
+      bg: 0xFAFAF9,
+      ocean: '#5CA2EC',
+      land: '#B4F0D2',
+      red: 0xE63946,
+      darkRed: 0xB8232F,
+      yellow: 0xF5C04A,
+      skin: 0xFFEADF,
+      shirt: 0xFFFFFF,
+      navy: 0x24335F,
+      line: 0x2A2238,
+      mint: 0x8EE0BC,
+      hair: 0x3F78DD,
+    };
+
+    // Renderer, scene, camera
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(C.bg);
+
+    const camera = new THREE.PerspectiveCamera(32, window.innerWidth / window.innerHeight, 0.1, 100);
+    // Wider view on portrait phone screens so the whole character fits
+    const fitFov = () => { camera.fov = camera.aspect < 0.8 ? 48 : 32; camera.updateProjectionMatrix(); };
+    fitFov();
+    camera.position.set(-1.9, 3.5, 12.8);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 2.85, 0);
+    controls.enableDamping = true;
+    controls.minDistance = 4;
+    controls.maxDistance = 24;
+    controls.maxPolarAngle = Math.PI * 0.55;
+    controls.enablePan = false;
+    controls.autoRotateSpeed = 2.5;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+    const key = new THREE.DirectionalLight(0xffffff, 1.9);
+    key.position.set(-3, 5, 6);
+    scene.add(key);
+
+    // Cel shading: 3 flat tones, like anime
+    const tones = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.RedFormat);
+    tones.minFilter = tones.magFilter = THREE.NearestFilter;
+    tones.needsUpdate = true;
+    const toon = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: tones, ...extra });
+
+    // Ink outline: a slightly fattened back-face copy of the mesh
+    const outlineMats = {};
+    function outlineMat(width) {
+      if (outlineMats[width]) return outlineMats[width];
+      const m = new THREE.MeshBasicMaterial({ color: C.line, side: THREE.BackSide });
+      m.onBeforeCompile = sh => {
+        sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `vec3 transformed = position + normal * ${width.toFixed(4)};`);
+      };
+      m.customProgramCacheKey = () => 'outline' + width;
+      return (outlineMats[width] = m);
+    }
+    function mesh(geo, mat, parent, outline = 0.02) {
+      const m = new THREE.Mesh(geo, mat);
+      if (outline) m.add(new THREE.Mesh(geo, outlineMat(outline)));
+      if (parent) parent.add(m);
+      return m;
+    }
+    // Place an object on a unit sphere surface, facing outward
+    const Z = new THREE.Vector3(0, 0, 1);
+    function onSurface(obj, dir, radius) {
+      const n = dir.clone().normalize();
+      obj.position.copy(n).multiplyScalar(radius);
+      obj.quaternion.setFromUnitVectors(Z, n);
+      return obj;
+    }
+    function canvas(w, h) {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      return [c, c.getContext('2d')];
+    }
+    function texture(c) {
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return t;
+    }
+
+    // Globe: soft simplified continents and little clouds
+    const CONTINENTS = [
+      [[-168,66],[-140,70],[-95,72],[-80,62],[-60,55],[-66,45],[-80,26],[-97,18],[-105,22],[-117,32],[-124,42],[-125,50],[-140,60],[-158,58]],
+      [[-97,18],[-83,9],[-78,8],[-80,0],[-81,-6],[-71,-18],[-74,-40],[-68,-55],[-58,-38],[-48,-28],[-40,-22],[-35,-6],[-50,0],[-60,10],[-75,11],[-83,15]],
+      [[-10,36],[-9,43],[-2,44],[-5,48],[5,53],[10,58],[5,62],[20,70],[40,68],[60,70],[80,73],[110,77],[140,72],[180,68],[180,65],[160,60],[143,52],[140,46],[130,42],[122,40],[122,31],[118,24],[109,21],[106,10],[100,13],[103,1],[98,8],[92,22],[80,15],[77,8],[72,20],[66,25],[57,25],[50,30],[58,22],[52,16],[43,13],[35,28],[35,33],[27,37],[22,40],[12,44],[3,43],[-2,37]],
+      [[-17,15],[-17,21],[-10,30],[-6,36],[10,37],[20,32],[32,31],[35,28],[43,12],[51,11],[40,-3],[40,-15],[33,-25],[20,-35],[17,-29],[12,-17],[13,-5],[9,4],[-8,5],[-15,10]],
+      [[114,-22],[122,-18],[130,-12],[137,-12],[142,-11],[146,-19],[153,-25],[150,-37],[141,-38],[131,-31],[115,-34]],
+      [[130,31],[131,34],[135,34],[140,36],[141,41],[140,42],[141,45],[145,44],[142,42],[141,38],[140,35],[136,33]],
+      [[95,5],[100,1],[106,-6],[115,-8.5],[120,-9],[125,-8],[114,-6.5],[105,-3],[98,3]],
+      [[109,2],[118,7],[119,-4],[110,-3]],
+      [[131,-1],[141,-3],[150,-10],[141,-9]],
+    ];
+    function globeTexture() {
+      const W = 2048, H = 1024;
+      const [c, g] = canvas(W, H);
+      g.fillStyle = C.ocean;
+      g.fillRect(0, 0, W, H);
+      const px = ([lon, lat]) => [(lon + 180) / 360 * W, (90 - lat) / 180 * H];
+      g.fillStyle = g.strokeStyle = C.land;
+      g.lineJoin = 'round';
+      g.lineWidth = 40;
+      for (const poly of CONTINENTS) {
+        g.beginPath();
+        poly.forEach((p, i) => { const [x, y] = px(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+        g.closePath();
+        g.fill();
+        g.stroke();
+      }
+      // Fluffy clouds
+      g.fillStyle = 'rgba(255,255,255,0.9)';
+      for (const [lon, lat, s] of [[-120, 20, 1], [-30, -10, 1.2], [60, 45, 0.9], [170, -20, 1.1], [-80, -45, 0.8], [20, 5, 0.9]]) {
+        const [x, y] = px([lon, lat]);
+        for (const [dx, dy, r] of [[0, 0, 34], [38, 6, 26], [-36, 8, 24], [14, -18, 26]]) {
+          g.beginPath();
+          g.arc(x + dx * s, y + dy * s, r * s, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      const t = texture(c);
+      t.wrapS = THREE.RepeatWrapping;
+      t.offset.x = 0.58;   // Asia, Japan and Indonesia face the front
+      return t;
+    }
+
+    // Anime face, drawn on a canvas and wrapped on the front of the head
+    function faceTexture(mode) {
+      const W = 1024, H = 640;
+      const [c, g] = canvas(W, H);
+      const ink = '#2A2238';
+      g.lineCap = g.lineJoin = 'round';
+
+      // Blush with little anime lines
+      for (const s of [-1, 1]) {
+        const x = W / 2 + 330 * s, y = 390;
+        const grad = g.createRadialGradient(x, y, 0, x, y, 85);
+        grad.addColorStop(0, 'rgba(255,120,150,0.75)');
+        grad.addColorStop(1, 'rgba(255,120,150,0)');
+        g.fillStyle = grad;
+        g.beginPath(); g.ellipse(x, y, 90, 50, 0, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#ff6f91'; g.lineWidth = 7;
+        for (let i = -1; i <= 1; i++) {
+          g.beginPath(); g.moveTo(x + i * 26 - 8, y + 14); g.lineTo(x + i * 26 + 8, y - 14); g.stroke();
+        }
+      }
+
+      for (const s of [-1, 1]) {
+        const cx = W / 2 + 190 * s, cy = 255;
+        // Eyebrows
+        g.strokeStyle = ink; g.lineWidth = 11;
+        g.beginPath(); g.ellipse(cx + 6 * s, cy - 150, 46, 14, 0, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+
+        if (mode === 'happy') {
+          g.lineWidth = 22;
+          g.beginPath(); g.ellipse(cx, cy + 25, 72, 60, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+          continue;
+        }
+        if (mode === 'blink') {
+          g.lineWidth = 20;
+          g.beginPath(); g.ellipse(cx, cy + 10, 78, 26, 0, Math.PI * 0.05, Math.PI * 0.95); g.stroke();
+          continue;
+        }
+        // White of the eye
+        g.fillStyle = '#ffffff';
+        g.beginPath(); g.ellipse(cx, cy, 86, 112, 0, 0, Math.PI * 2); g.fill();
+        // Iris: deep blue to sky blue, like the world
+        g.save();
+        g.beginPath(); g.ellipse(cx, cy, 86, 112, 0, 0, Math.PI * 2); g.clip();
+        const iris = g.createLinearGradient(0, cy - 90, 0, cy + 110);
+        iris.addColorStop(0, '#16205a');
+        iris.addColorStop(0.55, '#2f6fd0');
+        iris.addColorStop(1, '#7be3b8');
+        g.fillStyle = iris;
+        g.beginPath(); g.ellipse(cx + 4 * s, cy + 14, 70, 96, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#0c1233';
+        g.beginPath(); g.ellipse(cx + 4 * s, cy + 22, 32, 46, 0, 0, Math.PI * 2); g.fill();
+        // Sparkles in the eye
+        g.fillStyle = '#ffffff';
+        g.beginPath(); g.ellipse(cx - 26, cy - 30, 30, 36, -0.3, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.arc(cx + 30, cy + 52, 14, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.arc(cx + 8, cy + 76, 7, 0, Math.PI * 2); g.fill();
+        g.restore();
+        // Outline and thick upper lash with a flick at the outer corner
+        g.strokeStyle = ink; g.lineWidth = 8;
+        g.beginPath(); g.ellipse(cx, cy, 86, 112, 0, Math.PI * 0.15, Math.PI * 0.85); g.stroke();
+        g.lineWidth = 24;
+        g.beginPath(); g.ellipse(cx, cy + 4, 92, 118, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+        g.fillStyle = ink;
+        const ox = cx + 88 * s, oy = cy - 50;
+        g.beginPath(); g.moveTo(ox - 10 * s, oy - 20); g.lineTo(ox + 34 * s, oy - 46); g.lineTo(ox + 6 * s, oy + 14); g.closePath(); g.fill();
+      }
+
+      // Mouth
+      const mx = W / 2, my = 400;
+      if (mode === 'blink') {
+        g.strokeStyle = ink; g.lineWidth = 9;
+        g.beginPath(); g.moveTo(mx - 34, my); g.quadraticCurveTo(mx - 17, my + 22, mx, my + 4); g.quadraticCurveTo(mx + 17, my + 22, mx + 34, my); g.stroke();
+      } else {
+        g.fillStyle = '#7a1e2a';
+        g.beginPath(); g.moveTo(mx - 46, my); g.quadraticCurveTo(mx, my + (mode === 'happy' ? 95 : 75), mx + 46, my); g.closePath(); g.fill();
+        g.save(); g.clip();
+        g.fillStyle = '#ff7a8a';
+        g.beginPath(); g.ellipse(mx, my + 62, 30, 22, 0, 0, Math.PI * 2); g.fill();
+        g.restore();
+        g.strokeStyle = ink; g.lineWidth = 8;
+        g.beginPath(); g.moveTo(mx - 46, my); g.quadraticCurveTo(mx, my + (mode === 'happy' ? 95 : 75), mx + 46, my); g.closePath(); g.stroke();
+      }
+      return texture(c);
+    }
+
+    function headbandTexture() {
+      const [c, g] = canvas(2048, 256);
+      g.fillStyle = '#E63946';
+      g.fillRect(0, 0, 2048, 256);
+      g.fillStyle = '#ffffff';
+      g.font = '700 140px "Zen Maru Gothic", "Noto Sans JP", sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText('がんばる', 1024, 136);
+      return texture(c);
+    }
+
+    function softTexture(color) {
+      const [c, g] = canvas(128, 128);
+      const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 128, 128);
+      return texture(c);
+    }
+
+    function starTexture() {
+      const [c, g] = canvas(128, 128);
+      g.fillStyle = '#FFD45E';
+      g.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const r = i % 2 ? 14 : 60, a = i * Math.PI / 4 - Math.PI / 2;
+        g.lineTo(64 + Math.cos(a) * r, 64 + Math.sin(a) * r);
+      }
+      g.closePath(); g.fill();
+      return texture(c);
+    }
+
+    await document.fonts.load('700 140px "Zen Maru Gothic"', 'がんばる').catch(() => {});
+
+    // Rig. Anime proportions: about 6.5 heads tall, long legs.
+    // welt (on the ground) > pelvis > spine > chest, arms, neck > head; pelvis > hips > knees > feet
+    const welt = new THREE.Group();
+    scene.add(welt);
+    const PELVIS_Y = 3.25;
+    const pelvis = new THREE.Group();
+    pelvis.position.y = PELVIS_Y;
+    welt.add(pelvis);
+    const spine = new THREE.Group();
+    pelvis.add(spine);
+
+    const skinMat = toon(C.skin);
+    const shirtMat = toon(C.shirt);
+    const navyMat = toon(C.navy);
+    const ribbonMatBody = toon(C.red);
+
+    // Torso: hourglass shape from hips to shoulders, a bit flat front to back
+    const torsoShape = [[0, -0.1], [0.32, -0.08], [0.24, 0.32], [0.3, 0.78], [0.35, 1.05], [0.39, 1.32], [0.28, 1.45], [0.1, 1.5], [0, 1.5]]
+      .map(([r, y]) => new THREE.Vector2(r, y));
+    const torso = mesh(new THREE.LatheGeometry(torsoShape, 40), shirtMat, spine, 0.015);
+    torso.scale.z = 0.62;
+    const chest = { y: 1.32 };
+
+    // Sailor collar: navy cape over the shoulders with a white stripe, square flap on the back
+    const collar = mesh(new THREE.CylinderGeometry(0.2, 0.47, 0.2, 40, 1, true), toon(C.navy, { side: THREE.DoubleSide }), spine, 0.012);
+    collar.position.y = 1.4;
+    collar.scale.z = 0.7;
+    const stripe = mesh(new THREE.TorusGeometry(0.43, 0.012, 6, 64), toon(0xffffff), spine, 0);
+    stripe.rotation.x = Math.PI / 2;
+    stripe.scale.y = 0.7;
+    stripe.position.y = 1.33;
+    const backFlap = mesh(new RoundedBoxGeometry(0.62, 0.42, 0.03, 2, 0.01), navyMat, spine, 0.01);
+    backFlap.position.set(0, 1.22, -0.24);
+    backFlap.rotation.x = 0.12;
+
+    // Neck ribbon with a little earth brooch
+    const globeTexBody = globeTexture();
+    const earthMatBody = toon(0xffffff, { map: globeTexBody });
+    const bow = new THREE.Group();
+    bow.position.set(0, 1.18, 0.25);
+    spine.add(bow);
+    for (const s of [-1, 1]) {
+      const loop = mesh(new THREE.SphereGeometry(0.08, 20, 14), ribbonMatBody, bow, 0.008);
+      loop.scale.set(1.3, 0.7, 0.4);
+      loop.position.x = 0.09 * s;
+      loop.rotation.z = 0.3 * s;
+      const end = mesh(new RoundedBoxGeometry(0.06, 0.24, 0.02, 2, 0.01), ribbonMatBody, bow, 0.008);
+      end.position.set(0.04 * s, -0.15, -0.01);
+      end.rotation.z = 0.2 * s;
+    }
+    mesh(new THREE.SphereGeometry(0.055, 20, 14), earthMatBody, bow, 0.008);
+
+    // Pleated skirt
+    const skirtPivot = new THREE.Group();
+    skirtPivot.position.y = 0.2;
+    pelvis.add(skirtPivot);
+    const skirt = mesh(new THREE.CylinderGeometry(0.31, 0.6, 0.7, 18, 1, true), toon(C.navy, { flatShading: true, side: THREE.DoubleSide }), skirtPivot, 0.015);
+    skirt.position.y = -0.32;
+    skirt.scale.z = 0.8;
+
+    // Randoseru with an earth keychain
+    const bag = new THREE.Group();
+    bag.position.set(0, 0.95, -0.36);
+    spine.add(bag);
+    mesh(new RoundedBoxGeometry(0.55, 0.6, 0.26, 4, 0.07), toon(C.red), bag);
+    const flap = mesh(new RoundedBoxGeometry(0.58, 0.44, 0.06, 4, 0.025), toon(C.darkRed), bag, 0.01);
+    flap.position.set(0, 0.09, -0.14);
+    const clasp = mesh(new RoundedBoxGeometry(0.09, 0.06, 0.035, 2, 0.012), toon(0xF0C85A), bag, 0.006);
+    clasp.position.set(0, -0.11, -0.18);
+    const charm = new THREE.Group();
+    charm.position.set(0.26, 0.2, -0.08);
+    bag.add(charm);
+    const chain = mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.14), toon(0xC9CED6), charm, 0);
+    chain.position.y = -0.07;
+    const charmEarth = mesh(new THREE.SphereGeometry(0.07, 24, 16), earthMatBody, charm, 0.008);
+    charmEarth.position.y = -0.17;
+    for (const s of [-1, 1]) {
+      const strap = mesh(new THREE.TorusGeometry(0.3, 0.025, 8, 40, 2.4), toon(C.darkRed), spine, 0.008);
+      strap.rotation.set(0, Math.PI / 2, 0);
+      strap.scale.set(1, 1.1, 0.9);
+      strap.position.set(0.2 * s, 1.0, -0.02);
+    }
+
+    // Arms: shoulder > upper arm > elbow > forearm > hand
+    function makeArm(side) {
+      const shoulder = new THREE.Group();
+      shoulder.position.set(0.42 * side, 1.34, 0);
+      spine.add(shoulder);
+      const puff = mesh(new THREE.SphereGeometry(0.13, 20, 14), shirtMat, shoulder, 0.012);
+      puff.position.y = -0.08;
+      puff.scale.set(1, 1.15, 0.95);
+      const upperArm = mesh(new THREE.CapsuleGeometry(0.065, 0.5, 8, 16), skinMat, shoulder, 0.012);
+      upperArm.position.y = -0.36;
+      const elbow = new THREE.Group();
+      elbow.position.y = -0.66;
+      shoulder.add(elbow);
+      const forearm = mesh(new THREE.CapsuleGeometry(0.055, 0.46, 8, 16), skinMat, elbow, 0.012);
+      forearm.position.y = -0.27;
+      const hand = mesh(new THREE.SphereGeometry(0.075, 20, 14), skinMat, elbow, 0.012);
+      hand.position.y = -0.6;
+      hand.scale.set(0.85, 1.25, 0.65);
+      return { shoulder, elbow, hand };
+    }
+    const rightArm = makeArm(-1);   // character's right: pencil
+    const leftArm = makeArm(1);     // character's left: waves
+    const pencil = new THREE.Group();
+    pencil.position.set(0, -0.62, 0.05);
+    pencil.rotation.set(1.3, 0, 0.2);
+    rightArm.elbow.add(pencil);
+    mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.42, 6), toon(C.yellow), pencil, 0.008);
+    const wood = mesh(new THREE.ConeGeometry(0.028, 0.08, 6), toon(0xF2D3A2), pencil, 0.006);
+    wood.position.y = 0.25;
+    const eraser = mesh(new RoundedBoxGeometry(0.06, 0.06, 0.06, 2, 0.02), toon(0xF7A1B5), pencil, 0.006);
+    eraser.position.y = -0.24;
+
+    // Legs: hip > thigh > knee > shin with white knee socks > uwabaki
+    function makeLeg(side) {
+      const hip = new THREE.Group();
+      hip.position.set(0.16 * side, 0, 0);
+      pelvis.add(hip);
+      const thigh = mesh(new THREE.CapsuleGeometry(0.145, 1.18, 8, 16), skinMat, hip, 0.014);
+      thigh.position.y = -0.72;
+      const knee = new THREE.Group();
+      knee.position.y = -1.48;
+      hip.add(knee);
+      const sockMat = toon(0xffffff);
+      const shin = mesh(new THREE.CapsuleGeometry(0.11, 1.25, 8, 16), sockMat, knee, 0.014);
+      shin.position.y = -0.7;
+      const foot = new THREE.Group();
+      foot.position.y = -1.44;
+      knee.add(foot);
+      const shoe = mesh(new THREE.SphereGeometry(0.13, 24, 16), toon(0xffffff), foot, 0.012);
+      shoe.scale.set(0.85, 0.6, 1.6);
+      shoe.position.set(0, -0.08, 0.08);
+      const toe = mesh(new THREE.SphereGeometry(0.09, 20, 14), toon(C.red), foot, 0);
+      toe.position.set(0, -0.09, 0.22);
+      toe.scale.set(1.1, 0.75, 0.95);
+      return { hip, knee, foot };
+    }
+    const legs = [makeLeg(-1), makeLeg(1)];
+
+    // Neck and head
+    const neck = new THREE.Group();
+    neck.position.y = 1.45;
+    spine.add(neck);
+    mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.3, 16), skinMat, neck, 0.01).position.y = 0.08;
+
+    // Head: anime girl; the earth lives in her accessories
+    const head = new THREE.Group();
+    head.position.y = 0.46;
+    head.scale.setScalar(0.56);
+    neck.add(head);
+    const skull = new THREE.Group();
+    skull.scale.set(1.0, 0.94, 0.95);
+    head.add(skull);
+    mesh(new THREE.SphereGeometry(1, 96, 64), toon(C.skin), skull, 0.03);
+
+    const faces = { open: faceTexture('open'), blink: faceTexture('blink'), happy: faceTexture('happy') };
+    const faceMat = new THREE.MeshBasicMaterial({ map: faces.open, transparent: true, depthWrite: false });
+    const FACE_W = 1.75, FACE_H = 1.1;
+    skull.add(new THREE.Mesh(
+      new THREE.SphereGeometry(1.004, 64, 32, Math.PI / 2 - FACE_W / 2, FACE_W, Math.PI / 2 - 0.38, FACE_H),
+      faceMat,
+    ));
+
+    // Hair: ocean-blue, with a cap, back hair, bangs and side locks
+    const hairMat = toon(C.hair, { side: THREE.DoubleSide });
+    mesh(new THREE.SphereGeometry(1.06, 96, 48, 0, Math.PI * 2, 0, 1.12), hairMat, skull, 0.025);
+    mesh(new THREE.SphereGeometry(1.05, 96, 48, Math.PI - 0.6, Math.PI + 1.2, 0, 2.3), hairMat, skull, 0.025);
+    function strand(dir, length, width, tilt, parent = skull) {
+      const g = onSurface(new THREE.Group(), dir, 1.02);
+      const cone = mesh(new THREE.ConeGeometry(width, length, 24), hairMat, g, 0.018);
+      cone.rotation.z = Math.PI + tilt;
+      cone.position.y = -length * 0.3;
+      cone.scale.z = 0.45;
+      parent.add(g);
+      return g;
+    }
+    [[-0.66, 0.5, 0.2, -0.25], [-0.36, 0.6, 0.22, -0.12], [-0.06, 0.55, 0.21, 0.05], [0.24, 0.6, 0.22, 0.14], [0.55, 0.52, 0.2, 0.26]]
+      .forEach(([x, len, w, tilt]) => strand(new THREE.Vector3(x, 0.66, 0.75), len, w, tilt));
+    const sideLocks = [-1, 1].map(s => strand(new THREE.Vector3(0.86 * s, 0.05, 0.5), 1.05, 0.17, 0.1 * s));
+
+    // Twin tails tied with little earth hair bobbles
+    const globeTex = globeTexture();
+    const earthMat = toon(0xffffff, { map: globeTex });
+    const tailShape = [[0, 0.02], [0.15, -0.05], [0.25, -0.3], [0.24, -0.62], [0.17, -0.95], [0.07, -1.2], [0, -1.28]]
+      .map(([r, y]) => new THREE.Vector2(r, y));
+    const twinTails = [-1, 1].map((s, i) => {
+      const root = new THREE.Group();
+      root.position.copy(new THREE.Vector3(0.85 * s, 0.45, -0.35).normalize().multiplyScalar(1.1));
+      skull.add(root);
+      const bobble = mesh(new THREE.SphereGeometry(0.17, 32, 24), earthMat, root, 0.012);
+      bobble.rotation.y = s * 0.8;
+      const pivot = new THREE.Group();
+      root.add(pivot);
+      const tail = mesh(new THREE.LatheGeometry(tailShape, 32), hairMat, pivot, 0.02);
+      tail.position.y = -0.08;
+      tail.scale.set(1.15, 2.4, 0.8);
+      return { pivot, bobble, s, phase: i * 0.7 };
+    });
+
+    // Hachimaki over the hair
+    const band = new THREE.Group();
+    band.position.y = 0.6;
+    band.rotation.z = -0.05;
+    skull.add(band);
+    mesh(new THREE.CylinderGeometry(0.86, 1.0, 0.22, 96, 1, true, -Math.PI, Math.PI * 2),
+      toon(0xffffff, { map: headbandTexture(), side: THREE.DoubleSide }), band, 0);
+    const ribbonMat = toon(C.red);
+    const knot = mesh(new THREE.SphereGeometry(0.1, 24, 16), ribbonMat, band, 0.015);
+    knot.position.set(0.9, 0, -0.18);
+    const tails = [];
+    [[0.4, 0], [-0.2, 1.3]].forEach(([base, phase]) => {
+      const pivot = new THREE.Group();
+      pivot.position.copy(knot.position);
+      pivot.rotation.set(0, -0.9, base);
+      const tail = mesh(new RoundedBoxGeometry(0.55, 0.12, 0.03, 2, 0.014), ribbonMat, pivot, 0.012);
+      tail.position.x = 0.28;
+      band.add(pivot);
+      tails.push({ pivot, base, phase });
+    });
+
+    // Ahoge
+    const ahogeCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 0.98, 0), new THREE.Vector3(0.04, 1.22, 0.02), new THREE.Vector3(0.2, 1.36, 0),
+      new THREE.Vector3(0.33, 1.26, 0), new THREE.Vector3(0.24, 1.17, 0),
+    ]);
+    const ahoge = new THREE.Group();
+    skull.add(ahoge);
+    mesh(new THREE.TubeGeometry(ahogeCurve, 48, 0.045, 12), hairMat, ahoge, 0.015);
+
+    // A tiny earth that orbits her head, with a faint orbit ring
+    const orbit = new THREE.Group();
+    orbit.position.y = 1.2;
+    orbit.rotation.set(-0.18, 0, 0.12);
+    head.add(orbit);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.01, 6, 160), new THREE.MeshBasicMaterial({ color: 0x8DBBF0, transparent: true, opacity: 0.6 }));
+    ring.rotation.x = Math.PI / 2;
+    orbit.add(ring);
+    const miniEarth = mesh(new THREE.SphereGeometry(0.16, 32, 24), earthMat, orbit, 0.012);
+    miniEarth.position.x = 1.0;
+
+
+    // Soft blob shadow and sparkles
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), new THREE.MeshBasicMaterial({
+      map: softTexture('rgba(40,30,60,0.28)'), transparent: true, depthWrite: false,
+    }));
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.005;
+    scene.add(shadow);
+
+    const starMap = starTexture();
+    const stars = [[-1.7, 5.6, 0], [1.8, 5.1, 1.7], [-1.5, 3.2, 3.1], [1.6, 2.4, 4.4], [1.1, 6.4, 2.2], [-1.2, 1.2, 5.3]].map(([x, y, ph]) => {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: starMap, transparent: true, depthWrite: false }));
+      sp.position.set(x, y, 0.2);
+      scene.add(sp);
+      return { sp, ph };
+    });
+
+    document.getElementById('loading').remove();
+
+    // Animation
+    let action = 'idle';
+    let actionStart = 0;
+    let spin = false;
+    const clock = new THREE.Clock();
+    document.querySelectorAll('.controls button').forEach(btn => btn.addEventListener('click', () => {
+      const act = btn.dataset.act;
+      if (act === 'spin') {
+        spin = !spin;
+        controls.autoRotate = spin;
+        btn.classList.toggle('on', spin);
+        return;
+      }
+      action = act;
+      actionStart = clock.getElapsedTime();
+    }));
+
+    const ease = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    // Damped springs: every joint follows through instead of snapping
+    const springs = {};
+    function step(name, target, dt, k = 80, damping = 11) {
+      const sp = springs[name] ??= { x: target, v: 0 };
+      sp.v += ((target - sp.x) * k - sp.v * damping) * dt;
+      sp.x += sp.v * dt;
+      return sp.x;
+    }
+    let last = 0;
+    let lastLift = 0;
+
+    function animate() {
+      const t = clock.getElapsedTime();
+      const dt = Math.min(t - last, 0.05);
+      last = t;
+      const at = t - actionStart;
+
+      // Idle: relaxed contrapposto, weight shifting from leg to leg, breathing, playful head
+      const shift = Math.sin(t * 0.9);
+      const pose = {
+        lift: 0, pelvisX: shift * 0.05, pelvisZ: shift * 0.045, spineZ: -shift * 0.06, spineX: 0.02,
+        bend: 0, crouch: 0,
+        headZ: Math.sin(t * 1.1 + 0.8) * 0.12 + shift * 0.05, headX: 0.04 + Math.sin(t * 2.2) * 0.02, headY: Math.sin(t * 0.6) * 0.2,
+        // arms: z = out to the side, x = forward, elbow bend
+        lZ: 0.18, lX: 0.05, lE: 0.25, rZ: -0.22, rX: 0.35, rE: 1.2,
+        kneeL: shift > 0 ? 0 : -shift * 0.12, kneeR: shift < 0 ? 0 : shift * 0.12,
+        face: (t % 3.6) < 0.13 ? 'blink' : 'open',
+      };
+      // Every few seconds she waves on her own
+      if ((t % 7) > 4.6) { pose.lZ = 2.5; pose.lX = 0.1; pose.lE = 0.5 + Math.sin(t * 9) * 0.35; pose.headZ += 0.1; }
+
+      if (action === 'wave') {
+        if (at < 2.4) {
+          Object.assign(pose, { lZ: 2.7, lX: 0.15, lE: 0.55 + Math.sin(t * 12) * 0.45, face: 'happy', headZ: 0.2, headY: 0.15 });
+        } else action = 'idle';
+      } else if (action === 'jump') {
+        const d = 1.3;
+        if (at < d) {
+          const p = at / d;
+          Object.assign(pose, { pelvisX: 0, pelvisZ: 0, spineZ: 0, headY: 0, kneeL: 0, kneeR: 0 });
+          if (p < 0.25) {                 // crouch, arms back
+            const k = ease(p / 0.25);
+            Object.assign(pose, { crouch: k, spineX: 0.25 * k, lZ: 0.3, rZ: -0.3, lX: -0.6 * k, rX: -0.6 * k, lE: 0.2, rE: 0.2, headX: 0.2 * k });
+          } else if (p < 0.8) {           // jump: right fist up, "Ikuzo!"
+            const k = (p - 0.25) / 0.55;
+            Object.assign(pose, { lift: Math.sin(k * Math.PI) * 1.1, spineX: -0.12, lZ: 2.6, lE: 0.3, rZ: -2.9, rX: 0.1, rE: 0.1, headX: -0.15, face: 'happy' });
+            pose.kneeL = pose.kneeR = 0.5 * Math.sin(k * Math.PI);
+          } else {                        // land softly
+            const k = (p - 0.8) / 0.2;
+            Object.assign(pose, { crouch: Math.sin(k * Math.PI) * 0.5, face: 'happy', lZ: 0.5, rZ: -0.5 });
+          }
+        } else action = 'idle';
+      } else if (action === 'bow') {
+        const d = 2.6;
+        if (at < d) {
+          const p = at / d;
+          const b = p < 0.3 ? ease(p / 0.3) : p < 0.7 ? 1 : 1 - ease((p - 0.7) / 0.3);
+          // hands together in front, bend from the hips
+          Object.assign(pose, { bend: b, pelvisX: 0, pelvisZ: 0, spineZ: 0, headZ: 0, headY: 0, lZ: -0.15, rZ: 0.15, lX: 0.4, rX: 0.4, lE: 0.6, rE: 0.6, face: b > 0.3 ? 'happy' : 'open' });
+        } else action = 'idle';
+      }
+
+      // Crouch: bend hips and knees, lower the pelvis
+      const crouch = step('crouch', pose.crouch, dt, 120, 14);
+      const hipBend = -0.7 * crouch, kneeBend = 1.4 * crouch;
+      const drop = 1.48 * (1 - Math.cos(hipBend)) + 1.44 * (1 - Math.cos(kneeBend + hipBend));
+      const lift = pose.lift;
+      const liftVel = (lift - lastLift) / Math.max(dt, 1e-3);
+      lastLift = lift;
+
+      pelvis.position.set(step('pX', pose.pelvisX, dt, 30, 7), PELVIS_Y - drop + lift, 0);
+      pelvis.rotation.z = step('pZ', pose.pelvisZ, dt, 30, 7);
+      spine.rotation.z = step('sZ', pose.spineZ, dt, 30, 7);
+      spine.rotation.x = step('sX', pose.spineX + pose.bend * 0.75, dt, 60, 10);
+      torso.scale.x = 1 + Math.sin(t * 2.2) * 0.012;   // breathing
+
+      legs.forEach((leg, i) => {
+        const relax = i === 0 ? pose.kneeR : pose.kneeL;
+        leg.hip.rotation.x = step('hip' + i, hipBend - relax * 0.5, dt, 120, 14);
+        leg.knee.rotation.x = step('knee' + i, kneeBend + relax, dt, 120, 14);
+        leg.foot.rotation.x = -(leg.hip.rotation.x + leg.knee.rotation.x);
+        leg.hip.rotation.z = -pelvis.rotation.z;   // keep feet planted while the hips sway
+      });
+
+      head.rotation.z = step('hZ', pose.headZ - spine.rotation.z * 0.6, dt, 50, 8);
+      head.rotation.x = step('hX', pose.headX - pose.bend * 0.1, dt, 50, 8);
+      head.rotation.y = step('hY', pose.headY, dt, 25, 6);
+
+      leftArm.shoulder.rotation.z = step('lZ', pose.lZ, dt);
+      leftArm.shoulder.rotation.x = -step('lX', pose.lX, dt);
+      leftArm.elbow.rotation.z = step('lE', pose.lE, dt, 100, 10);
+      rightArm.shoulder.rotation.z = step('rZ', pose.rZ, dt);
+      rightArm.shoulder.rotation.x = -step('rX', pose.rX, dt);
+      rightArm.elbow.rotation.x = -step('rE', pose.rE, dt, 100, 10);
+
+      // Hair, ribbons and skirt swing against the motion
+      const tailZ = step('tailZ', -pelvis.rotation.z * 2 - head.rotation.z * 1.3, dt, 22, 4);
+      const tailX = step('tailX', Math.max(-0.7, Math.min(0.7, liftVel * 0.15)) + pose.bend * 0.6, dt, 22, 4);
+      for (const tw of twinTails) {
+        tw.pivot.rotation.z = tw.s * 0.22 + tailZ + Math.sin(t * 2 + tw.phase) * 0.04;
+        tw.pivot.rotation.x = tailX + 0.1;
+      }
+      const lockZ = step('lockZ', -head.rotation.z * 0.8, dt, 35, 5);
+      for (const lk of sideLocks) lk.rotation.z = lockZ;
+      for (const tl of tails) tl.pivot.rotation.z = tl.base + Math.sin(t * 5 + tl.phase) * 0.18 + tailX * 0.4;
+      ahoge.rotation.z = Math.sin(t * 4) * 0.12 + tailZ * 0.5;
+      skirtPivot.rotation.z = step('skZ', -pelvis.rotation.z * 1.5, dt, 30, 5);
+      skirt.scale.x = step('skW', 1 + Math.min(0.25, Math.abs(liftVel) * 0.06), dt, 40, 6);
+
+      if (faceMat.map !== faces[pose.face]) faceMat.map = faces[pose.face];
+      orbit.rotation.y = t * 0.9;
+      miniEarth.rotation.y = t * 2;
+      shadow.scale.setScalar(1 - Math.min(lift, 1.2) * 0.35);
+      for (const s of stars) {
+        const k = (Math.sin(t * 2.2 + s.ph) + 1) / 2;
+        s.sp.scale.setScalar(0.12 + k * 0.3);
+        s.sp.material.rotation = t * 0.6 + s.ph;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      fitFov();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

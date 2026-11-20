@@ -205,7 +205,7 @@ export function EmptyLearnState({ waHref }: { waHref: string }) {
 // Hal yang bikin tenang sebelum dan sesudah bayar. Hanya fakta yang benar-benar berlaku.
 export function TrustPoints() {
   const points = [
-    { icon: "👥", title: "Kelas kecil", body: "Maksimal 10 orang, semua sempat latihan bicara." },
+    { icon: "👥", title: "Kelas kecil", body: "Maksimal 15 orang, semua sempat latihan bicara." },
     { icon: "▶", title: "Ada rekaman", body: "Berhalangan? Tonton rekamannya, tetap dihitung hadir." },
     { icon: "↩", title: "Refund jelas", body: "Batal sebelum kelas pertama, uang kembali 90%." },
     { icon: "💬", title: "Admin siap bantu", body: `Tanya lewat WhatsApp atau email ${site.email}.` },
